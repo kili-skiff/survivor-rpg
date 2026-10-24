@@ -6,12 +6,13 @@ import { WEAPONS } from '../config/weapons';
 import type { InputState } from '../input/InputState';
 import { formatTime, xpToNext } from '../logic/progression';
 import { loadSave, safeStorage } from '../logic/save';
+import { isSegmentWarning, segmentRemaining } from '../logic/segment';
 import { describeUpgrade, type UpgradeOption } from '../logic/upgrades';
 import { safeArea, viewportSize, type SafeArea } from '../ui/display';
 import { COLORS, css, FONT } from '../ui/theme';
-import type { GameOverInfo, GameScene } from './GameScene';
+import type { GameScene, RunEndInfo } from './GameScene';
 
-type OverlayKind = 'none' | 'start' | 'levelup' | 'pause' | 'gameover';
+type OverlayKind = 'none' | 'start' | 'levelup' | 'pause' | 'runend';
 
 interface SkillButton {
   id: SkillId;
@@ -32,6 +33,7 @@ export class UIScene extends Phaser.Scene {
   private controls!: InputState;
   private hud!: Phaser.GameObjects.Graphics;
   private timerText!: Phaser.GameObjects.Text;
+  private segmentText!: Phaser.GameObjects.Text;
   private levelText!: Phaser.GameObjects.Text;
   private hpText!: Phaser.GameObjects.Text;
   private killsText!: Phaser.GameObjects.Text;
@@ -52,7 +54,7 @@ export class UIScene extends Phaser.Scene {
   private overlayOpenedAt = 0;
   private levelUpOptions: UpgradeOption[] = [];
   private levelUpLevel = 1;
-  private gameOverInfo?: GameOverInfo;
+  private runEndInfo?: RunEndInfo;
   private pressedCard = -1;
 
   /** UI scale (accounts for pixel density and screen size) */
@@ -87,6 +89,7 @@ export class UIScene extends Phaser.Scene {
       strokeThickness: 3,
     });
     this.timerText = this.add.text(0, 0, '00:00', textStyle(22)).setOrigin(0.5, 0);
+    this.segmentText = this.add.text(0, 0, '', textStyle(11, false)).setOrigin(0.5, 0);
     this.levelText = this.add.text(0, 0, 'Level 1', textStyle(14));
     this.hpText = this.add.text(0, 0, '', textStyle(10)).setOrigin(0.5, 0.5).setDepth(1);
     this.killsText = this.add.text(0, 0, '', textStyle(14)).setOrigin(1, 0);
@@ -105,12 +108,12 @@ export class UIScene extends Phaser.Scene {
     this.layout();
     this.scale.on('resize', this.onResize, this);
     this.gs.events.on('levelup', this.onLevelUp, this);
-    this.gs.events.on('gameover', this.onGameOver, this);
+    this.gs.events.on('runend', this.onRunEnd, this);
     this.game.events.on(Phaser.Core.Events.HIDDEN, this.onHidden, this);
     this.events.once('shutdown', () => {
       this.scale.off('resize', this.onResize, this);
       this.gs.events.off('levelup', this.onLevelUp, this);
-      this.gs.events.off('gameover', this.onGameOver, this);
+      this.gs.events.off('runend', this.onRunEnd, this);
       this.game.events.off(Phaser.Core.Events.HIDDEN, this.onHidden, this);
     });
 
@@ -144,7 +147,7 @@ export class UIScene extends Phaser.Scene {
       if (action) this.controls.press(action);
     } else if (this.overlayKind === 'start') this.startRun();
     else if (this.overlayKind === 'pause') this.togglePause();
-    else if (this.overlayKind === 'gameover' && this.time.now - this.overlayOpenedAt > 600)
+    else if (this.overlayKind === 'runend' && this.time.now - this.overlayOpenedAt > 600)
       this.gs.restartRun();
   }
 
@@ -234,7 +237,7 @@ export class UIScene extends Phaser.Scene {
     if (kind === 'start') this.showStart();
     else if (kind === 'levelup') this.showLevelUp();
     else if (kind === 'pause') this.showPause();
-    else if (kind === 'gameover' && this.gameOverInfo) this.showGameOver(this.gameOverInfo);
+    else if (kind === 'runend' && this.runEndInfo) this.showRunEnd(this.runEndInfo);
   }
 
   private layout(): void {
@@ -252,6 +255,7 @@ export class UIScene extends Phaser.Scene {
     const right = W - this.sa.right - m;
 
     this.timerText.setFontSize(Math.round(22 * u)).setPosition(W / 2, top + 4 * u);
+    this.segmentText.setFontSize(Math.round(11 * u)).setPosition(W / 2, top + 32 * u);
     this.levelText.setFontSize(Math.round(14 * u)).setPosition(left, top + 24 * u);
     this.hpText.setFontSize(Math.round(10 * u)).setPosition(left + 75 * u, top + 12 * u);
     this.pauseBtn
@@ -309,7 +313,11 @@ export class UIScene extends Phaser.Scene {
 
     this.hpText.setText(`${Math.ceil(run.hp)}/${run.stats.maxHp}`);
     this.levelText.setText(`Level ${run.level}`);
-    this.timerText.setText(formatTime(run.time));
+    // The timer counts down to the end of the segment.
+    this.timerText
+      .setText(formatTime(Math.ceil(segmentRemaining(run.segment, run.time))))
+      .setColor(isSegmentWarning(run.segment, run.time) ? css(COLORS.accent) : '#ffffff');
+    this.segmentText.setText(run.segment.name);
     this.killsText.setText(`☠ ${run.kills}`);
 
     // Skill buttons with cooldown
@@ -459,31 +467,38 @@ export class UIScene extends Phaser.Scene {
     const { width: W, height: H } = this.scale;
     const u = this.u;
     const save = loadSave(safeStorage());
-    this.text(W / 2, H * 0.24, 'NIGHTWATCH', 40, {
+    const seg = this.gs.run.segment;
+
+    // Stack the content from the title downwards so it never overlaps in landscape.
+    const titleY = Math.max(H * 0.2, this.sa.top + 90 * u);
+    this.text(W / 2, titleY, 'NIGHTWATCH', 40, {
       fontStyle: 'bold',
       color: css(COLORS.accent),
       stroke: '#000',
       strokeThickness: 6,
     });
-    this.text(W / 2, H * 0.24 + 40 * u, 'Survivor RPG · Prototype', 15, { color: '#c4b5fd' });
+    this.text(W / 2, titleY + 40 * u, 'Survivor RPG · Prototype', 15, { color: '#c4b5fd' });
+    this.text(W / 2, titleY + 82 * u, `Survive ${formatTime(seg.durationSec)} in the ${seg.name}`, 16, {
+      fontStyle: 'bold',
+      color: css(COLORS.accent),
+    });
 
     const help = this.isTouch
       ? 'Drag anywhere with your thumb to move\nButtons on the right: Dash and Frost Nova\nYou attack automatically'
       : 'WASD / arrow keys: move\nSpace or Q: Dash · E: Frost Nova\nYou attack automatically · P: Pause';
-    this.text(W / 2, H * 0.5, help, 15, { lineSpacing: 6 * u, color: '#e5e7eb' });
+    this.text(W / 2, titleY + 150 * u, help, 15, { lineSpacing: 6 * u, color: '#e5e7eb' });
 
     if (save.runs > 0) {
       this.text(
         W / 2,
-        H * 0.5 + 62 * u,
-        `Best ${formatTime(save.bestTime)} · ${save.bestKills} kills · level ${save.bestLevel}`,
+        titleY + 215 * u,
+        `Areas cleared ${save.segmentsCleared} · best ${save.bestKills} kills · level ${save.bestLevel}`,
         13,
-        {
-          color: '#a1a1aa',
-        },
+        { color: '#a1a1aa' },
       );
     }
-    this.button(W / 2, H * 0.74, 'Play', () => this.startRun());
+    const buttonY = Math.min(Math.max(titleY + 275 * u, H * 0.74), H - this.sa.bottom - 50 * u);
+    this.button(W / 2, buttonY, 'Play', () => this.startRun());
   }
 
   private startRun(): void {
@@ -652,34 +667,39 @@ export class UIScene extends Phaser.Scene {
     this.button(W / 2, H * 0.5 + 64 * u, 'Restart', () => this.gs.restartRun(), false);
   }
 
-  private onGameOver(info: GameOverInfo): void {
-    this.gameOverInfo = info;
-    this.showGameOver(info);
+  private onRunEnd(info: RunEndInfo): void {
+    this.runEndInfo = info;
+    this.showRunEnd(info);
   }
 
-  private showGameOver(info: GameOverInfo): void {
-    this.beginOverlay('gameover', 0.7);
+  private showRunEnd(info: RunEndInfo): void {
+    this.beginOverlay('runend', 0.7);
     const { width: W, height: H } = this.scale;
     const u = this.u;
-    this.text(W / 2, H * 0.22, 'You Fell', 38, {
+    const cleared = info.outcome === 'cleared';
+    this.text(W / 2, H * 0.22, cleared ? 'Area Cleared' : 'You Fell', 38, {
       fontStyle: 'bold',
-      color: '#fb7185',
+      color: cleared ? css(COLORS.accent) : '#fb7185',
       stroke: '#000',
       strokeThickness: 6,
     });
-    if (info.newBestTime)
-      this.text(W / 2, H * 0.22 + 40 * u, 'New best time!', 16, {
-        color: css(COLORS.accent),
+    const subtitle = cleared ? info.segment.name : info.newBestTime ? 'New best time!' : '';
+    if (subtitle) {
+      this.text(W / 2, H * 0.22 + 40 * u, subtitle, 16, {
+        color: cleared ? '#e5e7eb' : css(COLORS.accent),
         fontStyle: 'bold',
       });
-    const lines = [`Survived  ${formatTime(info.time)}`, `Level  ${info.level}`, `Kills  ${info.kills}`].join(
-      '\n',
-    );
+    }
+    const lines = [
+      `Time  ${formatTime(info.time)} / ${formatTime(info.segment.durationSec)}`,
+      `Level  ${info.level}`,
+      `Kills  ${info.kills}`,
+    ].join('\n');
     this.text(W / 2, H * 0.44, lines, 20, { lineSpacing: 10 * u, fontStyle: 'bold' });
     this.text(
       W / 2,
       H * 0.44 + 70 * u,
-      `Best ${formatTime(info.save.bestTime)} · Runs ${info.save.runs}`,
+      `Areas cleared ${info.save.segmentsCleared} · Runs ${info.save.runs}`,
       13,
       { color: '#a1a1aa' },
     );

@@ -5,6 +5,7 @@ import { SKILLS } from '../config/skills';
 import { WEAPONS } from '../config/weapons';
 import { addXp, formatTime, xpToNext } from './progression';
 import { emptySave, loadSave, migrate, recordRun, SAVE_VERSION } from './save';
+import { isSegmentCleared, isSegmentWarning, segmentProgress, segmentRemaining } from './segment';
 import { enemyHpMultiplier, pickEnemy, spawnIntervalMs } from './spawning';
 import {
   applyLevels,
@@ -140,6 +141,24 @@ describe('spawning', () => {
   });
 });
 
+describe('segment', () => {
+  const def = { id: 'test', name: 'Test', durationSec: 100, warningSec: 10 };
+
+  it('counts down and clears at the duration', () => {
+    expect(segmentRemaining(def, 0)).toBe(100);
+    expect(segmentRemaining(def, 130)).toBe(0);
+    expect(isSegmentCleared(def, 99.9)).toBe(false);
+    expect(isSegmentCleared(def, 100)).toBe(true);
+    expect(segmentProgress(def, 50)).toBe(0.5);
+  });
+
+  it('warns only in the last seconds', () => {
+    expect(isSegmentWarning(def, 80)).toBe(false);
+    expect(isSegmentWarning(def, 95)).toBe(true);
+    expect(isSegmentWarning(def, 100)).toBe(false);
+  });
+});
+
 describe('save', () => {
   it('migrates old or broken data', () => {
     expect(migrate(null)).toEqual(emptySave());
@@ -152,12 +171,18 @@ describe('save', () => {
     expect(loadSave(broken)).toEqual(emptySave());
   });
 
-  it('records best values', () => {
-    const s = recordRun(recordRun(emptySave(), { time: 60, kills: 10, level: 3 }), {
+  it('records best values and cleared segments', () => {
+    const s = recordRun(recordRun(emptySave(), { time: 60, kills: 10, level: 3, cleared: true }), {
       time: 30,
       kills: 50,
       level: 2,
+      cleared: false,
     });
-    expect(s).toMatchObject({ bestTime: 60, bestKills: 50, bestLevel: 3, runs: 2 });
+    expect(s).toMatchObject({ bestTime: 60, bestKills: 50, bestLevel: 3, runs: 2, segmentsCleared: 1 });
+  });
+
+  it('migrates a version 1 save without losing data', () => {
+    const v1 = { version: 1, bestTime: 120, bestKills: 300, bestLevel: 9, runs: 4 };
+    expect(migrate(v1)).toEqual({ ...v1, version: SAVE_VERSION, segmentsCleared: 0 });
   });
 });

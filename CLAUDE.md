@@ -28,8 +28,8 @@ Goal: web first, native apps later (Capacitor for Android/iOS, Tauri for desktop
 
 ```
 src/
-  config/    Game data: weapons, items, skills, enemies, balancing (NO Phaser)
-  logic/     Pure game logic: stats, XP, upgrades, spawning, save data (NO Phaser, tested)
+  config/    Game data: weapons, items, skills, enemies, segments, balancing (NO Phaser)
+  logic/     Pure game logic: stats, XP, upgrades, spawning, segments, save data (NO Phaser, tested)
   entities/  Pooled Phaser objects (Enemy, Projectile, Pickup)
   input/     InputState: one input layer for touch, keyboard, later gamepads
   systems/   Gameplay behaviour, one job per file:
@@ -66,7 +66,7 @@ src/
 
 A small but complete piece of the game from `docs/vision.md`. Each step is its own PR.
 
-- [ ] Segments with a goal (e.g. survive N minutes) and a result screen
+- [x] Segments with a goal (e.g. survive N minutes) and a result screen
 - [ ] Hex world map from a seed: rings, biomes, fog of war; tap a neighbour hex to play it
 - [ ] Expeditions: build carries over between segments, camps as waypoints, partial loot loss on death
 - [ ] Village as the starting point (simple screen: stash and "set out")
