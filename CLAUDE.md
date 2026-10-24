@@ -1,4 +1,4 @@
-# Nachtwache – Survivor RPG
+# Nightwatch – Survivor RPG
 
 A survivors-like game in the spirit of Vampire Survivors, with RPG progression and active skills.
 Goal: web first, native apps later (Capacitor for Android/iOS, Tauri for desktop).
@@ -47,8 +47,7 @@ src/
 7. **Mobile first:** Check every UI change in portrait and landscape. Scale UI sizes with `this.u`.
 8. **Phaser 4:** `setTintFill()` no longer exists; use `setTint(c).setTintMode(Phaser.TintModes.FILL)`.
    Phaser ships its own guides in `node_modules/phaser/skills/`.
-9. **Language:** Code, comments, docs, commit messages and PRs are in English.
-   In-game text (names, descriptions, menus) is German for now.
+9. **Language:** Everything is in English: code, comments, docs, commit messages, PRs and in-game text.
 10. **Git:** Small commits, one feature per branch. Claude may be listed as co-author
     (`Co-Authored-By`), but commit messages and PR descriptions never contain session links.
 

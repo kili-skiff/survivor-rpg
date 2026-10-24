@@ -87,7 +87,7 @@ export class UIScene extends Phaser.Scene {
       strokeThickness: 3,
     });
     this.timerText = this.add.text(0, 0, '00:00', textStyle(22)).setOrigin(0.5, 0);
-    this.levelText = this.add.text(0, 0, 'Stufe 1', textStyle(14));
+    this.levelText = this.add.text(0, 0, 'Level 1', textStyle(14));
     this.hpText = this.add.text(0, 0, '', textStyle(10)).setOrigin(0.5, 0.5).setDepth(1);
     this.killsText = this.add.text(0, 0, '', textStyle(14)).setOrigin(1, 0);
     this.pauseBtn = this.add
@@ -96,8 +96,8 @@ export class UIScene extends Phaser.Scene {
       .setInteractive({ useHandCursor: true });
     this.pauseBtn.on('pointerdown', () => this.togglePause());
 
-    this.createSkillButton('dash', this.isTouch ? 'Sprung' : 'Sprung · Leertaste');
-    this.createSkillButton('nova', this.isTouch ? 'Frost' : 'Frost · E');
+    this.createSkillButton('dash', this.isTouch ? 'Dash' : 'Dash · Space');
+    this.createSkillButton('nova', this.isTouch ? 'Nova' : 'Nova · E');
 
     this.setupKeyboard();
     this.setupJoystick();
@@ -308,7 +308,7 @@ export class UIScene extends Phaser.Scene {
       g.fillStyle(COLORS.hp).fillRoundedRect(left, hpY, Math.max(hpW * hpFrac, 8 * u), hpH, 4 * u);
 
     this.hpText.setText(`${Math.ceil(run.hp)}/${run.stats.maxHp}`);
-    this.levelText.setText(`Stufe ${run.level}`);
+    this.levelText.setText(`Level ${run.level}`);
     this.timerText.setText(formatTime(run.time));
     this.killsText.setText(`☠ ${run.kills}`);
 
@@ -459,31 +459,31 @@ export class UIScene extends Phaser.Scene {
     const { width: W, height: H } = this.scale;
     const u = this.u;
     const save = loadSave(safeStorage());
-    this.text(W / 2, H * 0.24, 'NACHTWACHE', 40, {
+    this.text(W / 2, H * 0.24, 'NIGHTWATCH', 40, {
       fontStyle: 'bold',
       color: css(COLORS.accent),
       stroke: '#000',
       strokeThickness: 6,
     });
-    this.text(W / 2, H * 0.24 + 40 * u, 'Survivor-RPG · Prototyp', 15, { color: '#c4b5fd' });
+    this.text(W / 2, H * 0.24 + 40 * u, 'Survivor RPG · Prototype', 15, { color: '#c4b5fd' });
 
     const help = this.isTouch
-      ? 'Linker Daumen: irgendwo hinziehen zum Laufen\nRechts: Sprung und Frostnova\nAngriffe passieren automatisch'
-      : 'WASD / Pfeiltasten: laufen\nLeertaste oder Q: Sprung · E: Frostnova\nAngriffe passieren automatisch · P: Pause';
+      ? 'Drag anywhere with your thumb to move\nButtons on the right: Dash and Frost Nova\nYou attack automatically'
+      : 'WASD / arrow keys: move\nSpace or Q: Dash · E: Frost Nova\nYou attack automatically · P: Pause';
     this.text(W / 2, H * 0.5, help, 15, { lineSpacing: 6 * u, color: '#e5e7eb' });
 
     if (save.runs > 0) {
       this.text(
         W / 2,
         H * 0.5 + 62 * u,
-        `Bestzeit ${formatTime(save.bestTime)} · ${save.bestKills} Kills · Stufe ${save.bestLevel}`,
+        `Best ${formatTime(save.bestTime)} · ${save.bestKills} kills · level ${save.bestLevel}`,
         13,
         {
           color: '#a1a1aa',
         },
       );
     }
-    this.button(W / 2, H * 0.74, 'Spielen', () => this.startRun());
+    this.button(W / 2, H * 0.74, 'Play', () => this.startRun());
   }
 
   private startRun(): void {
@@ -505,13 +505,13 @@ export class UIScene extends Phaser.Scene {
     const landscape = W > H * 1.15;
 
     const titleY = this.sa.top + (landscape ? 46 : 64) * u;
-    this.text(W / 2, titleY, `Stufe ${this.levelUpLevel}!`, 30, {
+    this.text(W / 2, titleY, `Level ${this.levelUpLevel}!`, 30, {
       fontStyle: 'bold',
       color: css(COLORS.accent),
       stroke: '#000',
       strokeThickness: 5,
     });
-    this.text(W / 2, titleY + 32 * u, 'Wähle eine Verbesserung', 14, { color: '#d4d4d8' });
+    this.text(W / 2, titleY + 32 * u, 'Choose an upgrade', 14, { color: '#d4d4d8' });
 
     const gap = 12 * u;
     const startY = titleY + 62 * u;
@@ -647,9 +647,9 @@ export class UIScene extends Phaser.Scene {
     this.beginOverlay('pause', 0.6);
     const { width: W, height: H } = this.scale;
     const u = this.u;
-    this.text(W / 2, H * 0.3, 'Pausiert', 34, { fontStyle: 'bold' });
-    this.button(W / 2, H * 0.5, 'Weiter', () => this.togglePause());
-    this.button(W / 2, H * 0.5 + 64 * u, 'Neu starten', () => this.gs.restartRun(), false);
+    this.text(W / 2, H * 0.3, 'Paused', 34, { fontStyle: 'bold' });
+    this.button(W / 2, H * 0.5, 'Resume', () => this.togglePause());
+    this.button(W / 2, H * 0.5 + 64 * u, 'Restart', () => this.gs.restartRun(), false);
   }
 
   private onGameOver(info: GameOverInfo): void {
@@ -661,30 +661,30 @@ export class UIScene extends Phaser.Scene {
     this.beginOverlay('gameover', 0.7);
     const { width: W, height: H } = this.scale;
     const u = this.u;
-    this.text(W / 2, H * 0.22, 'Gefallen', 38, {
+    this.text(W / 2, H * 0.22, 'You Fell', 38, {
       fontStyle: 'bold',
       color: '#fb7185',
       stroke: '#000',
       strokeThickness: 6,
     });
     if (info.newBestTime)
-      this.text(W / 2, H * 0.22 + 40 * u, 'Neue Bestzeit!', 16, {
+      this.text(W / 2, H * 0.22 + 40 * u, 'New best time!', 16, {
         color: css(COLORS.accent),
         fontStyle: 'bold',
       });
-    const lines = [
-      `Überlebt  ${formatTime(info.time)}`,
-      `Stufe  ${info.level}`,
-      `Besiegt  ${info.kills}`,
-    ].join('\n');
+    const lines = [`Survived  ${formatTime(info.time)}`, `Level  ${info.level}`, `Kills  ${info.kills}`].join(
+      '\n',
+    );
     this.text(W / 2, H * 0.44, lines, 20, { lineSpacing: 10 * u, fontStyle: 'bold' });
     this.text(
       W / 2,
       H * 0.44 + 70 * u,
-      `Bestzeit ${formatTime(info.save.bestTime)} · Runs ${info.save.runs}`,
+      `Best ${formatTime(info.save.bestTime)} · Runs ${info.save.runs}`,
       13,
       { color: '#a1a1aa' },
     );
-    this.button(W / 2, H * 0.72, this.isTouch ? 'Nochmal' : 'Nochmal (Enter)', () => this.gs.restartRun());
+    this.button(W / 2, H * 0.72, this.isTouch ? 'Play again' : 'Play again (Enter)', () =>
+      this.gs.restartRun(),
+    );
   }
 }

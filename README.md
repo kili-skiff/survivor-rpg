@@ -1,4 +1,4 @@
-# Nachtwache
+# Nightwatch
 
 A survivors-like RPG prototype: survive waves of enemies, collect XP, pick upgrades and use active skills.
 Runs in the browser on phones, tablets and desktop.

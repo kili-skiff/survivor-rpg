@@ -3,7 +3,7 @@ import type { EnemyDef, EnemyId } from './types';
 export const ENEMIES: Record<EnemyId, EnemyDef> = {
   bat: {
     id: 'bat',
-    name: 'Fledermaus',
+    name: 'Bat',
     texture: 'enemy-bat',
     radius: 9,
     hp: 10,
@@ -27,7 +27,7 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
   },
   ghoul: {
     id: 'ghoul',
-    name: 'Ghul',
+    name: 'Ghoul',
     texture: 'enemy-ghoul',
     radius: 12,
     hp: 22,
@@ -39,7 +39,7 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
   },
   brute: {
     id: 'brute',
-    name: 'Koloss',
+    name: 'Colossus',
     texture: 'enemy-brute',
     radius: 22,
     hp: 160,
