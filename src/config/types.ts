@@ -95,3 +95,13 @@ export interface EnemyDef {
   /** Relative spawn weight */
   weight: number;
 }
+
+/** One hex segment of an expedition. For now there is only a single default segment. */
+export interface SegmentDef {
+  id: string;
+  name: string;
+  /** Survive this long to clear the segment (seconds) */
+  durationSec: number;
+  /** The countdown turns into a warning colour for the last N seconds */
+  warningSec: number;
+}

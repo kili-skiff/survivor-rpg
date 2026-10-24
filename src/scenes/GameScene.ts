@@ -1,12 +1,14 @@
 import * as Phaser from 'phaser';
 import { BALANCE } from '../config/balance';
-import type { PlayerStats, SkillId, SkillStats, WeaponId, WeaponStats } from '../config/types';
+import { DEFAULT_SEGMENT } from '../config/segments';
+import type { PlayerStats, SegmentDef, SkillId, SkillStats, WeaponId, WeaponStats } from '../config/types';
 import { START_WEAPON } from '../config/weapons';
 import type { Enemy } from '../entities/Enemy';
 import type { Pickup } from '../entities/Pickup';
 import { InputState } from '../input/InputState';
 import { addXp } from '../logic/progression';
 import { loadSave, recordRun, safeStorage, writeSave, type SaveData } from '../logic/save';
+import { isSegmentCleared, type RunOutcome } from '../logic/segment';
 import {
   computePlayerStats,
   computeSkillStats,
@@ -29,7 +31,10 @@ import { COLORS } from '../ui/theme';
 /** Everything the HUD needs to know about the current run. */
 export interface RunState {
   started: boolean;
+  /** True while the segment is being played (not cleared, not fallen) */
   alive: boolean;
+  segment: SegmentDef;
+  outcome: RunOutcome | null;
   time: number;
   hp: number;
   level: number;
@@ -39,7 +44,9 @@ export interface RunState {
   stats: PlayerStats;
 }
 
-export interface GameOverInfo {
+export interface RunEndInfo {
+  outcome: RunOutcome;
+  segment: SegmentDef;
   time: number;
   level: number;
   kills: number;
@@ -117,6 +124,8 @@ export class GameScene extends Phaser.Scene {
     this.run = {
       started: this.registry.get('started') === true,
       alive: true,
+      segment: DEFAULT_SEGMENT,
+      outcome: null,
       time: 0,
       hp: stats.maxHp,
       level: 1,
@@ -209,6 +218,7 @@ export class GameScene extends Phaser.Scene {
     this.numbers.update(dt);
 
     if (this.run.stats.regen > 0) this.heal(this.run.stats.regen * dt);
+    if (isSegmentCleared(this.run.segment, this.run.time)) this.endRun('cleared');
   }
 
   /** Recomputes all stats after the loadout changed and creates newly acquired weapons. */
@@ -273,7 +283,11 @@ export class GameScene extends Phaser.Scene {
     const dmg = damageAfterArmor(e.def.damage, this.run.stats.armor);
     this.run.hp -= dmg;
     this.numbers.show(this.player.x, this.player.y - 22, `-${Math.round(dmg)}`, '#ff6b81', true);
-    if (this.run.hp <= 0) this.die();
+    if (this.run.hp <= 0) {
+      this.run.hp = 0;
+      this.player.showDefeated();
+      this.endRun('fallen');
+    }
   }
 
   private onEnemyKilled(e: Enemy): void {
@@ -304,19 +318,28 @@ export class GameScene extends Phaser.Scene {
     this.events.emit('levelup', rollUpgradeOptions(this.run.loadout, Math.random), this.run.level);
   }
 
-  private die(): void {
-    this.run.hp = 0;
+  /** Ends the segment, either cleared or fallen, and reports the result to the HUD. */
+  private endRun(outcome: RunOutcome): void {
+    if (!this.run.alive) return;
     this.run.alive = false;
-    this.player.showDefeated();
+    this.run.outcome = outcome;
+    this.player.stop();
     this.physics.pause();
 
     const storage = safeStorage();
     const before = loadSave(storage);
     const time = Math.floor(this.run.time);
-    const save = recordRun(before, { time, kills: this.run.kills, level: this.run.level });
+    const save = recordRun(before, {
+      time,
+      kills: this.run.kills,
+      level: this.run.level,
+      cleared: outcome === 'cleared',
+    });
     writeSave(storage, save);
 
-    const info: GameOverInfo = {
+    const info: RunEndInfo = {
+      outcome,
+      segment: this.run.segment,
       time,
       level: this.run.level,
       kills: this.run.kills,
@@ -324,6 +347,6 @@ export class GameScene extends Phaser.Scene {
       newBestTime: time > before.bestTime,
     };
     this.controls.reset();
-    this.events.emit('gameover', info);
+    this.events.emit('runend', info);
   }
 }
