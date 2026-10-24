@@ -34,10 +34,3 @@ export class Projectile extends Phaser.Physics.Arcade.Image {
     this.disableBody(true, true);
   }
 }
-
-/** XP gem or heal pickup. */
-export class Pickup extends Phaser.GameObjects.Image {
-  value = 0;
-  kind: 'xp' | 'heal' = 'xp';
-  attracted = false;
-}

@@ -29,14 +29,20 @@ src/
   logic/     Pure game logic: stats, XP, upgrades, spawning, save data (NO Phaser, tested)
   entities/  Pooled Phaser objects (Enemy, Projectile, Pickup)
   input/     InputState: one input layer for touch, keyboard, later gamepads
-  scenes/    Boot (placeholder graphics), Game (world), UI (HUD, touch, menus)
+  systems/   Gameplay behaviour, one job per file:
+    weapons/   one class per weapon + factory in index.ts
+    skills/    active skills (e.g. Frost Nova)
+    PlayerController, EnemySystem, PickupSystem, DamageNumbers
+  scenes/    Boot (placeholder graphics), Game (owns run state, wires systems), UI (HUD, touch, menus)
   ui/        Display helpers (pixel density, safe area), colors
 ```
 
 ## Rules
 
 1. **Data-driven:** Add new weapons, items, skills and enemies in `src/config/` first.
-   Only behaviour (e.g. how a weapon fires) goes into the GameScene.
+   Behaviour goes into `src/systems/`: a new weapon is a new class in `systems/weapons/`,
+   registered in `systems/weapons/index.ts`. Systems talk to the game through `CombatContext`.
+   The GameScene only owns the run state and connects systems; keep gameplay logic out of it.
 2. **logic/ and config/ never import Phaser.** ESLint enforces this. New logic there gets tests.
 3. **Object pooling:** Reuse enemies, projectiles and pickups via Phaser groups with `maxSize`;
    never create and destroy them inside the game loop.
