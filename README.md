@@ -5,6 +5,8 @@ Runs in the browser on phones, tablets and desktop.
 
 **Play it:** https://kili-skiff.github.io/survivor-rpg/
 
+Every pull request also gets its own playable preview, linked in a comment on the PR.
+
 ## Controls
 
 |              | Phone                      | Desktop       |
