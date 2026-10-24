@@ -65,6 +65,16 @@ stronger: with a better class build, a growing herb garden and potions for the n
 - Leaderboards need a server and come later.
 - Proposed: map, waypoints and collected herbs reset; class unlocks, recipes and the village stay.
 
+## Look and feel
+
+- **Mood:** dark fantasy in the spirit of Diablo 2. Night is the central theme.
+- **Light matters:** the player carries a light, torches and camps are islands of light in the dark.
+  Light radius could become a stat (potions, skill tree), and enemies could be more dangerous in darkness.
+- **Perspective is not decided yet:** isometric (more atmosphere, much more art work) or 3/4 top-down
+  (cheaper art, better readability on phones). Decide before the art pass, at the latest before the
+  village gets its visual design. A good tie-breaker: the asset pack or artist we can actually get.
+- Until then the game keeps its current placeholder view; gameplay work does not depend on this choice.
+
 ## Platforms
 
 - Web first (playable via GitHub Pages), then installable PWA, then native apps
@@ -78,5 +88,6 @@ stronger: with a better class build, a growing herb garden and potions for the n
 - How long should a full expedition take?
 - What exactly survives a new season?
 - Do herbs grow in real time, per expedition, or per in-game day?
-- Mood and art style are not decided yet.
+- Perspective: isometric or 3/4 top-down (see Look and feel).
+- Art source: asset packs, 3D models rendered to sprites, or commissioned pixel art.
 - Online features (leaderboards, maybe co-op) and when they make sense.
