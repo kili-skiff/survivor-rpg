@@ -2,8 +2,6 @@
 export const BALANCE = {
   /** Invulnerability after taking a hit (ms) */
   hurtInvulnMs: 450,
-  /** How often a blade may hit the same enemy (ms) */
-  bladeHitIntervalMs: 380,
   /** Range within which bolts target enemies (px) */
   boltRange: 520,
   /** Bolt lifetime (ms) */

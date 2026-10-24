@@ -1,0 +1,168 @@
+import * as Phaser from 'phaser';
+import { BALANCE } from '../config/balance';
+import { ENEMIES } from '../config/enemies';
+import type { EnemyDef } from '../config/types';
+import { Enemy } from '../entities/Enemy';
+import { enemyHpMultiplier, maxEnemies, pickEnemy, spawnBatchSize, spawnIntervalMs } from '../logic/spawning';
+import type { DamageNumbers } from './DamageNumbers';
+
+const ENEMY_LIST: EnemyDef[] = Object.values(ENEMIES);
+const SEPARATION_CELL = 36;
+const MAX_PER_CELL = 6;
+
+interface Target {
+  x: number;
+  y: number;
+}
+
+/** Spawns, moves, separates and damages the enemy horde. */
+export class EnemySystem {
+  readonly group: Phaser.Physics.Arcade.Group;
+  /** Diagonal of the visible world area; set by the scene on resize */
+  viewDiag = 1000;
+  private spawnTimer = 400;
+  private readonly grid = new Map<number, Enemy[]>();
+
+  constructor(
+    scene: Phaser.Scene,
+    private readonly target: Target,
+    private readonly now: () => number,
+    private readonly numbers: DamageNumbers,
+    private readonly onKilled: (e: Enemy) => void,
+  ) {
+    this.group = scene.physics.add.group({ classType: Enemy, maxSize: BALANCE.maxEnemiesHardCap });
+  }
+
+  *active(): Generator<Enemy> {
+    const list = this.group.getChildren() as Enemy[];
+    for (let i = 0; i < list.length; i++) {
+      if (list[i].active) yield list[i];
+    }
+  }
+
+  /** Up to `count` living enemies within `range` of the player, nearest first. */
+  nearest(count: number, range: number): Enemy[] {
+    const { x: px, y: py } = this.target;
+    const best: { e: Enemy; d: number }[] = [];
+    const r2 = range * range;
+    for (const e of this.active()) {
+      const d = (e.x - px) ** 2 + (e.y - py) ** 2;
+      if (d > r2) continue;
+      if (best.length < count) {
+        best.push({ e, d });
+        best.sort((a, b) => a.d - b.d);
+      } else if (d < best[best.length - 1].d) {
+        best[best.length - 1] = { e, d };
+        best.sort((a, b) => a.d - b.d);
+      }
+    }
+    return best.map((b) => b.e);
+  }
+
+  damage(e: Enemy, amount: number, knockX = 0, knockY = 0): void {
+    if (!e.active) return;
+    e.hp -= amount;
+    e.flashUntil = this.now() + 70;
+    e.x += knockX;
+    e.y += knockY;
+    this.numbers.show(e.x, e.y - e.def.radius - 4, String(Math.round(amount)));
+    if (e.hp <= 0) {
+      this.onKilled(e);
+      e.despawn();
+    }
+  }
+
+  /** Spawns new waves based on the run time in seconds. */
+  spawn(dms: number, runTime: number): void {
+    this.spawnTimer -= dms;
+    if (this.spawnTimer > 0) return;
+    this.spawnTimer += spawnIntervalMs(runTime);
+    const limit = maxEnemies(runTime, BALANCE.maxEnemiesHardCap);
+    let alive = this.group.countActive(true);
+    const batch = spawnBatchSize(runTime);
+    for (let i = 0; i < batch && alive < limit; i++) {
+      const def = pickEnemy(runTime, ENEMY_LIST, Math.random);
+      const pos = this.spawnPoint();
+      const e = this.group.get(pos.x, pos.y, def.texture) as Enemy | null;
+      if (!e) break;
+      e.spawn(def, pos.x, pos.y, enemyHpMultiplier(runTime));
+      alive += 1;
+    }
+  }
+
+  update(): void {
+    const now = this.now();
+    const { x: px, y: py } = this.target;
+    const recycleDist = this.viewDiag * 0.8;
+    const grid = this.grid;
+    grid.clear();
+
+    for (const e of this.active()) {
+      const dx = px - e.x;
+      const dy = py - e.y;
+      const d = Math.hypot(dx, dy) || 1;
+
+      // Too far away? Move it to the other side instead of despawning (keeps the horde dense).
+      if (d > recycleDist) {
+        const pos = this.spawnPoint();
+        e.setPosition(pos.x, pos.y);
+        continue;
+      }
+
+      const slowed = now < e.slowUntil;
+      const speed = e.def.speed * e.speedJitter * (slowed ? e.slowFactor : 1);
+      e.setVelocity((dx / d) * speed, (dy / d) * speed);
+      e.setFlipX(dx < 0);
+      this.updateTint(e, now, slowed);
+
+      const key = Math.floor(e.x / SEPARATION_CELL) * 92821 + Math.floor(e.y / SEPARATION_CELL);
+      const bucket = grid.get(key);
+      if (bucket) {
+        if (bucket.length < MAX_PER_CELL) bucket.push(e);
+      } else grid.set(key, [e]);
+    }
+
+    this.separate();
+  }
+
+  private updateTint(e: Enemy, now: number, slowed: boolean): void {
+    const state = now < e.flashUntil ? 1 : slowed ? 2 : 0;
+    if (state === e.tintState) return;
+    e.tintState = state;
+    if (state === 1) e.setTint(0xffffff).setTintMode(Phaser.TintModes.FILL);
+    else if (state === 2) e.setTint(0x8fd3ff).setTintMode(Phaser.TintModes.MULTIPLY);
+    else e.clearTint().setTintMode(Phaser.TintModes.MULTIPLY);
+  }
+
+  /** Simple separation so enemies don't collapse into a single point. */
+  private separate(): void {
+    for (const bucket of this.grid.values()) {
+      for (let i = 0; i < bucket.length; i++) {
+        for (let j = i + 1; j < bucket.length; j++) {
+          const a = bucket[i];
+          const b = bucket[j];
+          const dx = b.x - a.x;
+          const dy = b.y - a.y;
+          const min = (a.def.radius + b.def.radius) * 0.9;
+          const d2 = dx * dx + dy * dy;
+          if (d2 < min * min) {
+            const d = Math.sqrt(d2) || 0.01;
+            const push = (min - d) * 0.5;
+            const nx = d2 > 0 ? dx / d : Math.random() - 0.5;
+            const ny = d2 > 0 ? dy / d : Math.random() - 0.5;
+            a.x -= nx * push;
+            a.y -= ny * push;
+            b.x += nx * push;
+            b.y += ny * push;
+          }
+        }
+      }
+    }
+  }
+
+  private spawnPoint(): { x: number; y: number } {
+    const angle = Math.random() * Math.PI * 2;
+    const dist = this.viewDiag / 2 + 40;
+    return { x: this.target.x + Math.cos(angle) * dist, y: this.target.y + Math.sin(angle) * dist };
+  }
+}
