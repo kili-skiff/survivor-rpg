@@ -101,7 +101,7 @@ export function describeUpgrade(option: UpgradeOption): UpgradeCard {
       const isNew = option.toLevel === 1;
       return {
         title: def.name,
-        badge: isNew ? 'NEUE WAFFE' : `WAFFE · STUFE ${option.toLevel}`,
+        badge: isNew ? 'NEW WEAPON' : `WEAPON · LEVEL ${option.toLevel}`,
         text: isNew ? def.description : def.levels[option.toLevel - 2].text,
         texture: def.texture,
         isNew,
@@ -112,7 +112,7 @@ export function describeUpgrade(option: UpgradeOption): UpgradeCard {
       const isNew = option.toLevel === 1;
       return {
         title: def.name,
-        badge: isNew ? 'NEUES ITEM' : `ITEM · STUFE ${option.toLevel}`,
+        badge: isNew ? 'NEW ITEM' : `ITEM · LEVEL ${option.toLevel}`,
         text: def.description,
         texture: def.texture,
         isNew,
@@ -122,7 +122,7 @@ export function describeUpgrade(option: UpgradeOption): UpgradeCard {
       const def = SKILLS[option.id];
       return {
         title: def.name,
-        badge: `SKILL · STUFE ${option.toLevel}`,
+        badge: `SKILL · LEVEL ${option.toLevel}`,
         text: def.levels[option.toLevel - 2].text,
         texture: def.texture,
         isNew: false,
@@ -130,9 +130,9 @@ export function describeUpgrade(option: UpgradeOption): UpgradeCard {
     }
     case 'heal':
       return {
-        title: 'Heiltrank',
-        badge: 'ALLES MAXIMIERT',
-        text: 'Stellt 50 Lebenspunkte wieder her.',
+        title: 'Healing Potion',
+        badge: 'EVERYTHING MAXED',
+        text: 'Restores 50 health.',
         texture: 'icon-vitality',
         isNew: false,
       };
