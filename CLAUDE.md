@@ -15,6 +15,12 @@ Goal: web first, native apps later (Capacitor for Android/iOS, Tauri for desktop
 - `npm run check` – typecheck, lint, tests and build. **Run before every commit.**
 - `npm run build:single` – everything in one HTML file (dist-single/) for quick sharing
 
+## Deployment
+
+- `main` is published to https://kili-skiff.github.io/survivor-rpg/ (workflow `deploy.yml`, branch `gh-pages`).
+- Every pull request gets a preview at `https://kili-skiff.github.io/survivor-rpg/pr-preview/pr-<number>/`;
+  the link is posted on the PR (workflow `preview.yml`). Never touch `gh-pages` by hand.
+
 ## Architecture
 
 ```
