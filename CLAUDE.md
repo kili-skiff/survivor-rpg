@@ -3,6 +3,9 @@
 A survivors-like game in the spirit of Vampire Survivors, with RPG progression and active skills.
 Goal: web first, native apps later (Capacitor for Android/iOS, Tauri for desktop).
 
+**Read [docs/vision.md](docs/vision.md) before planning features.** It describes the target game
+(village, hex world, expeditions, herbs and potions, seasons) and its open questions.
+
 ## Stack
 
 - Phaser 4 (Arcade Physics), TypeScript (strict), Vite
@@ -59,10 +62,23 @@ src/
 
 ## Roadmap
 
-- [ ] Boss and elite enemies with chests
-- [ ] Weapon evolutions (maxed weapon + item = super weapon)
-- [ ] Meta progression between runs (gold, talent tree)
-- [ ] Multiple characters/classes with starting skills
+### Milestone 1: vertical slice
+
+A small but complete piece of the game from `docs/vision.md`. Each step is its own PR.
+
+- [ ] Segments with a goal (e.g. survive N minutes) and a result screen
+- [ ] Hex world map from a seed: rings, biomes, fog of war; tap a neighbour hex to play it
+- [ ] Expeditions: build carries over between segments, camps as waypoints, partial loot loss on death
+- [ ] Village as the starting point (simple screen: stash and "set out")
+- [ ] Herbs dropped by biome and collected during expeditions
+- [ ] Herb garden and brewing of three potions taken on an expedition
+- [ ] One class with a small skill tree
+- [ ] A boss guarding a dungeon or the outer ring
+
+### Later
+
+- [ ] Seasons with a shared seed, then leaderboards (needs a server)
+- [ ] More biomes, enemies, weapons and classes
 - [ ] Sound effects and music
 - [ ] Real art (sprite atlas) instead of placeholders
 - [ ] PWA (installable), then Capacitor (Android/iOS) and Tauri (desktop)
