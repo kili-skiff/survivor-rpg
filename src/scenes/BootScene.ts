@@ -85,10 +85,11 @@ export class BootScene extends Phaser.Scene {
     make('heart', 20, 18, (g) => drawHeart(g, 10, 9, 9, COLORS.heal));
 
     // Ground (tiled)
+    // Neutral grey ground: each area tints it with its own colour (see groundTint in config).
     make('ground', 64, 64, (g) => {
-      g.fillStyle(COLORS.ground).fillRect(0, 0, 64, 64);
-      g.fillStyle(COLORS.groundDot).fillCircle(8, 10, 1.5).fillCircle(40, 22, 1.2).fillCircle(22, 46, 1.8);
-      g.fillStyle(COLORS.groundDot, 0.6).fillRect(50, 52, 6, 2).fillRect(28, 6, 2, 5);
+      g.fillStyle(0xb4b4b4).fillRect(0, 0, 64, 64);
+      g.fillStyle(0xffffff).fillCircle(8, 10, 1.5).fillCircle(40, 22, 1.2).fillCircle(22, 46, 1.8);
+      g.fillStyle(0xffffff, 0.6).fillRect(50, 52, 6, 2).fillRect(28, 6, 2, 5);
     });
 
     // Icons (44x44) for weapons, items and skills
@@ -173,7 +174,7 @@ export class BootScene extends Phaser.Scene {
     });
 
     g.destroy();
-    this.scene.start('Game');
+    this.scene.start('WorldMap');
   }
 }
 

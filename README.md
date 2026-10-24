@@ -1,6 +1,6 @@
 # Nightwatch
 
-A survivors-like RPG prototype: survive waves of enemies, collect XP, pick upgrades and use active skills.
+A survivors-like RPG prototype: travel across a hex world, survive waves of enemies in each area, collect XP, pick upgrades and use active skills.
 Runs in the browser on phones, tablets and desktop.
 
 **Play it:** https://kili-skiff.github.io/survivor-rpg/
@@ -11,6 +11,7 @@ Every pull request also gets its own playable preview, linked in a comment on th
 
 |              | Phone                      | Desktop       |
 | ------------ | -------------------------- | ------------- |
+| Travel (map) | tap a glowing hex          | click, Enter  |
 | Move         | drag anywhere (joystick)   | WASD / arrows |
 | Dash         | button on the right        | Space or Q    |
 | Frost Nova   | button on the right        | E             |

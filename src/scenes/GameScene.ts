@@ -7,6 +7,7 @@ import type { Enemy } from '../entities/Enemy';
 import type { Pickup } from '../entities/Pickup';
 import { InputState } from '../input/InputState';
 import { addXp } from '../logic/progression';
+import { parseHexKey } from '../logic/hex';
 import { loadSave, recordRun, safeStorage, writeSave, type SaveData } from '../logic/save';
 import { isSegmentCleared, type RunOutcome } from '../logic/segment';
 import {
@@ -18,6 +19,8 @@ import {
   type Loadout,
 } from '../logic/stats';
 import { applyUpgrade, rollUpgradeOptions, type UpgradeOption } from '../logic/upgrades';
+import { applyFightResult } from '../logic/worldProgress';
+import { seasonWorld, segmentForHex } from '../logic/worldgen';
 import type { CombatContext } from '../systems/CombatContext';
 import { DamageNumbers } from '../systems/DamageNumbers';
 import { EnemySystem } from '../systems/EnemySystem';
@@ -29,6 +32,12 @@ import { viewportSize } from '../ui/display';
 import { COLORS } from '../ui/theme';
 
 /** Everything the HUD needs to know about the current run. */
+/** Data passed when starting the Game scene. */
+export interface GameSceneData {
+  /** Hex on the world map this fight takes place in. Without it a default segment is used. */
+  hexKey?: string;
+}
+
 export interface RunState {
   started: boolean;
   /** True while the segment is being played (not cleared, not fallen) */
@@ -46,6 +55,7 @@ export interface RunState {
 
 export interface RunEndInfo {
   outcome: RunOutcome;
+  hexKey: string | null;
   segment: SegmentDef;
   time: number;
   level: number;
@@ -83,9 +93,14 @@ export class GameScene extends Phaser.Scene {
   private pendingLevelUps = 0;
   private viewW = 800;
   private viewH = 600;
+  private hexKey: string | null = null;
 
   constructor() {
     super('Game');
+  }
+
+  init(data: GameSceneData): void {
+    this.hexKey = data?.hexKey ?? null;
   }
 
   create(): void {
@@ -119,12 +134,16 @@ export class GameScene extends Phaser.Scene {
       this.onPlayerTouched(e as Enemy),
     );
 
+    const hexInfo = this.hexKey ? seasonWorld().hexes.get(this.hexKey) : undefined;
+    const segment = hexInfo ? segmentForHex(hexInfo) : DEFAULT_SEGMENT;
+    this.ground.setTint(segment.groundTint);
+
     const loadout = createStartLoadout(START_WEAPON);
     const stats = computePlayerStats(loadout);
     this.run = {
-      started: this.registry.get('started') === true,
+      started: true,
       alive: true,
-      segment: DEFAULT_SEGMENT,
+      segment,
       outcome: null,
       time: 0,
       hp: stats.maxHp,
@@ -145,11 +164,6 @@ export class GameScene extends Phaser.Scene {
   }
 
   // ---------------------------------------------------------------- Public API for the HUD
-
-  startRun(): void {
-    this.run.started = true;
-    this.registry.set('started', true);
-  }
 
   /** 0 = ready, 1 = just used */
   skillCooldownFraction(id: SkillId): number {
@@ -191,8 +205,10 @@ export class GameScene extends Phaser.Scene {
     this.scene.resume();
   }
 
-  restartRun(): void {
-    this.scene.restart();
+  /** Returns to the world map. Leaving mid-fight keeps your map position and clears nothing. */
+  returnToMap(): void {
+    this.scene.stop('UI');
+    this.scene.start('WorldMap');
   }
 
   // ---------------------------------------------------------------- Game loop
@@ -211,7 +227,7 @@ export class GameScene extends Phaser.Scene {
     this.handleSkillInput();
     this.player.update(this.controls.moveX, this.controls.moveY, this.run.stats.moveSpeed, this.enemies);
     this.updateGround();
-    this.enemies.spawn(dms, this.run.time);
+    this.enemies.spawn(dms, this.run.time + this.run.segment.difficultyOffsetSec);
     this.enemies.update();
     for (const [id, weapon] of this.weapons) weapon.update(this.weaponStats[id]!, dms, dt);
     this.pickups.update(dt, this.run.stats.magnet);
@@ -335,10 +351,12 @@ export class GameScene extends Phaser.Scene {
       level: this.run.level,
       cleared: outcome === 'cleared',
     });
+    if (this.hexKey) save.world = applyFightResult(save.world, parseHexKey(this.hexKey), outcome);
     writeSave(storage, save);
 
     const info: RunEndInfo = {
       outcome,
+      hexKey: this.hexKey,
       segment: this.run.segment,
       time,
       level: this.run.level,

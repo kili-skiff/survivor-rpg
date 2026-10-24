@@ -6,6 +6,8 @@ export const SEGMENTS: Record<string, SegmentDef> = {
     name: 'Old Graveyard',
     durationSec: 180,
     warningSec: 15,
+    difficultyOffsetSec: 0,
+    groundTint: 0x29223a,
   },
 };
 

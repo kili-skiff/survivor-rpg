@@ -2,6 +2,7 @@ import * as Phaser from 'phaser';
 import { BootScene } from './scenes/BootScene';
 import { GameScene } from './scenes/GameScene';
 import { UIScene } from './scenes/UIScene';
+import { WorldMapScene } from './scenes/WorldMapScene';
 import { renderScale, viewportSize } from './ui/display';
 
 // The canvas renders in device pixels (max 2x) and is scaled to screen size via CSS,
@@ -30,7 +31,7 @@ const game = new Phaser.Game({
   },
   input: { activePointers: 3 },
   render: { antialias: true, powerPreference: 'high-performance' },
-  scene: [BootScene, GameScene, UIScene],
+  scene: [BootScene, WorldMapScene, GameScene, UIScene],
 });
 
 let resizeTimer: number | undefined;
