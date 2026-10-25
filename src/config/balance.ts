@@ -82,8 +82,11 @@ export const LIGHT = {
   torchGlow: 0.17,
   torchColor: 0xffc896,
   /** Bloomed herbs give off a faint light so they are easier to spot in the dark */
-  herbRadius: 70,
-  rareHerbRadius: 100,
+  herbRadius: 60,
+  rareHerbRadius: 85,
+  /** Herb glows are subtle and pulse slowly between these strengths */
+  herbGlowMin: 0.06,
+  herbGlowMax: 0.18,
   /** Dropped treasure chests glow golden, so they can be found in the dark */
   chestRadius: 90,
   chestColor: 0xfbbf24,
