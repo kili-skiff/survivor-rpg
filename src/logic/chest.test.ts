@@ -1,0 +1,47 @@
+import { describe, expect, it } from 'vitest';
+import { CHEST } from '../config/balance';
+import { PASSIVES } from '../config/passives';
+import { SKILLS } from '../config/skills';
+import { WEAPONS } from '../config/weapons';
+import { chestUpgradeCount, rollChest } from './chest';
+import { goldPerDrop } from './merchant';
+import { createStartLoadout, weaponMaxLevel, type Loadout } from './stats';
+
+function seeded(seed = 7) {
+  let s = seed;
+  return () => {
+    s = (s * 1664525 + 1013904223) % 4294967296;
+    return s / 4294967296;
+  };
+}
+
+describe('treasure chest', () => {
+  it('holds one upgrade usually, three sometimes, five rarely', () => {
+    expect(chestUpgradeCount(() => 0)).toBe(5);
+    expect(chestUpgradeCount(() => CHEST.fiveChance + 0.01)).toBe(3);
+    expect(chestUpgradeCount(() => 0.99)).toBe(1);
+  });
+
+  it('rolls upgrades on the growing build and some gold', () => {
+    const rng = seeded();
+    for (let i = 0; i < 50; i++) {
+      const r = rollChest(createStartLoadout('bolt'), 3, rng);
+      expect([1, 3, 5]).toContain(r.upgrades.length);
+      expect(r.gold).toBeGreaterThanOrEqual(goldPerDrop(3) * CHEST.goldMin);
+      expect(r.upgrades.every((u) => u.kind !== 'heal')).toBe(true);
+    }
+  });
+
+  it('gives gold instead of upgrades when everything is maxed', () => {
+    const maxed: Loadout = {
+      weapons: Object.fromEntries(Object.keys(WEAPONS).map((id) => [id, weaponMaxLevel(id as never)])),
+      passives: Object.fromEntries(Object.values(PASSIVES).map((p) => [p.id, p.maxLevel])),
+      skills: Object.fromEntries(
+        Object.values(SKILLS).map((s) => [s.id, s.levels.length + 1]),
+      ) as Loadout['skills'],
+    };
+    const r = rollChest(maxed, 1, () => 0.99);
+    expect(r.upgrades).toEqual([]);
+    expect(r.gold).toBeGreaterThan(goldPerDrop(1) * CHEST.goldMax);
+  });
+});

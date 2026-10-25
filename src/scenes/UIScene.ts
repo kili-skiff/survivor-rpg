@@ -15,6 +15,7 @@ import { devButtonStyle, isDevMode } from '../dev/devMode'; // DEV:
 import { safeArea, viewportSize, type SafeArea } from '../ui/display';
 import { COLORS, css, FONT } from '../ui/theme';
 import type { GameScene, RunEndInfo } from './GameScene';
+import type { ChestReward } from '../logic/chest';
 
 interface PotionButton {
   id: PotionId;
@@ -26,7 +27,14 @@ interface PotionButton {
   r: number;
 }
 
-type OverlayKind = 'none' | 'levelup' | 'pause' | 'runend';
+type OverlayKind = 'none' | 'levelup' | 'pause' | 'runend' | 'chest';
+
+/** Every upgrade icon, for the spinning reels of a treasure chest */
+const REEL_TEXTURES = [
+  ...Object.values(WEAPONS).map((w) => w.texture),
+  ...Object.values(PASSIVES).map((p) => p.texture),
+  ...Object.values(SKILLS).map((s) => s.texture),
+];
 
 interface SkillButton {
   id: SkillId;
@@ -76,6 +84,10 @@ export class UIScene extends Phaser.Scene {
   private levelUpOptions: UpgradeOption[] = [];
   private levelUpLevel = 1;
   private runEndInfo?: RunEndInfo;
+  private chestReward?: ChestReward;
+  /** Reels of the open chest that have stopped */
+  private chestRevealed = 0;
+  private chestEvents: Phaser.Time.TimerEvent[] = [];
   private pressedCard = -1;
 
   /** UI scale (accounts for pixel density and screen size) */
@@ -162,12 +174,14 @@ export class UIScene extends Phaser.Scene {
     this.layout();
     this.scale.on('resize', this.onResize, this);
     this.gs.events.on('levelup', this.onLevelUp, this);
+    this.gs.events.on('chest', this.onChest, this);
     this.gs.events.on('runend', this.onRunEnd, this);
     this.gs.events.on('herbbloom', this.onHerbBloom, this);
     this.game.events.on(Phaser.Core.Events.HIDDEN, this.onHidden, this);
     this.events.once('shutdown', () => {
       this.scale.off('resize', this.onResize, this);
       this.gs.events.off('levelup', this.onLevelUp, this);
+      this.gs.events.off('chest', this.onChest, this);
       this.gs.events.off('runend', this.onRunEnd, this);
       this.gs.events.off('herbbloom', this.onHerbBloom, this);
       this.game.events.off(Phaser.Core.Events.HIDDEN, this.onHidden, this);
@@ -202,6 +216,7 @@ export class UIScene extends Phaser.Scene {
     if (this.overlayKind === 'none') {
       if (action) this.controls.press(action);
     } else if (this.overlayKind === 'pause') this.togglePause();
+    else if (this.overlayKind === 'chest') this.onChestConfirm();
     else if (this.overlayKind === 'runend' && this.time.now - this.overlayOpenedAt > 600)
       this.gs.returnToMap();
   }
@@ -344,6 +359,7 @@ export class UIScene extends Phaser.Scene {
     const kind = this.overlayKind;
     if (kind === 'levelup') this.showLevelUp();
     else if (kind === 'pause') this.showPause();
+    else if (kind === 'chest') this.showChest();
     else if (kind === 'runend' && this.runEndInfo) this.showRunEnd(this.runEndInfo);
   }
 
@@ -608,6 +624,157 @@ export class UIScene extends Phaser.Scene {
   }
 
   // ---------------------------------------------------------------- Menus
+
+  // ---------------------------------------------------------------- Treasure chest
+
+  private onChest(reward: ChestReward): void {
+    this.chestReward = reward;
+    this.chestRevealed = 0;
+    this.showChest();
+  }
+
+  /**
+   * The chest's reels spin through upgrade icons and stop one after another on what it holds;
+   * then the gold appears and "Take" applies everything. Tapping while they spin stops them all.
+   */
+  private showChest(): void {
+    const reward = this.chestReward;
+    if (!reward) return;
+    this.beginOverlay('chest', 0.72);
+    for (const e of this.chestEvents) e.remove();
+    this.chestEvents = [];
+    const { width: W, height: H } = this.scale;
+    const u = this.u;
+    const wide = W > H * 1.3;
+
+    const titleY = Math.max(this.sa.top + (wide ? 72 : 70) * u, H * (wide ? 0.12 : 0.2));
+    this.text(W / 2, titleY, 'Treasure Chest!', wide ? 28 : 32, {
+      fontStyle: 'bold',
+      color: css(COLORS.accent),
+      stroke: '#000',
+      strokeThickness: 5,
+    });
+
+    const n = reward.upgrades.length;
+    const gap = 10 * u;
+    const size = Math.min(
+      wide ? 92 * u : 86 * u,
+      (W - this.sa.left - this.sa.right - 32 * u - gap * (n - 1)) / Math.max(1, n),
+    );
+    const rowY = titleY + (wide ? 36 : 70) * u;
+    const startX = W / 2 - (n * size + (n - 1) * gap) / 2;
+    const reels: {
+      icon: Phaser.GameObjects.Image;
+      label: Phaser.GameObjects.Text;
+      frame: Phaser.GameObjects.Graphics;
+      x: number;
+    }[] = [];
+    reward.upgrades.forEach((option, i) => {
+      const x = startX + i * (size + gap);
+      const frame = this.add.graphics().setDepth(51);
+      frame.fillStyle(COLORS.panel, 0.98).fillRoundedRect(x, rowY, size, size, 12 * u);
+      frame.lineStyle(2 * u, COLORS.panelEdge, 1).strokeRoundedRect(x, rowY, size, size, 12 * u);
+      const icon = this.add
+        .image(x + size / 2, rowY + size / 2, REEL_TEXTURES[i % REEL_TEXTURES.length])
+        .setDisplaySize(size * 0.62, size * 0.62)
+        .setDepth(52);
+      const card = describeUpgrade(option);
+      const label = this.text(
+        x + size / 2,
+        rowY + size + 8 * u,
+        `${card.title}\n${card.badge}`,
+        n >= 5 && !wide ? 9 : 11,
+        {
+          fontStyle: 'bold',
+          color: '#e4e4e7',
+          wordWrap: { width: size + gap },
+        },
+      )
+        .setOrigin(0.5, 0)
+        .setVisible(false);
+      this.overlay.push(frame, icon);
+      reels.push({ icon, label, frame, x });
+    });
+
+    const reveal = (i: number) => {
+      const reel = reels[i];
+      const card = describeUpgrade(reward.upgrades[i]);
+      reel.icon.setTexture(card.texture).setDisplaySize(size * 0.62, size * 0.62);
+      reel.label.setVisible(true);
+      reel.frame.lineStyle(3 * u, COLORS.accent, 1).strokeRoundedRect(reel.x, rowY, size, size, 12 * u);
+      this.tweens.add({ targets: reel.icon, scale: reel.icon.scale * 1.25, duration: 120, yoyo: true });
+    };
+    for (let i = 0; i < this.chestRevealed; i++) reveal(i);
+
+    const afterY = rowY + size + (wide ? 44 : 64) * u;
+    const finish = () => {
+      if (this.overlayKind !== 'chest') return;
+      this.chestRevealed = n;
+      for (const e of this.chestEvents) e.remove();
+      this.chestEvents = [];
+      this.text(W / 2, afterY, `+${reward.gold} gold`, 20, {
+        fontStyle: 'bold',
+        color: '#fde047',
+        stroke: '#000',
+        strokeThickness: 4,
+      });
+      const buttonY = Math.min(afterY + 56 * u, H - this.sa.bottom - 34 * u);
+      this.button(W / 2, buttonY, this.isTouch ? 'Take' : 'Take (Enter)', () => this.onChestConfirm());
+    };
+
+    if (this.chestRevealed >= n) {
+      finish();
+      return;
+    }
+    // Spin: every reel not yet stopped flips through random icons.
+    this.chestEvents.push(
+      this.time.addEvent({
+        delay: 70,
+        loop: true,
+        callback: () => {
+          for (let i = this.chestRevealed; i < n; i++) {
+            reels[i].icon
+              .setTexture(REEL_TEXTURES[Math.floor(Math.random() * REEL_TEXTURES.length)])
+              .setDisplaySize(size * 0.62, size * 0.62);
+          }
+        },
+      }),
+    );
+    for (let i = this.chestRevealed; i < n; i++) {
+      const index = i;
+      this.chestEvents.push(
+        this.time.delayedCall(700 + (i - this.chestRevealed) * 450, () => {
+          this.chestRevealed = index + 1;
+          reveal(index);
+          if (index === n - 1) finish();
+        }),
+      );
+    }
+    // Tap while spinning: stop all reels at once.
+    const skip = this.add
+      .zone(W / 2, H / 2, W, H)
+      .setDepth(50.5)
+      .setInteractive();
+    skip.on('pointerup', () => {
+      if (this.chestRevealed >= n) return;
+      for (let i = this.chestRevealed; i < n; i++) reveal(i);
+      skip.disableInteractive();
+      finish();
+    });
+    this.overlay.push(skip);
+  }
+
+  /** Takes the chest once all reels have stopped. */
+  private onChestConfirm(): void {
+    const reward = this.chestReward;
+    if (!reward || this.chestRevealed < reward.upgrades.length) return;
+    if (this.time.now - this.overlayOpenedAt < 400) return;
+    for (const e of this.chestEvents) e.remove();
+    this.chestEvents = [];
+    this.chestReward = undefined;
+    this.clearOverlay();
+    this.gs.takeChest(reward);
+  }
 
   private clearOverlay(): void {
     for (const o of this.overlay) o.destroy();

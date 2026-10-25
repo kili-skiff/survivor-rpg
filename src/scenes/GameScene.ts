@@ -20,6 +20,7 @@ import { addXp } from '../logic/progression';
 import { addLoot, lootGained } from '../logic/expedition';
 import { GOLD, GOLD_KEY } from '../config/merchant';
 import { goldPerDrop, lanternMultiplier } from '../logic/merchant';
+import { rollChest, type ChestReward } from '../logic/chest';
 import type { ExpeditionBuild } from '../logic/expedition';
 import { parseHexKey } from '../logic/hex';
 import { planHerbBlooms } from '../logic/herbs';
@@ -130,6 +131,9 @@ export class GameScene extends Phaser.Scene {
   /** Game time in ms, only advances while the scene is not paused */
   private clock = 0;
   private levelUpOpen = false;
+  private chestOpen = false;
+  /** Chests picked up while a menu was open; they open one after another */
+  private pendingChests: ChestReward[] = [];
   private pendingLevelUps = 0;
   private viewW = 800;
   private viewH = 600;
@@ -151,6 +155,8 @@ export class GameScene extends Phaser.Scene {
     this.skillReadyAt = { dash: 0, nova: 0 };
     this.clock = 0;
     this.levelUpOpen = false;
+    this.chestOpen = false;
+    this.pendingChests = [];
     this.pendingLevelUps = 0;
     this.endInfo = null;
 
@@ -274,20 +280,42 @@ export class GameScene extends Phaser.Scene {
       this.events.emit('levelup', rollUpgradeOptions(this.run.loadout, Math.random), this.run.level);
     } else {
       this.levelUpOpen = false;
+      const chest = this.pendingChests.shift();
+      if (chest) {
+        this.openChest(chest);
+        return;
+      }
       this.controls.reset();
       this.scene.resume();
     }
   }
 
+  /** Takes what the chest held (after its roll was shown) and goes on with the fight. */
+  takeChest(reward: ChestReward): void {
+    if (!this.chestOpen) return;
+    this.run.gold += reward.gold;
+    for (const option of reward.upgrades) this.run.loadout = applyUpgrade(this.run.loadout, option);
+    if (reward.upgrades.length > 0) this.refreshStats();
+    this.chestOpen = false;
+    const next = this.pendingChests.shift();
+    if (next) {
+      this.openChest(next);
+      return;
+    }
+    this.controls.reset();
+    this.scene.resume();
+  }
+
   pauseGame(): boolean {
-    if (!this.run.started || !this.run.alive || this.levelUpOpen || this.scene.isPaused()) return false;
+    if (!this.run.started || !this.run.alive || this.levelUpOpen || this.chestOpen || this.scene.isPaused())
+      return false;
     this.controls.reset();
     this.scene.pause();
     return true;
   }
 
   resumeGame(): void {
-    if (this.levelUpOpen || !this.run.alive) return;
+    if (this.levelUpOpen || this.chestOpen || !this.run.alive) return;
     this.controls.reset();
     this.scene.resume();
   }
@@ -496,12 +524,19 @@ export class GameScene extends Phaser.Scene {
     this.run.kills += 1;
     if (Math.random() < BALANCE.healDropChance) this.pickups.drop(e.x, e.y, 'heal', BALANCE.healAmount);
     else this.pickups.drop(e.x, e.y, 'xp', e.def.xp * (e.elite ? ELITE.xp : 1));
-    if (e.elite) this.pickups.drop(e.x + 8, e.y - 6, 'gold', goldPerDrop(this.ring) * ELITE.gold);
-    else if (Math.random() < GOLD.dropChance)
-      this.pickups.drop(e.x + 8, e.y - 6, 'gold', goldPerDrop(this.ring));
+    // Elites always leave a treasure chest; anyone may drop a little gold.
+    if (e.elite) this.pickups.drop(e.x, e.y + 10, 'chest', 0);
+    if (Math.random() < GOLD.dropChance) this.pickups.drop(e.x + 8, e.y - 6, 'gold', goldPerDrop(this.ring));
   }
 
   private onPickup(p: Pickup): void {
+    if (p.kind === 'chest') {
+      const reward = rollChest(this.run.loadout, this.ring, Math.random);
+      // A level-up menu comes first; the chest opens right after it.
+      if (this.levelUpOpen) this.pendingChests.push(reward);
+      else this.openChest(reward);
+      return;
+    }
     if (p.kind === 'gold') {
       this.run.gold += p.value;
       this.numbers.show(this.player.x, this.player.y - 26, `+${p.value} gold`, '#fde047', true);
@@ -519,6 +554,13 @@ export class GameScene extends Phaser.Scene {
       this.pendingLevelUps += r.levelsGained;
       if (!this.levelUpOpen) this.openLevelUp();
     }
+  }
+
+  private openChest(reward: ChestReward): void {
+    this.chestOpen = true;
+    this.controls.reset();
+    this.scene.pause();
+    this.events.emit('chest', reward);
   }
 
   private openLevelUp(): void {

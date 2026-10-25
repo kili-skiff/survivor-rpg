@@ -27,7 +27,7 @@ export const RINGS = {
   spawnRatePerRing: 0.08,
 } as const;
 
-/** Elite enemies: rare, big and tough, with a golden shimmer; they always drop gold. */
+/** Elite enemies: rare, big and tough, with a golden shimmer; they always leave a treasure chest. */
 export const ELITE = {
   /** Elites appear from this ring on */
   minRing: 2,
@@ -38,10 +38,18 @@ export const ELITE = {
   damage: 1.5,
   xp: 5,
   scale: 1.6,
-  /** Gold dropped: this many times a normal drop */
-  gold: 3,
   tint: 0xffcf6b,
   eyesColor: 0xfacc15,
+} as const;
+
+/** Treasure chests from elites: rewards are rolled like a slot machine. */
+export const CHEST = {
+  /** Chance for 5 upgrades at once, else for 3, else 1 */
+  fiveChance: 0.05,
+  threeChance: 0.25,
+  /** Gold: this many normal drops (random in the range) */
+  goldMin: 2,
+  goldMax: 5,
 } as const;
 
 /**

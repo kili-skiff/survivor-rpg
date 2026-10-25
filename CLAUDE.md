@@ -38,7 +38,7 @@ src/
              segments, world, map tiles, balancing (NO Phaser)
   logic/     Pure game logic (NO Phaser, tested): stats, XP, upgrades, spawning, segments, save data,
              hex math, seeded RNG, world generation, world progress, expeditions and journeys,
-             potions (brewing, belt, buffs), merchant (gold, lanterns, recipes), ring difficulty,
+             potions (brewing, belt, buffs), merchant (gold, lanterns, recipes), ring difficulty, chests,
              quests, device settings
   entities/  Pooled Phaser objects (Enemy, Projectile, Pickup)
   input/     InputState: one input layer for touch, keyboard, later gamepads
@@ -107,8 +107,8 @@ A small but complete piece of the game from `docs/vision.md`. Each step is its o
 - [x] First quest: the elder sends you to an old tower at the edge of the map (the way there;
       the tower stays sealed for now), the scout points out a camp on the way
 - [x] Gold and the village merchant: lantern tiers (+light for good), potion recipes, selling herbs
-- [x] Ring difficulty and elite enemies (golden ring, always drop gold)
-- [ ] Treasure chest from elites with a slot-machine roll (gold, upgrades; equipment later)
+- [x] Ring difficulty and elite enemies (golden ring, always leave a chest)
+- [x] Treasure chest from elites with a slot-machine roll (gold, upgrades; equipment later)
 - [ ] Herb garden: plant herbs and harvest more of them, growing in real time
 - [ ] One class with a small skill tree
 - [ ] A boss guarding a dungeon or the outer ring

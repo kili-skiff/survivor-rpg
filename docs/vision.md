@@ -125,8 +125,9 @@ up one by one.
 - **Merchant** (built, village): three lantern tiers (+20% light each, for good), potion recipes
   (start with the healing potion, buy the others), buys herbs. Later maybe seeds or maps; merchant
   points of interest on the map could sell rarer goods.
-- **Treasure chest** (next): elites drop a chest that rolls its rewards like a slot machine: gold
-  and upgrades, later also equipment you keep (e.g. armour).
+- **Treasure chest** (built): elites always leave a chest. Opening it pauses the fight and its reels
+  spin like a slot machine before stopping on the rewards: gold and usually one upgrade, sometimes
+  three, rarely five. Later also equipment you keep (e.g. armour).
 - **Lantern and light radius:** a better lantern means a bigger light radius in fights. For now
   light is only visual (see Look and feel); later it could matter for gameplay.
 - **Mining and blacksmith:** ore veins in some hexes by biome, gathered like herbs; the smith turns
