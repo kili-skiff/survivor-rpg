@@ -23,7 +23,25 @@ export class BootScene extends Phaser.Scene {
     this.load.on(Phaser.Loader.Events.FILE_LOAD_ERROR, () => undefined);
   }
 
+  /** Soft round light: opaque in the middle, fading to nothing at the edge (cuts holes into darkness). */
+  private makeLightTexture(): void {
+    if (this.textures.exists('light')) return;
+    const size = 256;
+    const tex = this.textures.createCanvas('light', size, size);
+    if (!tex) return;
+    const ctx = tex.getContext();
+    const grad = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+    grad.addColorStop(0, 'rgba(255,255,255,1)');
+    grad.addColorStop(0.55, 'rgba(255,255,255,0.85)');
+    grad.addColorStop(0.8, 'rgba(255,255,255,0.35)');
+    grad.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, size, size);
+    tex.refresh();
+  }
+
   create(): void {
+    this.makeLightTexture();
     if (this.textures.exists(TILESET.key)) {
       this.textures.get(TILESET.key).setFilter(Phaser.Textures.FilterMode.NEAREST);
     }
@@ -115,6 +133,14 @@ export class BootScene extends Phaser.Scene {
       g.fillStyle(0xe5e7eb).fillRect(10, 4, 6, 7);
       g.fillStyle(0xffffff).fillCircle(13, 19, 10);
       g.fillStyle(0xffffff, 0.55).fillCircle(9, 16, 3);
+    });
+    // Small torch on a post; the light around it comes from the lighting system.
+    make('torch', 14, 30, (g) => {
+      g.fillStyle(0x000000, 0.3).fillEllipse(7, 28, 10, 4);
+      g.fillStyle(0x5b4636).fillRect(5.5, 11, 3, 17);
+      g.fillStyle(0x3f2f24).fillRect(4, 10, 6, 3);
+      g.fillStyle(0xea580c).fillTriangle(2, 10, 12, 10, 7, 0);
+      g.fillStyle(0xfacc15).fillTriangle(4.5, 10, 9.5, 10, 7, 3);
     });
     make('herb-glow', 64, 64, (g) => {
       for (let i = 0; i < 10; i++) g.fillStyle(0xffffff, 0.04 + i * 0.012).fillCircle(32, 32, 32 - i * 3);

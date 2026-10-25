@@ -1,4 +1,5 @@
 import * as Phaser from 'phaser';
+import { LIGHT } from '../config/balance';
 import { HERB_RULES, HERBS } from '../config/herbs';
 import type { HerbId } from '../config/types';
 import type { Loot } from '../logic/expedition';
@@ -71,6 +72,18 @@ export class HerbSystem {
   /** All herbs of this fight, including those that have not bloomed yet. */
   get totalCount(): number {
     return this.herbs.length + this.pending.length;
+  }
+
+  /** Bloomed herbs give off a faint light, so they can be spotted in the dark. */
+  lights(): { x: number; y: number; radius: number }[] {
+    return this.herbs
+      .filter((h) => !h.gathered)
+      .map((h) => ({
+        x: h.x,
+        y: h.y,
+        radius: HERBS[h.herb].rare ? LIGHT.rareHerbRadius : LIGHT.herbRadius,
+        color: HERBS[h.herb].color,
+      }));
   }
 
   /** Taking a hit breaks your concentration. */

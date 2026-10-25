@@ -23,6 +23,7 @@ import { planHerbBlooms } from '../logic/herbs';
 import { applyBuffs, damageTakenMultiplier } from '../logic/potions';
 import { currentBuild, finishFight, returnHome, type FightReport } from '../logic/journey';
 import { loadSave, recordRun, safeStorage, writeSave, type SaveData } from '../logic/save';
+import { loadSettings } from '../logic/settings';
 import { isSegmentCleared, type RunOutcome } from '../logic/segment';
 import {
   computePlayerStats,
@@ -42,6 +43,7 @@ import { EnemySystem } from '../systems/EnemySystem';
 import { PickupSystem } from '../systems/PickupSystem';
 import { PlayerController } from '../systems/PlayerController';
 import { PotionSystem } from '../systems/PotionSystem';
+import { LightingSystem } from '../systems/LightingSystem';
 import { castFrostNova } from '../systems/skills/frostNova';
 import { createWeapon, type Weapon } from '../systems/weapons';
 import { viewportSize } from '../ui/display';
@@ -105,6 +107,7 @@ export class GameScene extends Phaser.Scene {
   private numbers!: DamageNumbers;
   private herbs!: HerbSystem;
   private potions!: PotionSystem;
+  private lighting!: LightingSystem;
   private ground!: Phaser.GameObjects.TileSprite;
 
   private weapons = new Map<WeaponId, Weapon>();
@@ -197,6 +200,14 @@ export class GameScene extends Phaser.Scene {
       this.events.emit('herbbloom', herb),
     );
     this.run.herbsTotal = this.herbs.totalCount;
+    // Night: darkness with the player's light, torches around and faintly glowing herbs.
+    this.lighting = new LightingSystem(
+      this,
+      this.player,
+      () => this.herbs.lights(),
+      Math.floor(Math.random() * 2 ** 31),
+    );
+    this.lighting.setEnabled(loadSettings(safeStorage()).lighting);
 
     this.cameras.main.startFollow(this.player.sprite, false, 1, 1);
     this.onResize();
@@ -216,6 +227,11 @@ export class GameScene extends Phaser.Scene {
 
   skillCooldownRemaining(id: SkillId): number {
     return Math.max(0, this.skillReadyAt[id] - this.clock);
+  }
+
+  /** Night lighting on or off (from the pause menu). */
+  setLighting(on: boolean): void {
+    this.lighting.setEnabled(on);
   }
 
   /** Potions of this kind left in the belt. */
@@ -320,6 +336,7 @@ export class GameScene extends Phaser.Scene {
     if (!this.run.started || !this.run.alive) {
       this.player.stop();
       this.updateGround();
+      this.lighting.update(this.time.now);
       return;
     }
     const dms = Math.min(deltaMs, 50);
@@ -332,6 +349,7 @@ export class GameScene extends Phaser.Scene {
     if (this.potions.update()) this.refreshStats();
     this.player.update(this.controls.moveX, this.controls.moveY, this.run.stats.moveSpeed, this.enemies);
     this.updateGround();
+    this.lighting.update(this.time.now);
     this.enemies.spawn(dms, this.run.time + this.run.segment.difficultyOffsetSec);
     this.enemies.update();
     for (const [id, weapon] of this.weapons) weapon.update(this.weaponStats[id]!, dms, dt);
@@ -406,6 +424,7 @@ export class GameScene extends Phaser.Scene {
     this.viewH = height / zoom;
     this.enemies.viewDiag = Math.hypot(this.viewW, this.viewH);
     this.ground.setSize(this.viewW + 256, this.viewH + 256);
+    this.lighting.resize(this.viewW, this.viewH);
   }
 
   /** Keeps the tiled ground under the camera, snapped to the tile grid. */

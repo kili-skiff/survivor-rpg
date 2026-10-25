@@ -41,7 +41,8 @@ src/
   systems/   Gameplay behaviour, one job per file:
     weapons/   one class per weapon + factory in index.ts
     skills/    active skills (e.g. Frost Nova)
-    PlayerController, EnemySystem, PickupSystem, HerbSystem, PotionSystem, DamageNumbers
+    PlayerController, EnemySystem, PickupSystem, HerbSystem, PotionSystem, LightingSystem,
+    DamageNumbers
   panels/    Village panels (CauldronPanel, DialoguePanel for villagers): drawn on top of any scene,
              logic lives in logic/
   scenes/    Boot (placeholder graphics), WorldMap (hex map, travel), Village (stash, belt, panels),
