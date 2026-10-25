@@ -36,6 +36,7 @@ export class UIScene extends Phaser.Scene {
   private levelText!: Phaser.GameObjects.Text;
   private hpText!: Phaser.GameObjects.Text;
   private killsText!: Phaser.GameObjects.Text;
+  private herbText!: Phaser.GameObjects.Text;
   private pauseBtn!: Phaser.GameObjects.Text;
   private skillButtons: SkillButton[] = [];
   private loadoutIcons: Phaser.GameObjects.GameObject[] = [];
@@ -92,6 +93,7 @@ export class UIScene extends Phaser.Scene {
     this.levelText = this.add.text(0, 0, 'Level 1', textStyle(14));
     this.hpText = this.add.text(0, 0, '', textStyle(10)).setOrigin(0.5, 0.5).setDepth(1);
     this.killsText = this.add.text(0, 0, '', textStyle(14)).setOrigin(1, 0);
+    this.herbText = this.add.text(0, 0, '', { ...textStyle(13), color: '#bbf7d0' }).setOrigin(1, 0);
     this.pauseBtn = this.add
       .text(0, 0, 'II', { ...textStyle(18), backgroundColor: '#00000066', padding: { x: 12, y: 6 } })
       .setOrigin(1, 0)
@@ -316,6 +318,11 @@ export class UIScene extends Phaser.Scene {
       .setColor(isSegmentWarning(run.segment, run.time) ? css(COLORS.accent) : '#ffffff');
     this.segmentText.setText(run.segment.name);
     this.killsText.setText(`☠ ${run.kills}`);
+    this.herbText
+      .setText(run.herbsTotal > 0 ? `Herbs ${run.herbsGathered}/${run.herbsTotal}` : '')
+      .setPosition(this.killsText.x, this.killsText.y + this.killsText.height + 4 * u);
+
+    this.drawHerbArrows(g);
 
     // Skill buttons with cooldown
     for (const b of this.skillButtons) {
@@ -350,6 +357,42 @@ export class UIScene extends Phaser.Scene {
     }
 
     this.updateLoadoutIcons();
+  }
+
+  /** Arrows at the screen edge pointing to nearby herbs that are off screen. */
+  private drawHerbArrows(g: Phaser.GameObjects.Graphics): void {
+    if (this.overlayKind !== 'none') return;
+    const { width: W, height: H } = this.scale;
+    const u = this.u;
+    const cx = W / 2;
+    const cy = H / 2;
+    const left = this.sa.left + 26 * u;
+    const right = W - this.sa.right - 26 * u;
+    const top = this.sa.top + 110 * u;
+    const bottom = H - this.sa.bottom - 30 * u;
+    for (const ind of this.gs.herbIndicators()) {
+      const dx = Math.cos(ind.angle);
+      const dy = Math.sin(ind.angle);
+      // Walk along the direction until the inset screen rectangle is hit.
+      const tx = dx > 0 ? (right - cx) / dx : dx < 0 ? (left - cx) / dx : Infinity;
+      const ty = dy > 0 ? (bottom - cy) / dy : dy < 0 ? (top - cy) / dy : Infinity;
+      const t = Math.min(tx, ty);
+      const x = cx + dx * t;
+      const y = cy + dy * t;
+      const size = (ind.rare ? 13 : 10) * u;
+      const alpha = Phaser.Math.Clamp(1.1 - ind.distance / 400, 0.45, 1);
+      const tip = { x: x + dx * size, y: y + dy * size };
+      const side = { x: -dy * size * 0.7, y: dx * size * 0.7 };
+      g.fillStyle(0x000000, 0.5 * alpha).fillCircle(x, y, size * 0.95);
+      g.fillStyle(ind.color, alpha).fillTriangle(
+        tip.x,
+        tip.y,
+        x - dx * size * 0.4 + side.x,
+        y - dy * size * 0.4 + side.y,
+        x - dx * size * 0.4 - side.x,
+        y - dy * size * 0.4 - side.y,
+      );
+    }
   }
 
   private updateLoadoutIcons(): void {
@@ -670,7 +713,7 @@ export class UIScene extends Phaser.Scene {
     if (!r) return '';
     if (r.outcome === 'fallen') {
       const lost = r.lootLost ? Object.values(r.lootLost).reduce((a, b) => a + b, 0) : 0;
-      return `Expedition lost. You wake up in the village${lost > 0 ? ` and lost ${lost} items` : ''}.`;
+      return `Expedition lost. You wake up in the village${lost > 0 ? ` and lost ${lost} ${lost === 1 ? 'item' : 'items'}` : ''}.`;
     }
     if (r.rested) return 'Camp reached: fully healed, waypoint unlocked.';
     return 'Your expedition continues.';
@@ -681,40 +724,58 @@ export class UIScene extends Phaser.Scene {
     const { width: W, height: H } = this.scale;
     const u = this.u;
     const cleared = info.outcome === 'cleared';
-    this.text(W / 2, H * 0.22, cleared ? 'Area Cleared' : 'You Fell', 38, {
+    // Landscape has little height: stats go on one line there.
+    const wide = W > H * 1.3;
+    // Everything is stacked from the title downwards so nothing overlaps.
+    let y = Math.max(this.sa.top + (wide ? 44 : 70) * u, H * (wide ? 0.1 : 0.18));
+    this.text(W / 2, y, cleared ? 'Area Cleared' : 'You Fell', wide ? 32 : 38, {
       fontStyle: 'bold',
       color: cleared ? css(COLORS.accent) : '#fb7185',
       stroke: '#000',
       strokeThickness: 6,
     });
+    y += (wide ? 36 : 44) * u;
     const subtitle = cleared ? info.segment.name : info.newBestTime ? 'New best time!' : '';
     if (subtitle) {
-      this.text(W / 2, H * 0.22 + 40 * u, subtitle, 16, {
+      this.text(W / 2, y, subtitle, 16, {
         color: cleared ? '#e5e7eb' : css(COLORS.accent),
         fontStyle: 'bold',
       });
+      y += 26 * u;
     }
     const consequence = this.describeConsequence(info);
     if (consequence) {
-      this.text(W / 2, H * 0.22 + 68 * u, consequence, 14, {
+      const t = this.text(W / 2, y, consequence, 14, {
         color: cleared ? '#c4b5fd' : '#fda4af',
         wordWrap: { width: W - 48 * u },
-      });
+      }).setOrigin(0.5, 0);
+      y += t.height + 14 * u;
+    } else {
+      y += 10 * u;
     }
-    const lines = [
+    const stats = [
       `Time  ${formatTime(info.time)} / ${formatTime(info.segment.durationSec)}`,
       `Level  ${info.level}`,
       `Kills  ${info.kills}`,
-    ].join('\n');
-    this.text(W / 2, H * 0.44, lines, 20, { lineSpacing: 10 * u, fontStyle: 'bold' });
-    this.text(
+      ...(info.herbsTotal > 0 ? [`Herbs  ${info.herbsGathered} / ${info.herbsTotal}`] : []),
+    ];
+    const block = this.text(W / 2, y, stats.join(wide ? '   ·   ' : '\n'), wide ? 17 : 20, {
+      lineSpacing: 10 * u,
+      fontStyle: 'bold',
+    }).setOrigin(0.5, 0);
+    y += block.height + 10 * u;
+    const summary = this.text(
       W / 2,
-      H * 0.44 + 70 * u,
+      y,
       `Areas cleared ${info.save.segmentsCleared} · Runs ${info.save.runs}`,
       13,
-      { color: '#a1a1aa' },
-    );
-    this.button(W / 2, H * 0.72, this.isTouch ? 'Back to map' : 'Back to map (Enter)', () =>
+      {
+        color: '#a1a1aa',
+      },
+    ).setOrigin(0.5, 0);
+    y += summary.height;
+    const buttonY = Math.min(Math.max(y + 50 * u, H * 0.72), H - this.sa.bottom - 34 * u);
+    this.button(W / 2, buttonY, this.isTouch ? 'Back to map' : 'Back to map (Enter)', () =>
       this.gs.returnToMap(),
     );
   }

@@ -29,6 +29,9 @@ export const HERB_RULES = {
   gatherRadius: 38,
   /** Time you have to stay next to a herb (seconds) */
   gatherSec: 1,
-  /** Edge arrows only point to herbs within this distance (px), so far herbs must be found */
-  revealDistance: 560,
+  /**
+   * Edge arrows only point to herbs at most this far beyond the edge of the screen (px).
+   * Measured from the screen edge, so it works the same in portrait and landscape.
+   */
+  revealBeyondScreen: 320,
 } as const;

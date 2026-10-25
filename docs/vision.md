@@ -50,6 +50,15 @@ stronger: with a better class build, a growing herb garden and potions for the n
 - Level-ups during a run offer a choice of weapons, items and skill upgrades.
 - Bosses guard dungeons and important places.
 
+## Herbs
+
+- Herbs **grow in hexes**; monsters do not drop them. Each biome has its own herb, and a rare
+  Star Lily can grow anywhere from ring 3 outwards. Further rings grow more herbs.
+- **Gathering:** stand next to a herb for about a second. Moving away or taking a hit resets it.
+- Fresh herbs grow every time a hex is entered, at new spots. Nothing grows back during a fight.
+- Arrows at the screen edge only appear for herbs just off screen; far herbs have to be found.
+- Gathered herbs are expedition loot: brought home safely, or halved on death.
+
 ## Village
 
 - **Herb garden:** plant herbs found on expeditions to grow more of them.

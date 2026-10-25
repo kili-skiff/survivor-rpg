@@ -83,6 +83,21 @@ export class BootScene extends Phaser.Scene {
       g.fillStyle(0xf3e8ff).fillTriangle(8, 3, 4, 11, 8, 11);
     });
     make('heart', 20, 18, (g) => drawHeart(g, 10, 9, 9, COLORS.heal));
+    // White herb sprite, tinted per herb type.
+    make('herb', 22, 24, (g) => {
+      g.fillStyle(0x000000, 0.3).fillEllipse(11, 21, 14, 5);
+      g.fillStyle(0x9ca3af).fillRect(10, 11, 2, 10);
+      g.fillStyle(0xd1d5db).fillEllipse(6, 15, 9, 5).fillEllipse(16, 13, 9, 5);
+      g.fillStyle(0xffffff)
+        .fillCircle(11, 7, 5)
+        .fillCircle(7, 5, 3)
+        .fillCircle(15, 5, 3)
+        .fillCircle(11, 2, 3);
+      g.fillStyle(0xe5e7eb).fillCircle(11, 6, 2);
+    });
+    make('herb-glow', 64, 64, (g) => {
+      for (let i = 0; i < 10; i++) g.fillStyle(0xffffff, 0.04 + i * 0.012).fillCircle(32, 32, 32 - i * 3);
+    });
 
     // Ground (tiled)
     // Neutral grey ground: each area tints it with its own colour (see groundTint in config).
