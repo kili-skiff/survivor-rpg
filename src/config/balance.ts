@@ -82,8 +82,8 @@ export const LIGHT = {
   torchGlow: 0.17,
   torchColor: 0xffc896,
   /** Bloomed herbs give off a faint light so they are easier to spot in the dark */
-  herbRadius: 60,
-  rareHerbRadius: 85,
+  herbRadius: 40,
+  rareHerbRadius: 55,
   /** Herb glows are subtle and pulse slowly between these strengths */
   herbGlowMin: 0.06,
   herbGlowMax: 0.18,
