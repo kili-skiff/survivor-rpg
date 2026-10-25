@@ -24,6 +24,10 @@ stronger: with a better class build, a growing herb garden and potions for the n
 - **Hex map** with the home village in the center.
 - **Distance means danger:** rings further out are harder and hold rarer rewards.
 - **Biomes** (e.g. forest, swamp, mountains) decide which enemies and herbs appear in a hex.
+- Biomes form **large regions** of many hexes. Every biome has a region right next to the village,
+  so every common herb can be found early; further out the regions get larger.
+- Later: **special biomes** that only appear far out (only as outer regions, from a minimum ring),
+  with their own enemies and herbs, as a reason to travel further.
 - **Fog of war:** unexplored hexes are hidden.
 - **Points of interest** sit on some hexes: camps, merchants with special goods, dungeon
   entrances, and occasionally an outpost or a second village.
