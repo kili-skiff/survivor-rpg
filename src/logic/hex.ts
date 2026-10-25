@@ -1,4 +1,5 @@
-// Hex grid math with axial coordinates (q, r), pointy-top orientation.
+// Hex grid math with axial coordinates (q, r). World generation uses the pointy-top layout;
+// the world map draws the same grid flat-top (rotated by 30°) to match its tile art.
 // Reference: https://www.redblobgames.com/grids/hexagons/
 
 export interface Hex {
@@ -69,6 +70,18 @@ export function hexToPixel(h: Hex, size: number): { x: number; y: number } {
 export function pixelToHex(x: number, y: number, size: number): Hex {
   const q = ((Math.sqrt(3) / 3) * x - y / 3) / size;
   const r = ((2 / 3) * y) / size;
+  return hexRound(q, r);
+}
+
+/** Centre of a hex in pixels for a flat-top layout with the given hex radius. */
+export function hexToPixelFlat(h: Hex, size: number): { x: number; y: number } {
+  return { x: size * 1.5 * h.q, y: size * Math.sqrt(3) * (h.r + h.q / 2) };
+}
+
+/** The hex under a pixel position in a flat-top layout (inverse of hexToPixelFlat). */
+export function pixelToHexFlat(x: number, y: number, size: number): Hex {
+  const q = ((2 / 3) * x) / size;
+  const r = ((-1 / 3) * x + (Math.sqrt(3) / 3) * y) / size;
   return hexRound(q, r);
 }
 

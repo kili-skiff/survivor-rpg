@@ -7,9 +7,11 @@ import {
   hexKey,
   hexNeighbors,
   hexToPixel,
+  hexToPixelFlat,
   ORIGIN,
   parseHexKey,
   pixelToHex,
+  pixelToHexFlat,
 } from './hex';
 import { createRng, hash32, seedFromString } from './rng';
 import { emptySave, migrate } from './save';
@@ -49,6 +51,9 @@ describe('hex', () => {
       const p = hexToPixel(h, 30);
       expect(pixelToHex(p.x, p.y, 30)).toEqual(h);
       expect(pixelToHex(p.x + 8, p.y - 8, 30)).toEqual(h);
+      const f = hexToPixelFlat(h, 30);
+      expect(pixelToHexFlat(f.x, f.y, 30)).toEqual(h);
+      expect(pixelToHexFlat(f.x - 8, f.y + 8, 30)).toEqual(h);
     }
   });
 

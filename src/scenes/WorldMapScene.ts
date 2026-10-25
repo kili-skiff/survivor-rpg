@@ -1,7 +1,9 @@
 import * as Phaser from 'phaser';
 import { BIOMES, POIS, SEASON } from '../config/world';
 import { herbForecast } from '../logic/herbs';
-import { hexEquals, hexKey, hexToPixel, parseHexKey, pixelToHex, type Hex } from '../logic/hex';
+import { BIOME_TILES, POI_TILES, TILESET } from '../config/tiles';
+import { hexEquals, hexKey, hexToPixelFlat, parseHexKey, pixelToHexFlat, type Hex } from '../logic/hex';
+import { hash32 } from '../logic/rng';
 import { formatTime } from '../logic/progression';
 import { loadSave, safeStorage, writeSave, type SaveData } from '../logic/save';
 import { lootCount, lootGained } from '../logic/expedition';
@@ -40,7 +42,13 @@ export class WorldMapScene extends Phaser.Scene {
   private world!: World;
   private save!: SaveData;
   private selected: Hex | null = null;
+  /** Fog and fallback hexes, below the tiles */
   private map!: Phaser.GameObjects.Graphics;
+  /** Travel targets and selection, above the tiles */
+  private outlines!: Phaser.GameObjects.Graphics;
+  /** One tile image per hex (empty when the tile art could not be loaded) */
+  private tiles: { hex: WorldHex; image: Phaser.GameObjects.Image }[] = [];
+  private tileScale = 1;
   private poiLabels: { hex: WorldHex; text: Phaser.GameObjects.Text }[] = [];
   /** A small herb in each hex that shows which herb grows there */
   private herbIcons: { hex: WorldHex; icon: Phaser.GameObjects.Image }[] = [];
@@ -65,13 +73,28 @@ export class WorldMapScene extends Phaser.Scene {
     this.selected = null;
     this.poiLabels = [];
     this.herbIcons = [];
+    this.tiles = [];
     this.hud = [];
     this.drag = null;
 
     this.cameras.main.setBackgroundColor(COLORS.bg);
-    this.map = this.add.graphics();
+    this.map = this.add.graphics().setDepth(-1);
+    this.outlines = this.add.graphics().setDepth(0.5);
+    if (this.textures.exists(TILESET.key)) {
+      // Back to front, so trees and mountains overlap the hexes behind them.
+      const byRow = [...this.world.hexes.values()].sort(
+        (a, b) => hexToPixelFlat(a.hex, 1).y - hexToPixelFlat(b.hex, 1).y,
+      );
+      for (const h of byRow) {
+        const image = this.add
+          .image(0, 0, TILESET.key, this.tileFrame(h))
+          .setOrigin(0.5, TILESET.faceCenterY / TILESET.frameHeight);
+        this.tiles.push({ hex: h, image });
+      }
+    }
     for (const h of this.world.hexes.values()) {
-      if (!h.poi) continue;
+      // Points of interest with their own tile need no glyph.
+      if (!h.poi || (this.tiles.length > 0 && POI_TILES[h.poi] !== undefined)) continue;
       const text = this.add
         .text(0, 0, POIS[h.poi].glyph, {
           fontFamily: FONT,
@@ -105,7 +128,7 @@ export class WorldMapScene extends Phaser.Scene {
   override update(_t: number, deltaMs: number): void {
     this.time0 += deltaMs / 1000;
     this.drawMap();
-    const pos = hexToPixel(parseHexKey(this.save.world.position), this.hexSize);
+    const pos = hexToPixelFlat(parseHexKey(this.save.world.position), this.hexSize);
     this.marker.setPosition(pos.x, pos.y - Math.abs(Math.sin(this.time0 * 3)) * 3 * this.u);
   }
 
@@ -130,19 +153,29 @@ export class WorldMapScene extends Phaser.Scene {
       bottom: sa.bottom * this.rs,
       left: sa.left * this.rs,
     };
-    this.hexSize = 30 * this.u;
+    if (this.tiles.length > 0) {
+      // Pixel art stays crisp at whole-number scales.
+      this.tileScale = Math.max(1, Math.round((30 * this.u) / (TILESET.faceWidth / 2)));
+      this.hexSize = (TILESET.faceWidth / 2) * this.tileScale;
+    } else {
+      this.hexSize = 30 * this.u;
+    }
     this.headerH = this.sa.top + 64 * this.u;
     // In landscape the button sits beside the text, so the panel can be much shorter.
     this.panelH = this.sa.bottom + (this.isWide() ? 112 : 172) * this.u;
 
+    for (const { hex, image } of this.tiles) {
+      const p = hexToPixelFlat(hex.hex, this.hexSize);
+      image.setPosition(p.x, p.y).setScale(this.tileScale);
+    }
     for (const { hex, text } of this.poiLabels) {
-      const p = hexToPixel(hex.hex, this.hexSize);
+      const p = hexToPixelFlat(hex.hex, this.hexSize);
       text.setPosition(p.x, p.y).setFontSize(Math.round(15 * this.u));
     }
     for (const { hex, icon } of this.herbIcons) {
-      const p = hexToPixel(hex.hex, this.hexSize);
+      const p = hexToPixelFlat(hex.hex, this.hexSize);
       // Bottom of the hex, so it does not cover point-of-interest glyphs or the player.
-      icon.setPosition(p.x, p.y + this.hexSize * 0.5).setDisplaySize(11 * this.u, 12 * this.u);
+      icon.setPosition(p.x, p.y + this.hexSize * 0.58).setDisplaySize(11 * this.u, 12 * this.u);
     }
     this.marker.setScale(1.1 * this.u);
     this.buildHud();
@@ -154,7 +187,7 @@ export class WorldMapScene extends Phaser.Scene {
 
   /** Centres the camera on a hex, inside the area between header and panel. */
   private centerOn(hex: Hex): void {
-    const p = hexToPixel(hex, this.hexSize);
+    const p = hexToPixelFlat(hex, this.hexSize);
     this.cameras.main.centerOn(p.x, p.y + (this.panelH - this.headerH) / 2);
   }
 
@@ -170,34 +203,46 @@ export class WorldMapScene extends Phaser.Scene {
         .map((h) => h.key),
     );
     const pulse = 0.55 + Math.sin(this.time0 * 4) * 0.35;
+    const withTiles = this.tiles.length > 0;
     g.clear();
 
     for (const h of this.world.hexes.values()) {
-      const p = hexToPixel(h.hex, this.hexSize);
+      const p = hexToPixelFlat(h.hex, this.hexSize);
       const discovered = this.isVisible(h.key);
-      const cleared = isCleared(progress, h.key);
-      const fill = h.poi === 'village' ? VILLAGE_FILL : BIOMES[h.biome].color;
       if (!discovered) g.fillStyle(FOG_FILL, 1).lineStyle(1.5 * u, FOG_EDGE, 1);
-      else g.fillStyle(fill, cleared ? 1 : 0.5).lineStyle(1.5 * u, 0x0d0b12, 0.9);
-      this.hexPath(p.x, p.y, this.hexSize - 1.5 * u);
+      else if (withTiles) continue;
+      else {
+        const fill = h.poi === 'village' ? VILLAGE_FILL : BIOMES[h.biome].color;
+        g.fillStyle(fill, isCleared(progress, h.key) ? 1 : 0.5).lineStyle(1.5 * u, 0x0d0b12, 0.9);
+      }
+      this.hexPath(g, p.x, p.y, this.hexSize - 1.5 * u);
       g.fillPath().strokePath();
     }
+    // Explored land you have not cleared yet is a little darker.
+    for (const { hex, image } of this.tiles) {
+      const discovered = this.isVisible(hex.key);
+      image.setVisible(discovered);
+      if (discovered)
+        image.setTint(isCleared(progress, hex.key) || hex.poi === 'village' ? 0xffffff : 0xa8a8b4);
+    }
 
+    const o = this.outlines;
+    o.clear();
     for (const key of targets) {
-      const p = hexToPixel(parseHexKey(key), this.hexSize);
-      g.lineStyle(3 * u, COLORS.accent, pulse);
-      this.hexPath(p.x, p.y, this.hexSize - 4 * u);
-      g.strokePath();
+      const p = hexToPixelFlat(parseHexKey(key), this.hexSize);
+      o.lineStyle(3 * u, COLORS.accent, pulse);
+      this.hexPath(o, p.x, p.y, this.hexSize - 3 * u);
+      o.strokePath();
     }
 
     if (this.selected) {
-      const p = hexToPixel(this.selected, this.hexSize);
-      g.lineStyle(3.5 * u, 0xffffff, 1);
-      this.hexPath(p.x, p.y, this.hexSize - 4 * u);
-      g.strokePath();
+      const p = hexToPixelFlat(this.selected, this.hexSize);
+      o.lineStyle(3.5 * u, 0xffffff, 1);
+      this.hexPath(o, p.x, p.y, this.hexSize - 3 * u);
+      o.strokePath();
     }
 
-    for (const { hex, icon } of this.herbIcons) icon.setVisible(isDiscovered(progress, hex.key));
+    for (const { hex, icon } of this.herbIcons) icon.setVisible(this.isVisible(hex.key));
     for (const { hex, text } of this.poiLabels) {
       text.setVisible(this.isVisible(hex.key));
       text.setColor(progress.waypoints.includes(hex.key) ? css(COLORS.accent) : '#ffffff');
@@ -213,11 +258,19 @@ export class WorldMapScene extends Phaser.Scene {
     return isDevMode() && this.registry.get('devReveal') === true;
   }
 
-  private hexPath(x: number, y: number, size: number): void {
-    const g = this.map;
+  /** Tile variant for a hex: points of interest have their own tile, others vary by position. */
+  private tileFrame(h: WorldHex): number {
+    const poiTile = h.poi ? POI_TILES[h.poi] : undefined;
+    if (poiTile !== undefined) return poiTile;
+    const variants = BIOME_TILES[h.biome];
+    return variants[hash32(this.world.seed, 77, h.hex.q, h.hex.r) % variants.length];
+  }
+
+  /** Flat-top hexagon outline. */
+  private hexPath(g: Phaser.GameObjects.Graphics, x: number, y: number, size: number): void {
     g.beginPath();
     for (let i = 0; i < 6; i++) {
-      const a = Phaser.Math.DegToRad(60 * i - 30);
+      const a = Phaser.Math.DegToRad(60 * i);
       const px = x + size * Math.cos(a);
       const py = y + size * Math.sin(a);
       if (i === 0) g.moveTo(px, py);
@@ -462,7 +515,7 @@ export class WorldMapScene extends Phaser.Scene {
       this.drag = null;
       if (d.moved || p.y > this.scale.height - this.panelH || p.y < this.headerH) return;
       const world = this.cameras.main.getWorldPoint(p.x, p.y);
-      const hex = pixelToHex(world.x, world.y, this.hexSize);
+      const hex = pixelToHexFlat(world.x, world.y, this.hexSize);
       if (!this.world.hexes.has(hexKey(hex))) return;
       this.selected = hex;
       this.buildHud();
