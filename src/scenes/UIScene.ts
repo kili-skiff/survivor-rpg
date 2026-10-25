@@ -87,6 +87,10 @@ export class UIScene extends Phaser.Scene {
   private chestReward?: ChestReward;
   /** Reels of the open chest that have stopped */
   private chestRevealed = 0;
+  /** The chest is shown closed first; tapping it opens it and starts the reels. */
+  private chestStage: 'closed' | 'opening' | 'reels' = 'closed';
+  /** Opens the closed chest on screen (set while it is shown). */
+  private openShownChest?: () => void;
   private chestEvents: Phaser.Time.TimerEvent[] = [];
   private pressedCard = -1;
 
@@ -630,6 +634,7 @@ export class UIScene extends Phaser.Scene {
   private onChest(reward: ChestReward): void {
     this.chestReward = reward;
     this.chestRevealed = 0;
+    this.chestStage = 'closed';
     this.showChest();
   }
 
@@ -638,6 +643,145 @@ export class UIScene extends Phaser.Scene {
    * then the gold appears and "Take" applies everything. Tapping while they spin stops them all.
    */
   private showChest(): void {
+    if (!this.chestReward) return;
+    // A redraw (e.g. on resize) during the opening skips straight to the reels.
+    if (this.chestStage === 'opening') this.chestStage = 'reels';
+    if (this.chestStage === 'closed') this.showClosedChest();
+    else this.showChestReels();
+  }
+
+  /** The closed chest wobbles in the middle of the screen until it is tapped. */
+  private showClosedChest(): void {
+    this.beginOverlay('chest', 0.72);
+    for (const e of this.chestEvents) e.remove();
+    this.chestEvents = [];
+    const { width: W, height: H } = this.scale;
+    const u = this.u;
+    const wide = W > H * 1.3;
+    const size = Math.min(wide ? 150 * u : 180 * u, H * 0.42, W * 0.6);
+    const cy = H * (wide ? 0.48 : 0.45);
+
+    const titleY = Math.max(this.sa.top + (wide ? 72 : 70) * u, H * (wide ? 0.12 : 0.2));
+    this.text(W / 2, titleY, 'Treasure Chest!', wide ? 28 : 32, {
+      fontStyle: 'bold',
+      color: css(COLORS.accent),
+      stroke: '#000',
+      strokeThickness: 5,
+    });
+
+    const glow = this.add
+      .image(W / 2, cy, 'light')
+      .setDisplaySize(size * 1.6, size * 1.6)
+      .setTint(0xfbbf24)
+      .setAlpha(0.35)
+      .setBlendMode(Phaser.BlendModes.ADD)
+      .setDepth(51);
+    const chest = this.add
+      .image(W / 2, cy, 'chest-big')
+      .setDisplaySize(size, size)
+      .setDepth(52);
+    const base = chest.scale;
+    this.tweens.add({ targets: glow, alpha: 0.6, duration: 700, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
+    // Every now and then the chest jiggles, as if something were inside.
+    this.tweens.add({
+      targets: chest,
+      angle: { from: -6, to: 6 },
+      duration: 70,
+      yoyo: true,
+      repeat: 3,
+      repeatDelay: 0,
+      loopDelay: 900,
+      loop: -1,
+      onLoop: () => chest.setAngle(0),
+    });
+    const hint = this.text(
+      W / 2,
+      Math.min(cy + size * 0.65 + 20 * u, H - this.sa.bottom - 30 * u),
+      this.isTouch ? 'Tap to open' : 'Click or press Enter to open',
+      16,
+      { fontStyle: 'bold', color: '#e4e4e7', stroke: '#000', strokeThickness: 4 },
+    );
+    this.tweens.add({ targets: hint, alpha: 0.4, duration: 600, yoyo: true, repeat: -1 });
+    this.overlay.push(glow, chest);
+
+    const zone = this.add
+      .zone(W / 2, H / 2, W, H)
+      .setDepth(50.5)
+      .setInteractive();
+    this.openShownChest = () => this.openChest(chest, glow, hint, base);
+    zone.on('pointerup', () => this.openShownChest?.());
+    this.overlay.push(zone);
+  }
+
+  /** Lid flies open with a flash of light, then the reels screen follows. */
+  private openChest(
+    chest: Phaser.GameObjects.Image,
+    glow: Phaser.GameObjects.Image,
+    hint: Phaser.GameObjects.Text,
+    base: number,
+  ): void {
+    if (this.chestStage !== 'closed' || this.overlayKind !== 'chest') return;
+    if (this.time.now - this.overlayOpenedAt < 300) return;
+    this.chestStage = 'opening';
+    this.openShownChest = undefined;
+    this.tweens.killTweensOf([chest, glow, hint]);
+    hint.setVisible(false);
+    chest.setAngle(0);
+    // Squash, then pop open.
+    this.tweens.add({
+      targets: chest,
+      scaleX: base * 1.12,
+      scaleY: base * 0.86,
+      duration: 140,
+      ease: 'Quad.out',
+      onComplete: () => {
+        if (this.chestStage !== 'opening') return;
+        chest.setTexture('chest-big-open').setScale(base * 0.92, base * 1.15);
+        this.tweens.add({ targets: chest, scaleX: base, scaleY: base, duration: 220, ease: 'Back.out' });
+        this.tweens.add({
+          targets: glow,
+          alpha: 1,
+          displayWidth: glow.displayWidth * 1.35,
+          displayHeight: glow.displayHeight * 1.35,
+          duration: 450,
+          ease: 'Quad.out',
+        });
+        this.burstCoins(chest.x, chest.y - chest.displayHeight * 0.15, chest.displayWidth);
+        this.chestEvents.push(
+          this.time.delayedCall(750, () => {
+            if (this.chestStage !== 'opening' || this.overlayKind !== 'chest') return;
+            this.chestStage = 'reels';
+            this.overlayOpenedAt = this.time.now;
+            this.showChestReels();
+          }),
+        );
+      },
+    });
+  }
+
+  /** A handful of coins jump out of the opened chest. */
+  private burstCoins(x: number, y: number, spread: number): void {
+    for (let i = 0; i < 14; i++) {
+      const coin = this.add
+        .image(x + (Math.random() - 0.5) * spread * 0.4, y, 'coin')
+        .setDepth(53)
+        .setScale(this.u * (1.6 + Math.random() * 0.8));
+      this.overlay.push(coin);
+      const angle = -Math.PI / 2 + (Math.random() - 0.5) * 1.6;
+      const dist = spread * (0.5 + Math.random() * 0.6);
+      this.tweens.add({
+        targets: coin,
+        x: x + Math.cos(angle) * dist,
+        y: y + Math.sin(angle) * dist,
+        alpha: 0,
+        angle: (Math.random() - 0.5) * 360,
+        duration: 600 + Math.random() * 250,
+        ease: 'Quad.out',
+      });
+    }
+  }
+
+  private showChestReels(): void {
     const reward = this.chestReward;
     if (!reward) return;
     this.beginOverlay('chest', 0.72);
@@ -767,7 +911,12 @@ export class UIScene extends Phaser.Scene {
   /** Takes the chest once all reels have stopped. */
   private onChestConfirm(): void {
     const reward = this.chestReward;
-    if (!reward || this.chestRevealed < reward.upgrades.length) return;
+    if (!reward) return;
+    if (this.chestStage === 'closed') {
+      this.openShownChest?.();
+      return;
+    }
+    if (this.chestStage !== 'reels' || this.chestRevealed < reward.upgrades.length) return;
     if (this.time.now - this.overlayOpenedAt < 400) return;
     for (const e of this.chestEvents) e.remove();
     this.chestEvents = [];
