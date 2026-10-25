@@ -1,7 +1,9 @@
 import * as Phaser from 'phaser';
 import { BALANCE } from '../config/balance';
 import { DASH_SPEED } from '../config/skills';
+import { CHARACTER_SPRITES, dieAnim, SHEET, walkAnim, type CharacterSprite } from '../config/sprites';
 import type { SkillStats } from '../config/types';
+import { facingFor } from '../logic/facing';
 import type { EnemySystem } from './EnemySystem';
 
 /** Ignore stick input below this length when deciding a direction */
@@ -13,7 +15,9 @@ const DASH_HIT_REACH = 22;
 
 /** The player sprite: movement, dash, invulnerability and hit feedback. */
 export class PlayerController {
-  readonly sprite: Phaser.Physics.Arcade.Image;
+  readonly sprite: Phaser.Physics.Arcade.Sprite;
+  /** The animated sheet, or null when the placeholder texture is shown */
+  private readonly look: CharacterSprite | null;
   private readonly facing = new Phaser.Math.Vector2(1, 0);
   private readonly dashDir = new Phaser.Math.Vector2(1, 0);
   private dashUntil = 0;
@@ -27,8 +31,34 @@ export class PlayerController {
     private readonly scene: Phaser.Scene,
     private readonly now: () => number,
   ) {
-    this.sprite = scene.physics.add.image(0, 0, 'player').setDepth(3);
-    this.sprite.body!.setCircle(12, 5, 4);
+    const sheet = CHARACTER_SPRITES.player;
+    this.look = scene.textures.exists(sheet.key) ? sheet : null;
+    if (this.look) {
+      const look = this.look;
+      this.sprite = scene.physics.add
+        .sprite(0, 0, look.key, SHEET.rows.down * SHEET.columns)
+        .setScale(look.scale)
+        .setDepth(3);
+      // A hitbox of 12 px in the world, around the body.
+      const r = 12 / look.scale;
+      const half = SHEET.frameSize / 2;
+      this.sprite.body!.setCircle(r, half - r, half + look.bodyY - r);
+    } else {
+      this.sprite = scene.physics.add.sprite(0, 0, 'player').setDepth(3);
+      this.sprite.body!.setCircle(12, 5, 4);
+    }
+  }
+
+  /** Walk animation in the facing direction, or the standing pose. */
+  private animate(moving: boolean): void {
+    if (!this.look) return;
+    const facing = facingFor(this.facing.x, this.facing.y);
+    if (moving) {
+      this.sprite.play(walkAnim(this.look.key, facing), true);
+    } else {
+      this.sprite.anims.stop();
+      this.sprite.setFrame(SHEET.rows[facing] * SHEET.columns);
+    }
   }
 
   get x(): number {
@@ -65,10 +95,12 @@ export class PlayerController {
       if (this.dashDamage > 0) this.dashHits(enemies);
     } else {
       p.setVelocity(moveX * moveSpeed, moveY * moveSpeed);
-      if (Math.hypot(moveX, moveY) > DIRECTION_DEADZONE) {
+      const moving = Math.hypot(moveX, moveY) > DIRECTION_DEADZONE;
+      if (moving) {
         this.facing.set(moveX, moveY).normalize();
-        p.setFlipX(moveX < 0);
+        if (!this.look) p.setFlipX(moveX < 0);
       }
+      this.animate(moving);
     }
 
     if (now < this.hurtFlashUntil) {
@@ -96,13 +128,15 @@ export class PlayerController {
 
   showDefeated(): void {
     this.sprite.setVelocity(0, 0).setAlpha(1).setTint(0x555555).setTintMode(Phaser.TintModes.MULTIPLY);
+    if (this.look) this.sprite.play(dieAnim(this.look.key));
   }
 
   private spawnGhost(now: number): void {
     if (now - this.lastGhostAt <= 28) return;
     this.lastGhostAt = now;
     const ghost = this.scene.add
-      .image(this.sprite.x, this.sprite.y, 'player')
+      .image(this.sprite.x, this.sprite.y, this.sprite.texture.key, this.sprite.frame.name)
+      .setScale(this.sprite.scaleX)
       .setDepth(2.5)
       .setAlpha(0.45)
       .setTint(0x818cf8);

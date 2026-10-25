@@ -2,6 +2,7 @@ import * as Phaser from 'phaser';
 import { BALANCE, ELITE } from '../config/balance';
 import { eliteChance, ringModifiers, type RingModifiers } from '../logic/difficulty';
 import { ENEMIES } from '../config/enemies';
+import { dieAnim } from '../config/sprites';
 import type { EnemyDef } from '../config/types';
 import { Enemy } from '../entities/Enemy';
 import { enemyHpMultiplier, maxEnemies, pickEnemy, spawnBatchSize, spawnIntervalMs } from '../logic/spawning';
@@ -9,6 +10,11 @@ import type { DamageNumbers } from './DamageNumbers';
 
 const ENEMY_LIST: EnemyDef[] = Object.values(ENEMIES);
 const SEPARATION_CELL = 36;
+/** Fallen enemies shown at once (their death animation, then they fade) */
+const MAX_CORPSES = 48;
+/** How long a fallen enemy stays before it fades out (ms) */
+const CORPSE_STAY_MS = 900;
+const CORPSE_FADE_MS = 500;
 const MAX_PER_CELL = 6;
 
 interface Target {
@@ -27,6 +33,8 @@ export class EnemySystem {
   private ring: RingModifiers = ringModifiers(1);
   private elites = 0;
   private readonly grid = new Map<number, Enemy[]>();
+  /** Pool of death animations, so killing never creates new objects */
+  private readonly corpses: Phaser.GameObjects.Group;
 
   constructor(
     scene: Phaser.Scene,
@@ -37,6 +45,7 @@ export class EnemySystem {
   ) {
     this.group = scene.physics.add.group({ classType: Enemy, maxSize: BALANCE.maxEnemiesHardCap });
     this.eliteRings = scene.add.graphics().setDepth(1.9);
+    this.corpses = scene.add.group({ classType: Phaser.GameObjects.Sprite, maxSize: MAX_CORPSES });
   }
 
   // DEV: spawns one elite of the given type at the edge of the view.
@@ -95,8 +104,37 @@ export class EnemySystem {
     this.numbers.show(e.x, e.y - e.def.radius - 4, String(Math.round(amount)));
     if (e.hp <= 0) {
       this.onKilled(e);
+      this.showCorpse(e);
       e.despawn();
     }
+  }
+
+  /** The enemy falls (death animation), lies still for a moment and fades away. */
+  private showCorpse(e: Enemy): void {
+    if (!e.look) return;
+    const c = this.corpses.get(e.x, e.y, e.look.key) as Phaser.GameObjects.Sprite | null;
+    if (!c) return;
+    c.scene.tweens.killTweensOf(c);
+    c.setActive(true)
+      .setVisible(true)
+      .setPosition(e.x, e.y)
+      .setScale(e.scaleX)
+      .setAlpha(1)
+      .setDepth(1.8)
+      .setTintMode(Phaser.TintModes.MULTIPLY);
+    if (e.elite) c.setTint(ELITE.tint);
+    else c.clearTint();
+    c.play(dieAnim(e.look.key));
+    c.scene.tweens.add({
+      targets: c,
+      alpha: 0,
+      delay: CORPSE_STAY_MS,
+      duration: CORPSE_FADE_MS,
+      onComplete: () => {
+        c.anims.stop();
+        this.corpses.killAndHide(c);
+      },
+    });
   }
 
   /** Spawns new waves based on the run time in seconds. */
@@ -144,12 +182,16 @@ export class EnemySystem {
       const slowed = now < e.slowUntil;
       const speed = e.def.speed * e.speedJitter * (slowed ? e.slowFactor : 1);
       e.setVelocity((dx / d) * speed, (dy / d) * speed);
-      e.setFlipX(dx < 0);
+      e.walk(dx, dy, slowed ? e.slowFactor : 1);
+      // Lower on screen = in front; the player always stays on top.
+      e.setDepth(2 + Phaser.Math.Clamp((e.y - py) / 4000, -0.4, 0.4));
       this.updateTint(e, now, slowed);
       if (e.elite) {
         const r = e.def.radius * ELITE.scale + 7;
-        rings.fillStyle(ELITE.tint, 0.18 * pulse).fillCircle(e.x, e.y + 2, r + 4);
-        rings.lineStyle(3, ELITE.tint, pulse).strokeCircle(e.x, e.y + 2, r);
+        // Around the body: sprites stand a little below their centre.
+        const ry = e.y + (e.look ? e.look.bodyY * e.scaleY : 2);
+        rings.fillStyle(ELITE.tint, 0.18 * pulse).fillCircle(e.x, ry, r + 4);
+        rings.lineStyle(3, ELITE.tint, pulse).strokeCircle(e.x, ry, r);
       }
 
       const key = Math.floor(e.x / SEPARATION_CELL) * 92821 + Math.floor(e.y / SEPARATION_CELL);

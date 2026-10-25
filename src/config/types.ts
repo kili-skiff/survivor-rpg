@@ -1,5 +1,7 @@
 // Shared types for all game data. No Phaser imports here!
 
+import type { CharacterSpriteId } from './sprites';
+
 export type WeaponId = 'bolt' | 'blades' | 'aura';
 export type PassiveId =
   'vitality' | 'swiftness' | 'might' | 'haste' | 'magnet' | 'regen' | 'armor' | 'lantern';
@@ -87,7 +89,10 @@ export interface SkillDef {
 export interface EnemyDef {
   id: EnemyId;
   name: string;
+  /** Placeholder texture, used when the enemy has no sprite or its sheet could not be loaded */
   texture: string;
+  /** Animated sprite (config/sprites.ts) */
+  sprite?: CharacterSpriteId;
   radius: number;
   hp: number;
   speed: number;

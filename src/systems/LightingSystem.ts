@@ -22,6 +22,8 @@ interface Lurker extends Target {
   readonly active: boolean;
   /** Elites show bigger, golden eyes */
   readonly elite?: boolean;
+  /** Height of the eyes above the position (px) */
+  readonly eyesY: number;
 }
 
 /** Something small that glimmers in the dark, e.g. an XP gem */
@@ -242,7 +244,7 @@ export class LightingSystem {
       // A slow, slightly uneven shimmer, so the eyes feel alive.
       const shimmer = 0.75 + Math.sin(time * 0.004 + e.x * 0.05) * 0.25;
       this.eyes[used]
-        .setPosition(e.x, e.y - (e.elite ? 8 : 4))
+        .setPosition(e.x, e.y - e.eyesY)
         .setScale(e.elite ? 2.2 : 1.4)
         .setTint(e.elite ? ELITE.eyesColor : LIGHT.eyesColor)
         .setAlpha(depth * shimmer)

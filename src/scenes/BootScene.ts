@@ -1,4 +1,5 @@
 import * as Phaser from 'phaser';
+import { CHARACTER_SPRITES, dieAnim, SHEET, walkAnim, type Facing } from '../config/sprites';
 import { TILESET } from '../config/tiles';
 import { COLORS } from '../ui/theme';
 
@@ -20,7 +21,45 @@ export class BootScene extends Phaser.Scene {
       frameWidth: TILESET.frameWidth,
       frameHeight: TILESET.frameHeight,
     });
+    // Animated characters for fights. Missing sheets fall back to the placeholder graphics below.
+    for (const sprite of Object.values(CHARACTER_SPRITES)) {
+      this.load.spritesheet(sprite.key, sprite.path, {
+        frameWidth: SHEET.frameSize,
+        frameHeight: SHEET.frameSize,
+      });
+    }
     this.load.on(Phaser.Loader.Events.FILE_LOAD_ERROR, () => undefined);
+  }
+
+  /** Walk animations (one per facing) and the death animation for every loaded character sheet. */
+  private makeCharacterAnims(): void {
+    for (const sprite of Object.values(CHARACTER_SPRITES)) {
+      if (!this.textures.exists(sprite.key)) continue;
+      this.textures.get(sprite.key).setFilter(Phaser.Textures.FilterMode.NEAREST);
+      for (const facing of ['up', 'left', 'down', 'right'] as Facing[]) {
+        const start = SHEET.rows[facing] * SHEET.columns;
+        if (this.anims.exists(walkAnim(sprite.key, facing))) continue;
+        this.anims.create({
+          key: walkAnim(sprite.key, facing),
+          // Frame 0 is the standing pose; the walk cycle is frames 1..8.
+          frames: this.anims.generateFrameNumbers(sprite.key, {
+            start: start + 1,
+            end: start + SHEET.walkFrames - 1,
+          }),
+          frameRate: sprite.walkFps,
+          repeat: -1,
+        });
+      }
+      if (!this.anims.exists(dieAnim(sprite.key))) {
+        const start = SHEET.rows.die * SHEET.columns;
+        this.anims.create({
+          key: dieAnim(sprite.key),
+          frames: this.anims.generateFrameNumbers(sprite.key, { start, end: start + SHEET.dieFrames - 1 }),
+          frameRate: 14,
+          repeat: 0,
+        });
+      }
+    }
   }
 
   /** Soft round light: opaque in the middle, fading to nothing at the edge (cuts holes into darkness). */
@@ -42,6 +81,7 @@ export class BootScene extends Phaser.Scene {
 
   create(): void {
     this.makeLightTexture();
+    this.makeCharacterAnims();
     if (this.textures.exists(TILESET.key)) {
       this.textures.get(TILESET.key).setFilter(Phaser.Textures.FilterMode.NEAREST);
     }
@@ -62,9 +102,10 @@ export class BootScene extends Phaser.Scene {
 
     // Enemies
     make('enemy-bat', 30, 22, (g) => {
-      g.fillStyle(0x7c3aed).fillTriangle(15, 11, 1, 3, 6, 17).fillTriangle(15, 11, 29, 3, 24, 17);
-      g.fillStyle(0xa78bfa).fillCircle(15, 11, 7);
-      g.fillStyle(0xfef08a).fillCircle(12.5, 10, 1.6).fillCircle(17.5, 10, 1.6);
+      // Until bats have a sprite: dark wings and red eyes, to fit the night.
+      g.fillStyle(0x2a2430).fillTriangle(15, 11, 1, 3, 6, 17).fillTriangle(15, 11, 29, 3, 24, 17);
+      g.fillStyle(0x3d3444).fillCircle(15, 11, 7);
+      g.fillStyle(0xef4444).fillCircle(12.5, 10, 1.6).fillCircle(17.5, 10, 1.6);
     });
     make('enemy-zombie', 30, 30, (g) => {
       g.fillStyle(0x4d7c0f).fillCircle(15, 15, 13);
