@@ -65,7 +65,13 @@ export function finishFight(
   if (isCamp) progress = addWaypoint(progress, key);
   progress = {
     ...progress,
-    expedition: { ...expedition, build: nextBuild, loot, areasCleared: expedition.areasCleared + 1 },
+    expedition: {
+      ...expedition,
+      build: nextBuild,
+      loot,
+      areasCleared: expedition.areasCleared + 1,
+      cleared: expedition.cleared.includes(key) ? expedition.cleared : [...expedition.cleared, key],
+    },
   };
   return {
     save: { ...save, world: progress },
@@ -76,6 +82,16 @@ export function finishFight(
 /** Walking into a neighbouring hex without a fight. Only the village is reachable this way. */
 export function walkHome(save: SaveData, target: Hex): SaveData {
   return endExpeditionAtHome(save, walkTo(save.world, target));
+}
+
+/** Walking back into a hex cleared on this expedition: no fight, the expedition goes on. */
+export function walkThrough(save: SaveData, target: Hex): SaveData {
+  return { ...save, world: walkTo(save.world, target) };
+}
+
+/** Going home from wherever you are: the expedition ends and all its loot goes into the stash. */
+export function returnHome(save: SaveData): SaveData {
+  return endExpeditionAtHome(save, walkTo(save.world, ORIGIN));
 }
 
 /** Teleporting: from a waypoint back to the village (keeps the loot), or from the village to a waypoint. */

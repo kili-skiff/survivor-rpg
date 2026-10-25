@@ -7,9 +7,16 @@ import { hash32 } from '../logic/rng';
 import { formatTime } from '../logic/progression';
 import { loadSave, safeStorage, writeSave, type SaveData } from '../logic/save';
 import { lootCount, lootGained } from '../logic/expedition';
-import { teleport, walkHome } from '../logic/journey';
+import { returnHome, teleport, walkHome, walkThrough } from '../logic/journey';
 import { computePlayerStats } from '../logic/stats';
-import { isAtHome, isCleared, isDiscovered, travelKind, type TravelKind } from '../logic/worldProgress';
+import {
+  isAtHome,
+  isCleared,
+  isDiscovered,
+  isUsedUp,
+  travelKind,
+  type TravelKind,
+} from '../logic/worldProgress';
 import { seasonWorld, segmentForHex, type World, type WorldHex } from '../logic/worldgen';
 import { isDevMode } from '../ui/dev';
 import { safeArea, viewportSize, type SafeArea } from '../ui/display';
@@ -22,6 +29,8 @@ const FOG_EDGE = 0x2b2638;
 const VILLAGE_FILL = 0x8a6a2a;
 /** Pointer movement (in CSS px) after which a touch counts as dragging the map */
 const DRAG_THRESHOLD = 8;
+/** Darkens hexes cleared on this expedition */
+const USED_TINT = 0x4d4d57;
 
 interface DragState {
   id: number;
@@ -213,17 +222,16 @@ export class WorldMapScene extends Phaser.Scene {
       else if (withTiles) continue;
       else {
         const fill = h.poi === 'village' ? VILLAGE_FILL : BIOMES[h.biome].color;
-        g.fillStyle(fill, isCleared(progress, h.key) ? 1 : 0.5).lineStyle(1.5 * u, 0x0d0b12, 0.9);
+        g.fillStyle(fill, isUsedUp(progress, h.key) ? 0.25 : 0.85).lineStyle(1.5 * u, 0x0d0b12, 0.9);
       }
       this.hexPath(g, p.x, p.y, this.hexSize - 1.5 * u);
       g.fillPath().strokePath();
     }
-    // Explored land you have not cleared yet is a little darker.
+    // Hexes cleared on this expedition are greyed out: used up until you return home.
     for (const { hex, image } of this.tiles) {
       const discovered = this.isVisible(hex.key);
       image.setVisible(discovered);
-      if (discovered)
-        image.setTint(isCleared(progress, hex.key) || hex.poi === 'village' ? 0xffffff : 0xa8a8b4);
+      if (discovered) image.setTint(isUsedUp(progress, hex.key) ? USED_TINT : 0xffffff);
     }
 
     const o = this.outlines;
@@ -242,7 +250,9 @@ export class WorldMapScene extends Phaser.Scene {
       o.strokePath();
     }
 
-    for (const { hex, icon } of this.herbIcons) icon.setVisible(this.isVisible(hex.key));
+    for (const { hex, icon } of this.herbIcons) {
+      icon.setVisible(this.isVisible(hex.key) && !isUsedUp(progress, hex.key));
+    }
     for (const { hex, text } of this.poiLabels) {
       text.setVisible(this.isVisible(hex.key));
       text.setColor(progress.waypoints.includes(hex.key) ? css(COLORS.accent) : '#ffffff');
@@ -400,12 +410,12 @@ export class WorldMapScene extends Phaser.Scene {
         action: { label: 'Enter village', run: () => this.enterVillage() },
       };
     }
+    const goHome = { label: 'Return to village', run: () => this.goHome() };
     if (!this.selected) {
       return {
         title: 'Choose your path',
-        detail: isAtHome(progress)
-          ? 'Tap a glowing hex to set out. Camps you reach become waypoints you can travel to from here.'
-          : 'Tap a glowing hex next to you to move on. Drag to look around.',
+        detail: 'Tap a glowing hex next to you to move on, or go home and keep all your loot.',
+        action: goHome,
       };
     }
     const key = hexKey(this.selected);
@@ -457,7 +467,20 @@ export class WorldMapScene extends Phaser.Scene {
         title: `${BIOMES[h.biome].name} · Camp`,
         detail: 'A safe camp. Move on, or go home and keep your loot.',
         herbs,
-        action: { label: 'Return to village', run: () => this.teleport({ q: 0, r: 0 }) },
+        action: goHome,
+      };
+    }
+    if (isUsedUp(progress, key)) {
+      return {
+        title: `${BIOMES[h.biome].name}${h.poi ? ` · ${POIS[h.poi].name}` : ''}`,
+        detail: here
+          ? 'You are here. Move on, or go home and keep all your loot.'
+          : 'Cleared on this expedition: empty until you return home. Walk through without a fight.',
+        action: here
+          ? goHome
+          : kind === 'walk'
+            ? { label: 'Walk here', run: () => this.walkThrough(h.hex) }
+            : undefined,
       };
     }
     const seg = segmentForHex(h);
@@ -472,7 +495,8 @@ export class WorldMapScene extends Phaser.Scene {
       detail:
         `Ring ${h.ring} · Survive ${formatTime(seg.durationSec)}${isCleared(progress, key) ? ' · cleared before' : ''}\n${status}`.trim(),
       herbs,
-      action: kind === 'fight' ? { label: 'Enter area', run: () => this.fight(h.hex) } : undefined,
+      action:
+        kind === 'fight' ? { label: 'Enter area', run: () => this.fight(h.hex) } : here ? goHome : undefined,
     };
   }
 
@@ -531,7 +555,7 @@ export class WorldMapScene extends Phaser.Scene {
       if (!this.selected) return;
       const kind = travelKind(this.world, this.save.world, this.selected);
       if (kind === 'fight') this.fight(this.selected);
-      else if (kind === 'walk') this.walkHome(this.selected);
+      else if (kind === 'walk') this.walk(this.selected);
       else if (kind === 'teleport') this.teleport(this.selected);
     });
   }
@@ -543,6 +567,22 @@ export class WorldMapScene extends Phaser.Scene {
 
   private walkHome(hex: Hex): void {
     this.arriveHome(walkHome(this.save, hex));
+  }
+
+  /** Walking without a fight: into the village, or back through a hex cleared on this expedition. */
+  private walk(hex: Hex): void {
+    if (this.world.hexes.get(hexKey(hex))?.poi === 'village') this.walkHome(hex);
+    else this.walkThrough(hex);
+  }
+
+  private walkThrough(hex: Hex): void {
+    this.commit(walkThrough(this.save, hex));
+    this.centerOn(hex);
+  }
+
+  /** Going home from anywhere: keeps all the loot (portal scrolls could cost something later). */
+  private goHome(): void {
+    this.arriveHome(returnHome(this.save));
   }
 
   private teleport(hex: Hex): void {

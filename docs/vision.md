@@ -31,7 +31,8 @@ stronger: with a better class build, a growing herb garden and potions for the n
 - **Fog of war:** unexplored hexes are hidden.
 - **Points of interest** are rare and spread out (never next to each other) and sit on some hexes: camps, merchants with special goods, dungeon
   entrances, and occasionally an outpost or a second village.
-- **Hexes reset:** cleared hexes fill with monsters again (after a run or over time).
+- **Hexes reset after an expedition:** a hex cleared on an expedition is used up (greyed out on the
+  map) and can be walked through without a fight; when you return home everything fills again.
 - **Waypoints:** camps and other points of interest you reached can be teleported to.
   Expeditions can start from there.
 
@@ -43,7 +44,8 @@ stronger: with a better class build, a growing herb garden and potions for the n
   - _Per expedition:_ level, weapons, upgrades, collected herbs and loot.
   - _Per segment:_ enemies, timer, segment goal.
 - Your in-run build keeps growing across segments, like one long Vampire Survivors run with breaks.
-- **Risk vs. reward:** at every point of interest you choose to continue or go home.
+- **Risk vs. reward:** after every cleared hex you choose to continue or go home with all your loot.
+  Later, going home could cost something (e.g. portal scrolls), except from camps or next to the village.
 - **Health carries over** between hexes; camps heal you fully.
 - **Death or giving up:** the expedition ends, you wake up in the village and keep half of the loot.
 
@@ -116,7 +118,6 @@ stronger: with a better class build, a growing herb garden and potions for the n
 
 ## Open questions
 
-- Do hexes reset after every run, or over time?
 - How long should a full expedition take?
 - What exactly survives a new season?
 - Perspective: isometric or 3/4 top-down (see Look and feel).
