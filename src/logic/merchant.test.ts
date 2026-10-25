@@ -5,6 +5,7 @@ import {
   buyRecipe,
   goldOf,
   goldPerDrop,
+  lanternLightsAll,
   lanternMultiplier,
   nextLantern,
   sellHerb,
@@ -19,8 +20,15 @@ describe('merchant', () => {
 
   it('sells lantern tiers in order, each raising the light for good', () => {
     expect(lanternMultiplier(0)).toBe(1);
-    expect(lanternMultiplier(3)).toBeCloseTo(1.6);
-    expect(lanternMultiplier(9)).toBeCloseTo(1.6);
+    for (let level = 1; level <= LANTERN_TIERS.length; level++) {
+      expect(lanternMultiplier(level)).toBeGreaterThanOrEqual(lanternMultiplier(level - 1));
+    }
+    expect(lanternMultiplier(1)).toBeGreaterThan(1);
+    expect(lanternMultiplier(99)).toBe(lanternMultiplier(LANTERN_TIERS.length));
+    // Only the best lantern lights up the whole screen.
+    expect(lanternLightsAll(LANTERN_TIERS.length)).toBe(true);
+    expect(lanternLightsAll(LANTERN_TIERS.length - 1)).toBe(false);
+    expect(lanternLightsAll(0)).toBe(false);
     expect(nextLantern(0)?.price).toBe(LANTERN_TIERS[0].price);
     expect(nextLantern(LANTERN_TIERS.length)).toBeNull();
     expect(buyLantern({ [GOLD_KEY]: 10 }, 0)).toBeNull();

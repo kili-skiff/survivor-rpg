@@ -19,7 +19,7 @@ import { InputState } from '../input/InputState';
 import { addXp } from '../logic/progression';
 import { addLoot, lootGained } from '../logic/expedition';
 import { GOLD, GOLD_KEY } from '../config/merchant';
-import { goldPerDrop, lanternMultiplier } from '../logic/merchant';
+import { goldPerDrop, lanternLightsAll, lanternMultiplier } from '../logic/merchant';
 import { dropsChest, rollChest, type ChestReward } from '../logic/chest';
 import type { ExpeditionBuild } from '../logic/expedition';
 import { parseHexKey } from '../logic/hex';
@@ -235,6 +235,7 @@ export class GameScene extends Phaser.Scene {
     );
     this.lighting.setEnabled(loadSettings(safeStorage()).lighting);
     this.lighting.setRadiusScale(this.run.stats.light);
+    this.lighting.setLightsAll(lanternLightsAll(this.lanternLevel) || this.devGodMode()); // DEV: god mode
 
     this.cameras.main.startFollow(this.player.sprite, false, 1, 1);
     this.onResize();
@@ -456,6 +457,7 @@ export class GameScene extends Phaser.Scene {
     this.run.stats.light *= lanternMultiplier(this.lanternLevel);
     if (this.devGodMode()) this.run.stats = godModeStats(this.run.stats); // DEV:
     this.lighting?.setRadiusScale(this.run.stats.light);
+    this.lighting?.setLightsAll(lanternLightsAll(this.lanternLevel) || this.devGodMode()); // DEV: god mode
     if (this.run.stats.maxHp > prevMax) this.run.hp += this.run.stats.maxHp - prevMax;
 
     this.weaponStats = {};

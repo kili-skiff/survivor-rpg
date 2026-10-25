@@ -4,9 +4,9 @@ import {
   GOLD,
   GOLD_KEY,
   HERB_PRICES,
-  LANTERN_BONUS_PER_TIER,
   LANTERN_TIERS,
   RECIPE_PRICES,
+  type LanternTier,
 } from '../config/merchant';
 import type { HerbId, PotionId } from '../config/types';
 import type { Loot } from './expedition';
@@ -27,9 +27,20 @@ export function goldPerDrop(ring: number): number {
   return 1 + Math.floor(Math.max(0, ring) / GOLD.extraEveryRings);
 }
 
-/** Light radius multiplier from the bought lantern tiers. */
+/** The lantern you own (null for the old one you start with). */
+export function currentLantern(level: number): LanternTier | null {
+  const clamped = Math.max(0, Math.min(level, LANTERN_TIERS.length));
+  return clamped > 0 ? LANTERN_TIERS[clamped - 1] : null;
+}
+
+/** Light radius multiplier from the lantern you own. */
 export function lanternMultiplier(level: number): number {
-  return 1 + LANTERN_BONUS_PER_TIER * Math.max(0, Math.min(level, LANTERN_TIERS.length));
+  return currentLantern(level)?.light ?? 1;
+}
+
+/** Whether your lantern lights up the whole screen (no darkness in fights). */
+export function lanternLightsAll(level: number): boolean {
+  return currentLantern(level)?.lightsAll ?? false;
 }
 
 /** The next lantern tier and its price, or null when all are bought. */

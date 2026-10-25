@@ -2,14 +2,22 @@ import type { HerbId, PotionId } from './types';
 
 // The village merchant: lantern upgrades, potion recipes, and buying your herbs.
 
-export const LANTERN_TIERS = [
-  { name: 'Brass Lantern', price: 25 },
-  { name: 'Silver Lantern', price: 60 },
-  { name: 'Moonglass Lantern', price: 150 },
-] as const;
+export interface LanternTier {
+  name: string;
+  price: number;
+  /** Light radius multiplier while you own this lantern (for good) */
+  light: number;
+  /** The best lantern drives the night away: no darkness on screen at all */
+  lightsAll?: boolean;
+}
 
-/** Each lantern tier raises the light radius by this share, for good */
-export const LANTERN_BONUS_PER_TIER = 0.2;
+export const LANTERN_TIERS: readonly LanternTier[] = [
+  { name: 'Brass Lantern', price: 25, light: 1.3 },
+  { name: 'Silver Lantern', price: 60, light: 1.7 },
+  { name: 'Moonglass Lantern', price: 150, light: 2.3 },
+  // Endgame: later perhaps found at a special place on the map instead of bought.
+  { name: 'Sunstone Lantern', price: 400, light: 2.3, lightsAll: true },
+];
 
 /** Recipes you know from the start; the others are bought */
 export const STARTING_RECIPES: readonly PotionId[] = ['healing'];

@@ -54,6 +54,8 @@ export class LightingSystem {
   private enabled = true;
   /** Current light radius of the player (LIGHT.radius times the light stat) */
   private radius: number = LIGHT.radius;
+  /** Set by the best lantern: the whole screen is lit */
+  private lightsAll = false;
 
   constructor(
     scene: Phaser.Scene,
@@ -89,8 +91,15 @@ export class LightingSystem {
   /** Switches darkness and glows on or off (torches stay as decoration). */
   setEnabled(on: boolean): void {
     this.enabled = on;
-    this.darkness.setVisible(on);
+    this.darkness.setVisible(on && !this.lightsAll);
     if (!on) for (const g of [...this.glows, ...this.eyes]) g.setVisible(false);
+  }
+
+  /** The best lantern lights up the whole screen: no darkness and no eyes, only the warm glows. */
+  setLightsAll(on: boolean): void {
+    this.lightsAll = on;
+    this.darkness.setVisible(this.enabled && !on);
+    if (on) for (const e of this.eyes) e.setVisible(false);
   }
 
   /** The player's light stat changed (e.g. Lantern Oil): grows or shrinks the light circle. */
@@ -166,7 +175,7 @@ export class LightingSystem {
       used += 1;
     }
     for (let i = used; i < MAX_GLOWS; i++) this.glows[i].setVisible(false);
-    this.placeEyes(x, y, time);
+    if (!this.lightsAll) this.placeEyes(x, y, time);
   }
 
   /** Enemies beyond the light show glowing eyes above the darkness, brighter the deeper in the dark. */
