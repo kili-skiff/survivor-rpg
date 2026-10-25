@@ -19,7 +19,7 @@ Goal: web first, native apps later (Capacitor for Android/iOS, Tauri for desktop
 - `npm run build:single` – everything in one HTML file (dist-single/) for quick sharing
 - Dev mode: on in `npm run dev`, and in any build with `?dev` in the URL (e.g. a PR preview).
   Test helpers: "+herbs +gold" in the village; "reveal" (fog off on screen only) and "jump here" on the
-  map; "clear area" and "god mode" (no damage, much stronger) in a fight; "reset save" in the
+  map; "clear area", "god mode" (no damage, much stronger) and "spawn elite" in a fight; "reset save" in the
   village (second tap confirms; device settings stay). All dev code lives in `src/dev/`; every call into it is marked
   `// DEV:`. For a release set `DEV_TOOLS = false` in `src/dev/devMode.ts`, or delete `src/dev/` and
   the marked lines.
@@ -38,7 +38,8 @@ src/
              segments, world, map tiles, balancing (NO Phaser)
   logic/     Pure game logic (NO Phaser, tested): stats, XP, upgrades, spawning, segments, save data,
              hex math, seeded RNG, world generation, world progress, expeditions and journeys,
-             potions (brewing, belt, buffs), merchant (gold, lanterns, recipes), quests, device settings
+             potions (brewing, belt, buffs), merchant (gold, lanterns, recipes), ring difficulty,
+             quests, device settings
   entities/  Pooled Phaser objects (Enemy, Projectile, Pickup)
   input/     InputState: one input layer for touch, keyboard, later gamepads
   systems/   Gameplay behaviour, one job per file:
@@ -106,7 +107,7 @@ A small but complete piece of the game from `docs/vision.md`. Each step is its o
 - [x] First quest: the elder sends you to an old tower at the edge of the map (the way there;
       the tower stays sealed for now), the scout points out a camp on the way
 - [x] Gold and the village merchant: lantern tiers (+light for good), potion recipes, selling herbs
-- [ ] Ring difficulty and elite enemies
+- [x] Ring difficulty and elite enemies (golden ring, always drop gold)
 - [ ] Treasure chest from elites with a slot-machine roll (gold, upgrades; equipment later)
 - [ ] Herb garden: plant herbs and harvest more of them, growing in real time
 - [ ] One class with a small skill tree

@@ -56,6 +56,7 @@ export class UIScene extends Phaser.Scene {
   private pauseBtn!: Phaser.GameObjects.Text;
   private devClearBtn: Phaser.GameObjects.Text | null = null; // DEV:
   private devGodBtn: Phaser.GameObjects.Text | null = null; // DEV:
+  private devEliteBtn: Phaser.GameObjects.Text | null = null; // DEV:
   private skillButtons: SkillButton[] = [];
   private potionButtons: PotionButton[] = [];
   private loadoutIcons: Phaser.GameObjects.GameObject[] = [];
@@ -128,6 +129,13 @@ export class UIScene extends Phaser.Scene {
           .text(0, 0, 'DEV  clear area', devButtonStyle(this.u))
           .setInteractive({ useHandCursor: true })
           .on('pointerdown', () => this.overlayKind === 'none' && this.gs.devClearArea())
+      : null;
+    // DEV: spawn an elite.
+    this.devEliteBtn = isDevMode()
+      ? this.add
+          .text(0, 0, 'DEV  spawn elite', devButtonStyle(this.u))
+          .setInteractive({ useHandCursor: true })
+          .on('pointerdown', () => this.overlayKind === 'none' && this.gs.devSpawnElite())
       : null;
     // DEV: god mode toggle.
     this.devGodBtn = isDevMode()
@@ -261,6 +269,9 @@ export class UIScene extends Phaser.Scene {
       ?.setText(god ? 'DEV  god mode on' : 'DEV  god mode off')
       .setStyle(devButtonStyle(u, god))
       .setPosition(left, top + 84 * u + (this.devClearBtn?.height ?? 0) + 6 * u);
+    this.devEliteBtn
+      ?.setStyle(devButtonStyle(u))
+      .setPosition(left, top + 84 * u + ((this.devClearBtn?.height ?? 0) + 6 * u) * 2);
   }
 
   private createPotionButton(id: PotionId, label: string): void {

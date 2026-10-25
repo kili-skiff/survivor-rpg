@@ -1,5 +1,5 @@
 import * as Phaser from 'phaser';
-import { LIGHT } from '../config/balance';
+import { ELITE, LIGHT } from '../config/balance';
 import { hash32 } from '../logic/rng';
 
 export interface LightSource {
@@ -20,6 +20,8 @@ interface Target {
 /** Something that can lurk in the dark, e.g. an enemy */
 interface Lurker extends Target {
   readonly active: boolean;
+  /** Elites show bigger, golden eyes */
+  readonly elite?: boolean;
 }
 
 /** Pool sizes: torches near the player, and glows for torches and herbs */
@@ -186,7 +188,9 @@ export class LightingSystem {
       // A slow, slightly uneven shimmer, so the eyes feel alive.
       const shimmer = 0.75 + Math.sin(time * 0.004 + e.x * 0.05) * 0.25;
       this.eyes[used]
-        .setPosition(e.x, e.y - 4)
+        .setPosition(e.x, e.y - (e.elite ? 8 : 4))
+        .setScale(e.elite ? 2.2 : 1.4)
+        .setTint(e.elite ? ELITE.eyesColor : LIGHT.eyesColor)
         .setAlpha(depth * shimmer)
         .setVisible(true);
       used += 1;

@@ -1,5 +1,6 @@
 import * as Phaser from 'phaser';
-import { BALANCE } from '../config/balance';
+import { BALANCE, ELITE } from '../config/balance';
+import { eliteChance, ringModifiers, type RingModifiers } from '../logic/difficulty';
 import { ENEMIES } from '../config/enemies';
 import type { EnemyDef } from '../config/types';
 import { Enemy } from '../entities/Enemy';
@@ -21,6 +22,10 @@ export class EnemySystem {
   /** Diagonal of the visible world area; set by the scene on resize */
   viewDiag = 1000;
   private spawnTimer = 400;
+  /** Golden rings under elites, so they stand out from the horde */
+  private readonly eliteRings: Phaser.GameObjects.Graphics;
+  private ring: RingModifiers = ringModifiers(1);
+  private elites = 0;
   private readonly grid = new Map<number, Enemy[]>();
 
   constructor(
@@ -31,6 +36,28 @@ export class EnemySystem {
     private readonly onKilled: (e: Enemy) => void,
   ) {
     this.group = scene.physics.add.group({ classType: Enemy, maxSize: BALANCE.maxEnemiesHardCap });
+    this.eliteRings = scene.add.graphics().setDepth(1.9);
+  }
+
+  // DEV: spawns one elite of the given type at the edge of the view.
+  devSpawnElite(def: EnemyDef, runTime: number): void {
+    const pos = this.spawnPoint();
+    const e = this.group.get(pos.x, pos.y, def.texture) as Enemy | null;
+    if (!e) return;
+    e.spawn(
+      def,
+      pos.x,
+      pos.y,
+      enemyHpMultiplier(runTime) * this.ring.hp * ELITE.hp,
+      this.ring.damage * ELITE.damage,
+      true,
+    );
+  }
+
+  /** Sets the difficulty for the ring of this fight's hex. */
+  setRing(ring: number): void {
+    this.ring = ringModifiers(ring);
+    this.elites = eliteChance(ring);
   }
 
   *active(): Generator<Enemy> {
@@ -76,7 +103,7 @@ export class EnemySystem {
   spawn(dms: number, runTime: number): void {
     this.spawnTimer -= dms;
     if (this.spawnTimer > 0) return;
-    this.spawnTimer += spawnIntervalMs(runTime);
+    this.spawnTimer += spawnIntervalMs(runTime) / this.ring.spawnRate;
     const limit = maxEnemies(runTime, BALANCE.maxEnemiesHardCap);
     let alive = this.group.countActive(true);
     const batch = spawnBatchSize(runTime);
@@ -85,7 +112,9 @@ export class EnemySystem {
       const pos = this.spawnPoint();
       const e = this.group.get(pos.x, pos.y, def.texture) as Enemy | null;
       if (!e) break;
-      e.spawn(def, pos.x, pos.y, enemyHpMultiplier(runTime));
+      const elite = Math.random() < this.elites;
+      const hp = enemyHpMultiplier(runTime) * this.ring.hp * (elite ? ELITE.hp : 1);
+      e.spawn(def, pos.x, pos.y, hp, this.ring.damage * (elite ? ELITE.damage : 1), elite);
       alive += 1;
     }
   }
@@ -96,6 +125,9 @@ export class EnemySystem {
     const recycleDist = this.viewDiag * 0.8;
     const grid = this.grid;
     grid.clear();
+    const rings = this.eliteRings;
+    rings.clear();
+    const pulse = 0.6 + Math.sin(now / 160) * 0.3;
 
     for (const e of this.active()) {
       const dx = px - e.x;
@@ -114,6 +146,11 @@ export class EnemySystem {
       e.setVelocity((dx / d) * speed, (dy / d) * speed);
       e.setFlipX(dx < 0);
       this.updateTint(e, now, slowed);
+      if (e.elite) {
+        const r = e.def.radius * ELITE.scale + 7;
+        rings.fillStyle(ELITE.tint, 0.18 * pulse).fillCircle(e.x, e.y + 2, r + 4);
+        rings.lineStyle(3, ELITE.tint, pulse).strokeCircle(e.x, e.y + 2, r);
+      }
 
       const key = Math.floor(e.x / SEPARATION_CELL) * 92821 + Math.floor(e.y / SEPARATION_CELL);
       const bucket = grid.get(key);
@@ -131,6 +168,7 @@ export class EnemySystem {
     e.tintState = state;
     if (state === 1) e.setTint(0xffffff).setTintMode(Phaser.TintModes.FILL);
     else if (state === 2) e.setTint(0x8fd3ff).setTintMode(Phaser.TintModes.MULTIPLY);
+    else if (e.elite) e.setTint(ELITE.tint).setTintMode(Phaser.TintModes.MULTIPLY);
     else e.clearTint().setTintMode(Phaser.TintModes.MULTIPLY);
   }
 

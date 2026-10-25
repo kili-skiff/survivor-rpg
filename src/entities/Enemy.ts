@@ -1,4 +1,5 @@
 import * as Phaser from 'phaser';
+import { ELITE } from '../config/balance';
 import type { EnemyDef } from '../config/types';
 
 /** Pooled enemy: reused instead of created anew. */
@@ -15,9 +16,23 @@ export class Enemy extends Phaser.Physics.Arcade.Image {
   lastDashHit = 0;
   /** 0 = normal, 1 = hit flash, 2 = slowed */
   tintState = 0;
+  /** Damage per touch, after ring and elite modifiers */
+  damage = 0;
+  /** Elite: big, tough, golden shimmer, always drops gold */
+  elite = false;
 
-  spawn(def: EnemyDef, x: number, y: number, hpMultiplier: number): void {
+  spawn(
+    def: EnemyDef,
+    x: number,
+    y: number,
+    hpMultiplier: number,
+    damageMultiplier = 1,
+    elite = false,
+  ): void {
     this.def = def;
+    this.elite = elite;
+    this.damage = def.damage * damageMultiplier;
+    this.setScale(elite ? ELITE.scale : 1);
     this.setTexture(def.texture);
     this.enableBody(true, x, y, true, true);
     this.hp = def.hp * hpMultiplier;

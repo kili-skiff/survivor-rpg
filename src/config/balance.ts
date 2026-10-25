@@ -17,6 +17,33 @@ export const BALANCE = {
   maxEnemiesHardCap: 320,
 } as const;
 
+/** Further rings are harder: enemies get more health and damage and come in denser waves. */
+export const RINGS = {
+  /** Enemy health +30% per ring beyond the first */
+  hpPerRing: 0.3,
+  /** Enemy damage +12% per ring beyond the first */
+  damagePerRing: 0.12,
+  /** Waves come 8% more often per ring beyond the first */
+  spawnRatePerRing: 0.08,
+} as const;
+
+/** Elite enemies: rare, big and tough, with a golden shimmer; they always drop gold. */
+export const ELITE = {
+  /** Elites appear from this ring on */
+  minRing: 2,
+  /** Chance per spawned enemy: this much per ring, up to `maxChance` */
+  chancePerRing: 0.004,
+  maxChance: 0.03,
+  hp: 8,
+  damage: 1.5,
+  xp: 5,
+  scale: 1.6,
+  /** Gold dropped: this many times a normal drop */
+  gold: 3,
+  tint: 0xffcf6b,
+  eyesColor: 0xfacc15,
+} as const;
+
 /**
  * Light in fights. For now it is only atmosphere: darkness around a light circle; enemies outside
  * it are dimmed but still visible. A better lantern could raise `radius` later.

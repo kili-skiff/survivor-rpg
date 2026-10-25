@@ -1,5 +1,6 @@
 import * as Phaser from 'phaser';
-import { BALANCE } from '../config/balance';
+import { BALANCE, ELITE } from '../config/balance';
+import { ENEMIES } from '../config/enemies';
 import { POTION_IDS, POTIONS } from '../config/potions';
 import { DEFAULT_SEGMENT } from '../config/segments';
 import type {
@@ -178,6 +179,7 @@ export class GameScene extends Phaser.Scene {
     const hexInfo = this.hexKey ? seasonWorld().hexes.get(this.hexKey) : undefined;
     const segment = hexInfo ? segmentForHex(hexInfo) : DEFAULT_SEGMENT;
     this.ring = hexInfo?.ring ?? 1;
+    this.enemies.setRing(this.ring);
     this.ground.setTint(segment.groundTint);
 
     // On an expedition the character keeps its build from the previous hex.
@@ -316,6 +318,11 @@ export class GameScene extends Phaser.Scene {
     this.registry.set('devGod', !this.devGodMode());
     this.refreshStats();
     this.run.hp = this.run.stats.maxHp;
+  }
+
+  // DEV: spawns an elite at the edge of the view.
+  devSpawnElite(): void {
+    if (this.run.alive) this.enemies.devSpawnElite(ENEMIES.zombie, this.run.time);
   }
 
   // DEV: wins the fight at once (the segment timer runs out on the next frame).
@@ -475,8 +482,7 @@ export class GameScene extends Phaser.Scene {
   private onPlayerTouched(e: Enemy): void {
     if (!e.active || !this.run.alive || this.devGodMode() || !this.player.tryTakeHit()) return; // DEV: god mode
     this.herbs.interrupt();
-    const dmg =
-      damageAfterArmor(e.def.damage, this.run.stats.armor) * damageTakenMultiplier(this.potions.active);
+    const dmg = damageAfterArmor(e.damage, this.run.stats.armor) * damageTakenMultiplier(this.potions.active);
     this.run.hp -= dmg;
     this.numbers.show(this.player.x, this.player.y - 22, `-${Math.round(dmg)}`, '#ff6b81', true);
     if (this.run.hp <= 0) {
@@ -489,8 +495,10 @@ export class GameScene extends Phaser.Scene {
   private onEnemyKilled(e: Enemy): void {
     this.run.kills += 1;
     if (Math.random() < BALANCE.healDropChance) this.pickups.drop(e.x, e.y, 'heal', BALANCE.healAmount);
-    else this.pickups.drop(e.x, e.y, 'xp', e.def.xp);
-    if (Math.random() < GOLD.dropChance) this.pickups.drop(e.x + 8, e.y - 6, 'gold', goldPerDrop(this.ring));
+    else this.pickups.drop(e.x, e.y, 'xp', e.def.xp * (e.elite ? ELITE.xp : 1));
+    if (e.elite) this.pickups.drop(e.x + 8, e.y - 6, 'gold', goldPerDrop(this.ring) * ELITE.gold);
+    else if (Math.random() < GOLD.dropChance)
+      this.pickups.drop(e.x + 8, e.y - 6, 'gold', goldPerDrop(this.ring));
   }
 
   private onPickup(p: Pickup): void {
