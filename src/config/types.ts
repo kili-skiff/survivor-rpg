@@ -104,4 +104,31 @@ export interface SegmentDef {
   durationSec: number;
   /** The countdown turns into a warning colour for the last N seconds */
   warningSec: number;
+  /** Added to the run time when choosing enemies and difficulty (seconds) */
+  difficultyOffsetSec: number;
+  /** Tint for the ground texture */
+  groundTint: number;
+}
+
+export type BiomeId = 'meadow' | 'forest' | 'swamp' | 'graveyard' | 'hills';
+export type PoiId = 'village' | 'camp' | 'merchant' | 'dungeon';
+
+export interface BiomeDef {
+  id: BiomeId;
+  name: string;
+  /** Hex colour on the world map */
+  color: number;
+  /** Ground colour while fighting in this biome (tints the neutral ground texture) */
+  groundTint: number;
+}
+
+export interface PoiDef {
+  id: PoiId;
+  name: string;
+  /** Short marker shown on the map until real icons exist */
+  glyph: string;
+  /** Earliest ring where this point of interest can appear */
+  minRing: number;
+  /** Chance per hex (0..1) */
+  chance: number;
 }

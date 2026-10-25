@@ -28,15 +28,17 @@ Goal: web first, native apps later (Capacitor for Android/iOS, Tauri for desktop
 
 ```
 src/
-  config/    Game data: weapons, items, skills, enemies, segments, balancing (NO Phaser)
-  logic/     Pure game logic: stats, XP, upgrades, spawning, segments, save data (NO Phaser, tested)
+  config/    Game data: weapons, items, skills, enemies, segments, world/season, balancing (NO Phaser)
+  logic/     Pure game logic (NO Phaser, tested): stats, XP, upgrades, spawning, segments, save data,
+             hex math, seeded RNG, world generation and world progress
   entities/  Pooled Phaser objects (Enemy, Projectile, Pickup)
   input/     InputState: one input layer for touch, keyboard, later gamepads
   systems/   Gameplay behaviour, one job per file:
     weapons/   one class per weapon + factory in index.ts
     skills/    active skills (e.g. Frost Nova)
     PlayerController, EnemySystem, PickupSystem, DamageNumbers
-  scenes/    Boot (placeholder graphics), Game (owns run state, wires systems), UI (HUD, touch, menus)
+  scenes/    Boot (placeholder graphics), WorldMap (hex map, travel), Game (one fight, owns run state,
+             wires systems), UI (HUD, touch, menus during a fight)
   ui/        Display helpers (pixel density, safe area), colors
 ```
 
@@ -57,7 +59,10 @@ src/
 8. **Phaser 4:** `setTintFill()` no longer exists; use `setTint(c).setTintMode(Phaser.TintModes.FILL)`.
    Phaser ships its own guides in `node_modules/phaser/skills/`.
 9. **Language:** Everything is in English: code, comments, docs, commit messages, PRs and in-game text.
-10. **Git:** Small commits, one feature per branch. Claude may be listed as co-author
+10. **World determinism:** The map is generated from the season seed and never saved; only player
+    progress (`WorldProgress`) is saved. World generation must use `logic/rng.ts`, never `Math.random`.
+    Change world generation only together with a new season (`SEASON.generatorVersion` in `config/world.ts`).
+11. **Git:** Small commits, one feature per branch. Claude may be listed as co-author
     (`Co-Authored-By`), but commit messages and PR descriptions never contain session links.
 
 ## Roadmap
@@ -67,7 +72,7 @@ src/
 A small but complete piece of the game from `docs/vision.md`. Each step is its own PR.
 
 - [x] Segments with a goal (e.g. survive N minutes) and a result screen
-- [ ] Hex world map from a seed: rings, biomes, fog of war; tap a neighbour hex to play it
+- [x] Hex world map from a seed: rings, biomes, fog of war; tap a neighbour hex to play it
 - [ ] Expeditions: build carries over between segments, camps as waypoints, partial loot loss on death
 - [ ] Village as the starting point (simple screen: stash and "set out")
 - [ ] Herbs dropped by biome and collected during expeditions

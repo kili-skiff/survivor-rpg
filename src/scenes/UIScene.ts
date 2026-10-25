@@ -5,14 +5,13 @@ import type { PassiveId, SkillId, WeaponId } from '../config/types';
 import { WEAPONS } from '../config/weapons';
 import type { InputState } from '../input/InputState';
 import { formatTime, xpToNext } from '../logic/progression';
-import { loadSave, safeStorage } from '../logic/save';
 import { isSegmentWarning, segmentRemaining } from '../logic/segment';
 import { describeUpgrade, type UpgradeOption } from '../logic/upgrades';
 import { safeArea, viewportSize, type SafeArea } from '../ui/display';
 import { COLORS, css, FONT } from '../ui/theme';
 import type { GameScene, RunEndInfo } from './GameScene';
 
-type OverlayKind = 'none' | 'start' | 'levelup' | 'pause' | 'runend';
+type OverlayKind = 'none' | 'levelup' | 'pause' | 'runend';
 
 interface SkillButton {
   id: SkillId;
@@ -117,7 +116,7 @@ export class UIScene extends Phaser.Scene {
       this.game.events.off(Phaser.Core.Events.HIDDEN, this.onHidden, this);
     });
 
-    if (!this.gs.run.started) this.showStart();
+    this.showSegmentBanner();
   }
 
   override update(): void {
@@ -145,10 +144,9 @@ export class UIScene extends Phaser.Scene {
   private onConfirmKey(action: 'dash' | null): void {
     if (this.overlayKind === 'none') {
       if (action) this.controls.press(action);
-    } else if (this.overlayKind === 'start') this.startRun();
-    else if (this.overlayKind === 'pause') this.togglePause();
+    } else if (this.overlayKind === 'pause') this.togglePause();
     else if (this.overlayKind === 'runend' && this.time.now - this.overlayOpenedAt > 600)
-      this.gs.restartRun();
+      this.gs.returnToMap();
   }
 
   private setupJoystick(): void {
@@ -234,8 +232,7 @@ export class UIScene extends Phaser.Scene {
     this.layout();
     // Rebuild open menus so they fit the new size.
     const kind = this.overlayKind;
-    if (kind === 'start') this.showStart();
-    else if (kind === 'levelup') this.showLevelUp();
+    if (kind === 'levelup') this.showLevelUp();
     else if (kind === 'pause') this.showPause();
     else if (kind === 'runend' && this.runEndInfo) this.showRunEnd(this.runEndInfo);
   }
@@ -462,48 +459,40 @@ export class UIScene extends Phaser.Scene {
     this.overlay.push(g, zone);
   }
 
-  private showStart(): void {
-    this.beginOverlay('start', 0.55);
+  /** Shows the area name and goal for a moment when a fight starts. */
+  private showSegmentBanner(): void {
     const { width: W, height: H } = this.scale;
     const u = this.u;
-    const save = loadSave(safeStorage());
     const seg = this.gs.run.segment;
-
-    // Stack the content from the title downwards so it never overlaps in landscape.
-    const titleY = Math.max(H * 0.2, this.sa.top + 90 * u);
-    this.text(W / 2, titleY, 'NIGHTWATCH', 40, {
-      fontStyle: 'bold',
-      color: css(COLORS.accent),
-      stroke: '#000',
-      strokeThickness: 6,
+    const style = { fontFamily: FONT, color: '#ffffff', stroke: '#000000', align: 'center' as const };
+    const title = this.add
+      .text(W / 2, H * 0.3, seg.name, {
+        ...style,
+        fontSize: `${Math.round(26 * u)}px`,
+        fontStyle: 'bold',
+        strokeThickness: 5,
+      })
+      .setOrigin(0.5)
+      .setDepth(40);
+    const goal = this.add
+      .text(W / 2, H * 0.3 + 34 * u, `Survive ${formatTime(seg.durationSec)}`, {
+        ...style,
+        fontSize: `${Math.round(16 * u)}px`,
+        color: css(COLORS.accent),
+        strokeThickness: 4,
+      })
+      .setOrigin(0.5)
+      .setDepth(40);
+    this.tweens.add({
+      targets: [title, goal],
+      alpha: 0,
+      delay: 2200,
+      duration: 600,
+      onComplete: () => {
+        title.destroy();
+        goal.destroy();
+      },
     });
-    this.text(W / 2, titleY + 40 * u, 'Survivor RPG · Prototype', 15, { color: '#c4b5fd' });
-    this.text(W / 2, titleY + 82 * u, `Survive ${formatTime(seg.durationSec)} in the ${seg.name}`, 16, {
-      fontStyle: 'bold',
-      color: css(COLORS.accent),
-    });
-
-    const help = this.isTouch
-      ? 'Drag anywhere with your thumb to move\nButtons on the right: Dash and Frost Nova\nYou attack automatically'
-      : 'WASD / arrow keys: move\nSpace or Q: Dash · E: Frost Nova\nYou attack automatically · P: Pause';
-    this.text(W / 2, titleY + 150 * u, help, 15, { lineSpacing: 6 * u, color: '#e5e7eb' });
-
-    if (save.runs > 0) {
-      this.text(
-        W / 2,
-        titleY + 215 * u,
-        `Areas cleared ${save.segmentsCleared} · best ${save.bestKills} kills · level ${save.bestLevel}`,
-        13,
-        { color: '#a1a1aa' },
-      );
-    }
-    const buttonY = Math.min(Math.max(titleY + 275 * u, H * 0.74), H - this.sa.bottom - 50 * u);
-    this.button(W / 2, buttonY, 'Play', () => this.startRun());
-  }
-
-  private startRun(): void {
-    this.clearOverlay();
-    this.gs.startRun();
   }
 
   private onLevelUp(options: UpgradeOption[], level: number): void {
@@ -664,7 +653,7 @@ export class UIScene extends Phaser.Scene {
     const u = this.u;
     this.text(W / 2, H * 0.3, 'Paused', 34, { fontStyle: 'bold' });
     this.button(W / 2, H * 0.5, 'Resume', () => this.togglePause());
-    this.button(W / 2, H * 0.5 + 64 * u, 'Restart', () => this.gs.restartRun(), false);
+    this.button(W / 2, H * 0.5 + 64 * u, 'Leave area', () => this.gs.returnToMap(), false);
   }
 
   private onRunEnd(info: RunEndInfo): void {
@@ -703,8 +692,8 @@ export class UIScene extends Phaser.Scene {
       13,
       { color: '#a1a1aa' },
     );
-    this.button(W / 2, H * 0.72, this.isTouch ? 'Play again' : 'Play again (Enter)', () =>
-      this.gs.restartRun(),
+    this.button(W / 2, H * 0.72, this.isTouch ? 'Back to map' : 'Back to map (Enter)', () =>
+      this.gs.returnToMap(),
     );
   }
 }

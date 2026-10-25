@@ -1,7 +1,5 @@
 export const COLORS = {
   bg: 0x14111c,
-  ground: 0x1b1726,
-  groundDot: 0x2a2338,
   player: 0x7dd3fc,
   playerEdge: 0xe0f2fe,
   hp: 0xf43f5e,

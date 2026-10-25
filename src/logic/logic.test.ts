@@ -142,7 +142,14 @@ describe('spawning', () => {
 });
 
 describe('segment', () => {
-  const def = { id: 'test', name: 'Test', durationSec: 100, warningSec: 10 };
+  const def = {
+    id: 'test',
+    name: 'Test',
+    durationSec: 100,
+    warningSec: 10,
+    difficultyOffsetSec: 0,
+    groundTint: 0,
+  };
 
   it('counts down and clears at the duration', () => {
     expect(segmentRemaining(def, 0)).toBe(100);
@@ -183,6 +190,11 @@ describe('save', () => {
 
   it('migrates a version 1 save without losing data', () => {
     const v1 = { version: 1, bestTime: 120, bestKills: 300, bestLevel: 9, runs: 4 };
-    expect(migrate(v1)).toEqual({ ...v1, version: SAVE_VERSION, segmentsCleared: 0 });
+    expect(migrate(v1)).toEqual({
+      ...v1,
+      version: SAVE_VERSION,
+      segmentsCleared: 0,
+      world: emptySave().world,
+    });
   });
 });

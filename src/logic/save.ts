@@ -1,6 +1,9 @@
 // Versioned save data: old saves are migrated instead of discarded.
 
-export const SAVE_VERSION = 2;
+import { SEASON } from '../config/world';
+import { createWorldProgress, parseWorldProgress, type WorldProgress } from './worldProgress';
+
+export const SAVE_VERSION = 3;
 const SAVE_KEY = 'survivor-rpg.save';
 
 export interface SaveData {
@@ -11,6 +14,8 @@ export interface SaveData {
   runs: number;
   /** Added in version 2 */
   segmentsCleared: number;
+  /** Added in version 3: progress on the current season's map */
+  world: WorldProgress;
 }
 
 export interface RunResult {
@@ -26,7 +31,28 @@ export interface KeyValueStorage {
 }
 
 export function emptySave(): SaveData {
-  return { version: SAVE_VERSION, bestTime: 0, bestKills: 0, bestLevel: 0, runs: 0, segmentsCleared: 0 };
+  return {
+    version: SAVE_VERSION,
+    bestTime: 0,
+    bestKills: 0,
+    bestLevel: 0,
+    runs: 0,
+    segmentsCleared: 0,
+    world: freshWorld(),
+  };
+}
+
+function freshWorld(): WorldProgress {
+  return createWorldProgress(SEASON.id, SEASON.generatorVersion);
+}
+
+/** World progress only counts for the season and generator it was made with. */
+function worldForCurrentSeason(raw: unknown): WorldProgress {
+  const world = parseWorldProgress(raw);
+  if (!world || world.seasonId !== SEASON.id || world.generatorVersion !== SEASON.generatorVersion) {
+    return freshWorld();
+  }
+  return world;
 }
 
 /** Upgrades older save data to the current version. */
@@ -34,8 +60,9 @@ export function migrate(raw: unknown): SaveData {
   if (!raw || typeof raw !== 'object') return emptySave();
   const data = raw as Partial<SaveData>;
   const base = emptySave();
-  // Version 0 (no field) and 1 -> 2: keep known fields, fill in missing ones
-  // (version 2 added `segmentsCleared`).
+  // Older versions: keep known fields, fill in missing ones
+  // (version 2 added `segmentsCleared`, version 3 added `world`).
+  const data2 = raw as Partial<SaveData> & { world?: unknown };
   return {
     version: SAVE_VERSION,
     bestTime: Number(data.bestTime) || base.bestTime,
@@ -43,6 +70,7 @@ export function migrate(raw: unknown): SaveData {
     bestLevel: Number(data.bestLevel) || base.bestLevel,
     runs: Number(data.runs) || base.runs,
     segmentsCleared: Number(data.segmentsCleared) || base.segmentsCleared,
+    world: worldForCurrentSeason(data2.world),
   };
 }
 
