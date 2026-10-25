@@ -211,6 +211,13 @@ export class BootScene extends Phaser.Scene {
       g.lineStyle(7, 0xe9d5ff).beginPath().arc(22, 20, 10, 0, Math.PI, false).strokePath();
       g.fillStyle(0xfca5a5).fillRect(8.5, 11, 7, 9).fillRect(28.5, 11, 7, 9);
     });
+    icon('icon-lantern', 0x78350f, (g) => {
+      g.fillStyle(0xfde68a, 0.25).fillCircle(22, 24, 15);
+      g.fillStyle(0x44403c).fillRect(19, 7, 6, 3).fillRect(14, 11, 16, 3).fillRect(14, 33, 16, 3);
+      g.fillStyle(0xfef3c7).fillRect(16, 14, 12, 19);
+      g.fillStyle(0xf59e0b).fillTriangle(18, 30, 26, 30, 22, 18);
+      g.fillStyle(0xfffbeb).fillTriangle(20, 30, 24, 30, 22, 23);
+    });
     icon('icon-regen', 0x14532d, (g) => {
       g.fillStyle(0xbbf7d0).fillRect(18, 9, 8, 26).fillRect(9, 18, 26, 8);
     });

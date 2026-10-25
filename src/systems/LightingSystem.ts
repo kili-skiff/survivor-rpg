@@ -8,6 +8,8 @@ export interface LightSource {
   radius: number;
   /** Tint of the glow; warm firelight by default */
   color?: number;
+  /** Glow strength (additive, 0..1); LIGHT.glowStrength by default */
+  strength?: number;
 }
 
 interface Target {
@@ -48,6 +50,8 @@ export class LightingSystem {
   private viewW = 1;
   private viewH = 1;
   private enabled = true;
+  /** Current light radius of the player (LIGHT.radius times the light stat) */
+  private radius: number = LIGHT.radius;
 
   constructor(
     scene: Phaser.Scene,
@@ -87,6 +91,14 @@ export class LightingSystem {
     if (!on) for (const g of [...this.glows, ...this.eyes]) g.setVisible(false);
   }
 
+  /** The player's light stat changed (e.g. Lantern Oil): grows or shrinks the light circle. */
+  setRadiusScale(scale: number): void {
+    const radius = LIGHT.radius * scale;
+    if (Math.abs(radius - this.radius) < 0.5) return;
+    this.radius = radius;
+    if (this.darknessSize > 0) this.drawDarkness(radius / (this.darknessSize / 2));
+  }
+
   /** The visible world area changed (screen size or zoom). */
   resize(viewW: number, viewH: number): void {
     this.viewW = viewW;
@@ -95,7 +107,7 @@ export class LightingSystem {
     const size = Math.ceil((Math.max(viewW, viewH) * 1.15) / 50) * 50;
     if (size !== this.darknessSize) {
       this.darknessSize = size;
-      this.drawDarkness(LIGHT.radius / (size / 2));
+      this.drawDarkness(this.radius / (size / 2));
     }
   }
 
@@ -130,7 +142,13 @@ export class LightingSystem {
 
     const lights: LightSource[] = [];
     for (const t of this.placeTorches(x - this.viewW / 2, y - this.viewH / 2)) {
-      lights.push({ x: t.x, y: t.y - 14, radius: LIGHT.torchRadius * flicker(t.x * 0.01, 0.08) });
+      lights.push({
+        x: t.x,
+        y: t.y - 14,
+        radius: LIGHT.torchRadius * flicker(t.x * 0.01, 0.05),
+        color: LIGHT.torchColor,
+        strength: LIGHT.torchGlow,
+      });
     }
     lights.push(...this.extraLights());
     if (!this.enabled) return;
@@ -141,7 +159,7 @@ export class LightingSystem {
         .setPosition(l.x, l.y)
         .setDisplaySize(l.radius * 2, l.radius * 2)
         .setTint(l.color ?? WARM)
-        .setAlpha(LIGHT.glowStrength)
+        .setAlpha(l.strength ?? LIGHT.glowStrength)
         .setVisible(true);
       used += 1;
     }
@@ -151,8 +169,8 @@ export class LightingSystem {
 
   /** Enemies beyond the light show glowing eyes above the darkness, brighter the deeper in the dark. */
   private placeEyes(px: number, py: number, time: number): void {
-    const inner = LIGHT.radius * 0.8;
-    const outer = LIGHT.radius * 1.15;
+    const inner = this.radius * 0.8;
+    const outer = this.radius * 1.15;
     const halfW = this.viewW / 2 + 40;
     const halfH = this.viewH / 2 + 40;
     let used = 0;

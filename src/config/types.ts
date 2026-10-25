@@ -1,7 +1,8 @@
 // Shared types for all game data. No Phaser imports here!
 
 export type WeaponId = 'bolt' | 'blades' | 'aura';
-export type PassiveId = 'vitality' | 'swiftness' | 'might' | 'haste' | 'magnet' | 'regen' | 'armor';
+export type PassiveId =
+  'vitality' | 'swiftness' | 'might' | 'haste' | 'magnet' | 'regen' | 'armor' | 'lantern';
 export type SkillId = 'dash' | 'nova';
 export type EnemyId = 'bat' | 'zombie' | 'ghoul' | 'brute';
 
@@ -20,6 +21,8 @@ export interface PlayerStats {
   regen: number;
   /** Subtracted from each incoming hit */
   armor: number;
+  /** Light radius multiplier in fights (1 = base lantern) */
+  light: number;
 }
 
 export interface WeaponStats {

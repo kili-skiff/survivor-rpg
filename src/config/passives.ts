@@ -8,6 +8,7 @@ export const BASE_PLAYER_STATS: PlayerStats = {
   magnet: 70,
   regen: 0,
   armor: 0,
+  light: 1,
 };
 
 export const PASSIVES: Record<PassiveId, PassiveDef> = {
@@ -66,6 +67,15 @@ export const PASSIVES: Record<PassiveId, PassiveDef> = {
     texture: 'icon-armor',
     maxLevel: 5,
     perLevel: { armor: 1 },
+  },
+  // Only for this expedition; a better lantern could raise the light for good later.
+  lantern: {
+    id: 'lantern',
+    name: 'Lantern Oil',
+    description: '+15% light radius',
+    texture: 'icon-lantern',
+    maxLevel: 5,
+    perLevel: { light: 0.15 },
   },
 };
 
