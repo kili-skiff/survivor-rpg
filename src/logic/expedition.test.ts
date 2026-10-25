@@ -3,6 +3,7 @@ import { hexKey, hexNeighbors, ORIGIN, type Hex } from './hex';
 import {
   addLoot,
   lootAfterDeath,
+  lootGained,
   parseExpedition,
   startExpedition,
   type ExpeditionBuild,
@@ -47,6 +48,11 @@ describe('loot', () => {
   it('adds stacks and keeps half on death, rounded down', () => {
     expect(addLoot({ herb: 2 }, { herb: 3, root: 1 })).toEqual({ herb: 5, root: 1 });
     expect(lootAfterDeath({ herb: 5, root: 1 }, 0.5)).toEqual({ herb: 2 });
+  });
+
+  it('computes what was gained between two stashes', () => {
+    expect(lootGained({ herb: 2 }, { herb: 5, root: 1 })).toEqual({ herb: 3, root: 1 });
+    expect(lootGained({ herb: 2 }, { herb: 2 })).toEqual({});
   });
 });
 

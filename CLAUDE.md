@@ -37,8 +37,8 @@ src/
     weapons/   one class per weapon + factory in index.ts
     skills/    active skills (e.g. Frost Nova)
     PlayerController, EnemySystem, PickupSystem, HerbSystem, DamageNumbers
-  scenes/    Boot (placeholder graphics), WorldMap (hex map, travel), Game (one fight, owns run state,
-             wires systems), UI (HUD, touch, menus during a fight)
+  scenes/    Boot (placeholder graphics), WorldMap (hex map, travel), Village (stash, what came home),
+             Game (one fight, owns run state, wires systems), UI (HUD, touch, menus during a fight)
   ui/        Display helpers (pixel density, safe area), colors
 ```
 
@@ -64,6 +64,16 @@ src/
     Change world generation only together with a new season (`SEASON.generatorVersion` in `config/world.ts`).
 11. **Git:** Small commits, one feature per branch. Claude may be listed as co-author
     (`Co-Authored-By`), but commit messages and PR descriptions never contain session links.
+12. **Village features are panels:** garden, brewing, merchant and so on each get their own panel
+    on top of logic in `logic/`, so the menu village can later become a walkable one (see vision).
+
+## Workflow
+
+- Reply in the language the user writes in; everything in the repo stays English (rule 9).
+- Work on a feature branch and open a pull request. The user tests the PR preview and merges.
+- The platform may append a session link to PR descriptions; remove it (rule 11).
+- Before UI changes go into a PR, check them in a real browser in portrait and landscape
+  (Playwright and Chromium are usually available; `window.__game` exposes the game in dev builds).
 
 ## Roadmap
 
@@ -74,7 +84,7 @@ A small but complete piece of the game from `docs/vision.md`. Each step is its o
 - [x] Segments with a goal (e.g. survive N minutes) and a result screen
 - [x] Hex world map from a seed: rings, biomes, fog of war; tap a neighbour hex to play it
 - [x] Expeditions: build carries over between segments, camps as waypoints, partial loot loss on death
-- [ ] Village as the starting point (simple screen: stash and "set out")
+- [x] Village as the starting point (simple screen: stash and "set out")
 - [x] Herbs that grow in hexes by biome, gathered by standing next to them
 - [ ] Herb garden and brewing of three potions taken on an expedition
 - [ ] One class with a small skill tree
@@ -84,6 +94,7 @@ A small but complete piece of the game from `docs/vision.md`. Each step is its o
 
 - [ ] Richer expedition panel on the map: health bar and the collected weapons, items and skills
 - [ ] Professions (e.g. herbalist) with skills such as faster gathering
+- [ ] Walkable village: house, garden, cauldron, merchant, blacksmith as places to walk to
 - [ ] Seasons with a shared seed, then leaderboards (needs a server)
 - [ ] More biomes, enemies, weapons and classes
 - [ ] Sound effects and music
