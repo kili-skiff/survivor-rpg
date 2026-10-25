@@ -68,6 +68,11 @@ that not every fight feels the same. Wanted (the exact plan is still open):
 - **Find the dungeon** entrance (or another place) in the area.
 - Perhaps: protect something, gather herbs, defeat an elite or a boss.
 
+**Points of interest get their own goals.** A watchfire hex should not be "survive, then it burns":
+the fire stands somewhere in the dark area and you have to find it first (it glows faintly or shows
+as an arrow once you are close), fight your way there, and light it by standing next to it for a
+few seconds while enemies keep coming. The same idea fits dungeon entrances, camps and merchants.
+
 Ideas to keep in mind: goals are chosen per hex by the world generator (seeded, so the map stays
 deterministic), shown on the map before you go in, and have different rewards. A goal is a small
 rule set in `config/` plus its check in `logic/`; the fight only reports progress. The first quest
