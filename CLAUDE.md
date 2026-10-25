@@ -20,7 +20,7 @@ Goal: web first, native apps later (Capacitor for Android/iOS, Tauri for desktop
 - Dev mode: on in `npm run dev`, and in any build with `?dev` in the URL (e.g. a PR preview).
   Test helpers: "+herbs +gold" in the village; "reveal" (fog off on screen only) and "jump here" on the
   map; "clear area", "god mode" (no damage, much stronger, whole screen lit) and "spawn elite" in a fight; "reset save" in the
-  village (second tap confirms; device settings stay). All dev code lives in `src/dev/`; every call into it is marked
+  village (second tap confirms; device settings stay); "all deeds" in the deeds panel. All dev code lives in `src/dev/`; every call into it is marked
   `// DEV:`. For a release set `DEV_TOOLS = false` in `src/dev/devMode.ts`, or delete `src/dev/` and
   the marked lines.
 
@@ -35,11 +35,11 @@ Goal: web first, native apps later (Capacitor for Android/iOS, Tauri for desktop
 ```
 src/
   config/    Game data: weapons, items, skills, enemies, herbs, potions, merchant, villagers and quests,
-             segments, world, map tiles, balancing (NO Phaser)
+             deeds, segments, world, map tiles, balancing (NO Phaser)
   logic/     Pure game logic (NO Phaser, tested): stats, XP, upgrades, spawning, segments, save data,
              hex math, seeded RNG, world generation, world progress, expeditions and journeys,
              potions (brewing, belt, buffs), merchant (gold, lanterns, recipes), ring difficulty, chests,
-             quests, device settings
+             quests, deeds, device settings
   entities/  Pooled Phaser objects (Enemy, Projectile, Pickup)
   input/     InputState: one input layer for touch, keyboard, later gamepads
   systems/   Gameplay behaviour, one job per file:
@@ -47,7 +47,7 @@ src/
     skills/    active skills (e.g. Frost Nova)
     PlayerController, EnemySystem, PickupSystem, HerbSystem, PotionSystem, LightingSystem,
     DamageNumbers
-  panels/    Village panels (CauldronPanel, MerchantPanel, DialoguePanel): drawn on top of any scene,
+  panels/    Village panels (CauldronPanel, MerchantPanel, DeedsPanel, DialoguePanel): drawn on top of any scene,
              logic lives in logic/
   scenes/    Boot (placeholder graphics), WorldMap (hex map, travel), Village (stash, belt, panels),
              Game (one fight, owns run state, wires systems), UI (HUD, touch, menus during a fight)
@@ -109,6 +109,7 @@ A small but complete piece of the game from `docs/vision.md`. Each step is its o
 - [x] Gold and the village merchant: lantern tiers (+light for good, the best lights up the whole screen), potion recipes, selling herbs
 - [x] Ring difficulty and elite enemies (golden ring, often leave a chest)
 - [x] Treasure chests (rare from anyone, likely from elites) with a slot-machine roll (gold, upgrades; equipment later)
+- [x] Deeds: exploration milestones (new rings, camps, watchfires, the tower) with small bonuses for good
 - [ ] Herb garden: plant herbs and harvest more of them, growing in real time
 - [ ] One class with a small skill tree
 - [ ] A boss guarding a dungeon or the outer ring

@@ -8,6 +8,7 @@ import {
   startExpedition,
   type ExpeditionBuild,
 } from './expedition';
+import { deedBonus } from './deeds';
 import { finishFight, returnHome, teleport, walkHome, walkThrough } from './journey';
 import { emptySave, migrate, type SaveData } from './save';
 import { computePlayerStats, createStartLoadout } from './stats';
@@ -72,7 +73,10 @@ describe('expeditions', () => {
     const { save, report } = finishFight(before, world, camp.hex, 'cleared', build(5), {});
     expect(report.rested).toBe(true);
     expect(save.world.waypoints).toContain(camp.key);
-    expect(save.world.expedition?.build?.hp).toBe(computePlayerStats(createStartLoadout('bolt')).maxHp);
+    // Fully healed, including health from deeds (reaching ring 2 can earn one right here).
+    expect(save.world.expedition?.build?.hp).toBe(
+      computePlayerStats(createStartLoadout('bolt'), deedBonus(save.deeds)).maxHp,
+    );
   });
 
   it('ends the expedition on death, back home without the loot', () => {

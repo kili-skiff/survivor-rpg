@@ -10,6 +10,7 @@ import { formatTime } from '../logic/progression';
 import { loadSave, safeStorage, writeSave, type SaveData } from '../logic/save';
 import { lootCount, lootGained } from '../logic/expedition';
 import { returnHome, teleport, walkHome, walkThrough } from '../logic/journey';
+import { deedBonus, describeEarned, earnDeeds } from '../logic/deeds';
 import { computePlayerStats } from '../logic/stats';
 import {
   isAtHome,
@@ -98,6 +99,8 @@ export class WorldMapScene extends Phaser.Scene {
   private headerH = 0;
   private panelH = 0;
   private time0 = 0;
+  /** Short notice about newly earned deeds, fading out by itself */
+  private deedToast: Phaser.GameObjects.Text | null = null;
 
   constructor() {
     super('WorldMap');
@@ -114,6 +117,7 @@ export class WorldMapScene extends Phaser.Scene {
     this.drag = null;
     this.touches = new Map();
     this.pinch = null;
+    this.deedToast = null;
 
     this.cameras.main.setBackgroundColor(COLORS.bg);
     this.map = this.add.graphics().setDepth(-1);
@@ -622,7 +626,7 @@ export class WorldMapScene extends Phaser.Scene {
     if (exp) {
       const b = exp.build;
       const hp = b
-        ? `HP ${Math.ceil(b.hp)}/${computePlayerStats(b.loadout).maxHp} · Level ${b.level}`
+        ? `HP ${Math.ceil(b.hp)}/${computePlayerStats(b.loadout, deedBonus(this.save.deeds)).maxHp} · Level ${b.level}`
         : 'Fresh start';
       const loot = lootCount(exp.loot);
       return `Expedition · ${hp} · ${exp.areasCleared} areas${loot > 0 ? ` · ${loot} loot` : ''}`;
@@ -922,9 +926,44 @@ export class WorldMapScene extends Phaser.Scene {
     // Standing next to the tower completes the quest: show its sealed gate.
     const quests = questsAfterMove(next.quests, this.world, next.world);
     const reachedTower = quests !== next.quests;
-    this.save = reachedTower ? { ...next, quests } : next;
+    // Deeds earned on the map: reaching the tower, or progress made before deeds existed.
+    const { save, earned } = earnDeeds(reachedTower ? { ...next, quests } : next, this.world);
+    this.save = save;
     writeSave(safeStorage(), this.save);
     this.selected = reachedTower ? parseHexKey(this.world.tower) : null;
     this.buildHud();
+    if (earned.length > 0) this.showDeedToast(describeEarned(earned));
+  }
+
+  /** A notice below the header that fades out after a few seconds. */
+  private showDeedToast(message: string): void {
+    const u = this.u;
+    this.deedToast?.destroy();
+    const toast = this.add
+      .text(this.scale.width / 2, this.headerH + 56 * u, message, {
+        fontFamily: FONT,
+        fontSize: `${Math.round(14 * u)}px`,
+        fontStyle: 'bold',
+        color: css(COLORS.accent),
+        backgroundColor: '#1c1917',
+        align: 'center',
+        padding: { x: Math.round(14 * u), y: Math.round(9 * u) },
+        wordWrap: { width: this.scale.width - this.sa.left - this.sa.right - 48 * u },
+      })
+      .setOrigin(0.5, 0)
+      .setScrollFactor(0)
+      .setDepth(12);
+    this.cameras.main.ignore(toast);
+    this.deedToast = toast;
+    this.tweens.add({
+      targets: toast,
+      alpha: 0,
+      delay: 4500,
+      duration: 900,
+      onComplete: () => {
+        toast.destroy();
+        if (this.deedToast === toast) this.deedToast = null;
+      },
+    });
   }
 }

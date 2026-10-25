@@ -43,8 +43,12 @@ export function applyLevels<T extends object>(base: T, levels: LevelStep<T>[], l
   return result;
 }
 
-export function computePlayerStats(loadout: Loadout): PlayerStats {
-  let stats = { ...BASE_PLAYER_STATS };
+/**
+ * The player's stats: base values, permanent bonuses (`bonus`, e.g. from deeds) and the passive
+ * items of this run.
+ */
+export function computePlayerStats(loadout: Loadout, bonus: Partial<PlayerStats> = {}): PlayerStats {
+  let stats = addPartial(BASE_PLAYER_STATS, bonus);
   for (const id of Object.keys(loadout.passives) as PassiveId[]) {
     const level = loadout.passives[id] ?? 0;
     stats = addPartial(stats, PASSIVES[id].perLevel, level);

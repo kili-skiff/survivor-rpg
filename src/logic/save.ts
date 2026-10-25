@@ -3,13 +3,15 @@
 import { SEASON } from '../config/world';
 import { parseLoot, type Loot } from './expedition';
 import { parseBelt, type Belt } from './potions';
+import { parseDeeds } from './deeds';
+import type { DeedId } from '../config/deeds';
 import { freshQuests, parseQuests, type QuestProgress } from './quests';
 import { LANTERN_TIERS, STARTING_RECIPES } from '../config/merchant';
 import { POTION_IDS } from '../config/potions';
 import type { PotionId } from '../config/types';
 import { createWorldProgress, parseWorldProgress, type WorldProgress } from './worldProgress';
 
-export const SAVE_VERSION = 9;
+export const SAVE_VERSION = 10;
 const SAVE_KEY = 'survivor-rpg.save';
 
 export interface SaveData {
@@ -32,6 +34,8 @@ export interface SaveData {
   lanternLevel: number;
   /** Added in version 9: potion recipes the player knows */
   recipes: PotionId[];
+  /** Added in version 10: deeds earned by exploring; kept when the map is reset */
+  deeds: DeedId[];
 }
 
 export interface RunResult {
@@ -60,6 +64,7 @@ export function emptySave(): SaveData {
     quests: freshQuests(),
     lanternLevel: 0,
     recipes: [...STARTING_RECIPES],
+    deeds: [],
   };
 }
 
@@ -84,7 +89,7 @@ export function migrate(raw: unknown): SaveData {
   // Older versions: keep known fields, fill in missing ones
   // (version 2 added `segmentsCleared`, version 3 `world`, version 4 `stash`, waypoints and expeditions,
   // version 5 `belt`, version 6 `cleared` hexes of the current expedition, version 7 `quests`,
-  // version 8 `litWatchfires` in the world progress, version 9 `lanternLevel` and `recipes`).
+  // version 8 `litWatchfires` in the world progress, version 9 `lanternLevel` and `recipes`, version 10 `deeds`).
   const data2 = raw as Partial<SaveData> & {
     world?: unknown;
     stash?: unknown;
@@ -92,6 +97,7 @@ export function migrate(raw: unknown): SaveData {
     quests?: unknown;
     lanternLevel?: unknown;
     recipes?: unknown;
+    deeds?: unknown;
   };
   return {
     version: SAVE_VERSION,
@@ -106,6 +112,7 @@ export function migrate(raw: unknown): SaveData {
     quests: parseQuests(data2.quests),
     lanternLevel: parseLanternLevel(data2.lanternLevel),
     recipes: parseRecipes(data2.recipes),
+    deeds: parseDeeds(data2.deeds),
   };
 }
 
