@@ -234,7 +234,10 @@ export class WorldMapScene extends Phaser.Scene {
         role: elder.role,
         color: elder.color,
         text: FIRE_QUEST.elder.offered,
-        buttons: [{ label: 'Take the lantern', primary: true, onClick: () => this.acceptFire() }],
+        opaque: true,
+        buttons: [
+          { label: 'Take the lantern', icon: 'lantern-0', primary: true, onClick: () => this.acceptFire() },
+        ],
       },
     );
     // The map camera zooms and scrolls; the panel belongs to the HUD camera only.
@@ -246,6 +249,9 @@ export class WorldMapScene extends Phaser.Scene {
     this.introPanel?.destroy();
     this.introPanel = null;
     this.commit({ ...this.save, quests: acceptFireQuest(this.save.quests) });
+    // The map opens from the dark.
+    this.cameras.main.fadeIn(600, 12, 10, 18);
+    this.hudCam.fadeIn(600, 12, 10, 18);
   }
 
   // ---------------------------------------------------------------- layout
