@@ -131,8 +131,10 @@ export interface PoiDef {
   glyph: string;
   /** Earliest ring where this point of interest can appear */
   minRing: number;
-  /** Chance per hex (0..1) */
+  /** Chance per hex (0..1), before spacing rules remove some */
   chance: number;
+  /** Minimum distance to another point of interest of the same kind (in hexes) */
+  minSpacing: number;
 }
 
 export type HerbId = 'moonbloom' | 'shadowcap' | 'mirewort' | 'gravemoss' | 'emberroot' | 'starlily';

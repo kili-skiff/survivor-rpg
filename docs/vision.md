@@ -29,7 +29,7 @@ stronger: with a better class build, a growing herb garden and potions for the n
 - Later: **special biomes** that only appear far out (only as outer regions, from a minimum ring),
   with their own enemies and herbs, as a reason to travel further.
 - **Fog of war:** unexplored hexes are hidden.
-- **Points of interest** sit on some hexes: camps, merchants with special goods, dungeon
+- **Points of interest** are rare and spread out (never next to each other) and sit on some hexes: camps, merchants with special goods, dungeon
   entrances, and occasionally an outpost or a second village.
 - **Hexes reset:** cleared hexes fill with monsters again (after a run or over time).
 - **Waypoints:** camps and other points of interest you reached can be teleported to.
@@ -56,7 +56,8 @@ stronger: with a better class build, a growing herb garden and potions for the n
 
 ## Herbs
 
-- Herbs **grow in hexes**; monsters do not drop them. Each biome has its own herb, and a rare
+- Herbs **grow in some hexes** (about a third), the map shows which; the others are empty, so
+  finding herbs stays rewarding. Monsters do not drop them. Each biome has its own herb, and a rare
   Star Lily can grow anywhere from ring 3 outwards. Further rings grow more herbs.
 - Fresh herbs every time a hex is entered. They **bloom one by one at random moments** spread over
   the fight, just off screen around the player, with a short hint. Nothing grows back during a fight.

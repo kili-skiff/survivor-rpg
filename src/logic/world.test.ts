@@ -103,6 +103,46 @@ describe('world generation', () => {
     }
   });
 
+  it('grows herbs only on some hexes, but every herb near the village', () => {
+    for (let s = 0; s < 30; s++) {
+      const hexes = [...generateWorld(`seed-${s}`, SEASON.generatorVersion).hexes.values()];
+      const share = hexes.filter((h) => h.herbs).length / hexes.length;
+      expect(share).toBeGreaterThan(WORLD.herbHexShare - 0.1);
+      expect(share).toBeLessThan(WORLD.herbHexShare + 0.1);
+      expect(hexes.find((h) => h.ring === 0)?.herbs).toBe(false);
+      const near = hexes.filter((h) => h.herbs && h.ring >= 1 && h.ring <= WORLD.innerRegionRing);
+      for (const biome of Object.keys(BIOMES))
+        expect(
+          near.map((h) => h.biome),
+          `seed-${s}`,
+        ).toContain(biome);
+    }
+  });
+
+  it('spreads points of interest out', () => {
+    for (let s = 0; s < 30; s++) {
+      const pois = [...generateWorld(`seed-${s}`, SEASON.generatorVersion).hexes.values()].filter(
+        (h) => h.poi,
+      );
+      for (const a of pois) {
+        for (const b of pois) {
+          if (a === b) continue;
+          const d = hexDistance(a.hex, b.hex);
+          expect(d).toBeGreaterThanOrEqual(WORLD.poiMinGap);
+          if (a.poi === b.poi) expect(d).toBeGreaterThanOrEqual(POIS[a.poi!].minSpacing);
+        }
+      }
+    }
+  });
+
+  it('gives fights without herbs no herb plan', () => {
+    const world = generateWorld(SEASON.seed, SEASON.generatorVersion);
+    const empty = [...world.hexes.values()].find((h) => h.ring > 0 && !h.herbs)!;
+    const herbal = [...world.hexes.values()].find((h) => h.herbs)!;
+    expect(segmentForHex(empty).herbs).toBeNull();
+    expect(segmentForHex(herbal).herbs).toEqual({ biome: herbal.biome, ring: herbal.ring });
+  });
+
   it('forms biome regions of several connected hexes', () => {
     const world = generateWorld(SEASON.seed, SEASON.generatorVersion);
     let lonely = 0;

@@ -66,9 +66,10 @@ public/assets/  Art files served as they are (e.g. tiles/hex-tiles.png for the w
 8. **Phaser 4:** `setTintFill()` no longer exists; use `setTint(c).setTintMode(Phaser.TintModes.FILL)`.
    Phaser ships its own guides in `node_modules/phaser/skills/`.
 9. **Language:** Everything is in English: code, comments, docs, commit messages, PRs and in-game text.
-10. **World determinism:** The map is generated from the season seed and never saved; only player
+10. **World determinism:** The map is generated from a seed and never saved; only player
     progress (`WorldProgress`) is saved. World generation must use `logic/rng.ts`, never `Math.random`.
-    Change world generation only together with a new season (`SEASON.generatorVersion` in `config/world.ts`).
+    Every change to world generation bumps `SEASON.generatorVersion` in `config/world.ts`, which resets
+    map progress. Seasons (a new shared map now and then) come later; don't call map resets seasons.
 11. **Git:** Small commits, one feature per branch. Claude may be listed as co-author
     (`Co-Authored-By`), but commit messages and PR descriptions never contain session links.
 12. **Village features are panels:** garden, brewing, merchant and so on each get their own panel

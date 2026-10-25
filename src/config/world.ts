@@ -1,20 +1,23 @@
 import type { BiomeDef, BiomeId, PoiDef, PoiId } from './types';
 
 /**
- * The current season. Everyone playing the same season gets the same map.
- * Bump `generatorVersion` only together with a new season: changing how the map is generated
- * mid-season would change existing players' worlds.
+ * The map everyone plays: generated from this seed and generator version.
+ * Seasons with a new shared map each come later (see docs/vision.md). Until then, bump
+ * `generatorVersion` whenever world generation changes: map progress resets, the stash stays.
  */
 export const SEASON = {
   id: 2,
-  name: 'Season 2',
   seed: 'nightwatch-season-2',
-  generatorVersion: 2,
+  generatorVersion: 3,
 } as const;
 
 export const WORLD = {
   /** Number of rings around the village */
   radius: 8,
+  /** Share of hexes where herbs grow; the others are empty, so finding herbs stays rewarding */
+  herbHexShare: 0.3,
+  /** Points of interest never stand next to each other: minimum distance between any two */
+  poiMinGap: 2,
   /**
    * Inner biome regions: one per biome, spread evenly around the village with their centre in
    * this ring, so every biome (and its herb) can be reached early.
@@ -45,8 +48,8 @@ export const BIOMES: Record<BiomeId, BiomeDef> = {
 };
 
 export const POIS: Record<PoiId, PoiDef> = {
-  village: { id: 'village', name: 'Village', glyph: 'V', minRing: 0, chance: 0 },
-  camp: { id: 'camp', name: 'Camp', glyph: 'C', minRing: 1, chance: 0.12 },
-  merchant: { id: 'merchant', name: 'Merchant', glyph: 'M', minRing: 2, chance: 0.05 },
-  dungeon: { id: 'dungeon', name: 'Dungeon', glyph: 'D', minRing: 3, chance: 0.05 },
+  village: { id: 'village', name: 'Village', glyph: 'V', minRing: 0, chance: 0, minSpacing: 0 },
+  camp: { id: 'camp', name: 'Camp', glyph: 'C', minRing: 1, chance: 0.07, minSpacing: 3 },
+  merchant: { id: 'merchant', name: 'Merchant', glyph: 'M', minRing: 2, chance: 0.025, minSpacing: 5 },
+  dungeon: { id: 'dungeon', name: 'Dungeon', glyph: 'D', minRing: 3, chance: 0.03, minSpacing: 4 },
 };

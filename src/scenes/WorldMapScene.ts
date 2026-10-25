@@ -1,5 +1,5 @@
 import * as Phaser from 'phaser';
-import { BIOMES, POIS, SEASON } from '../config/world';
+import { BIOMES, POIS } from '../config/world';
 import { herbForecast } from '../logic/herbs';
 import { BIOME_TILES, POI_TILES, TILESET } from '../config/tiles';
 import { hexEquals, hexKey, hexToPixelFlat, parseHexKey, pixelToHexFlat, type Hex } from '../logic/hex';
@@ -108,7 +108,7 @@ export class WorldMapScene extends Phaser.Scene {
       this.poiLabels.push({ hex: h, text });
     }
     for (const h of this.world.hexes.values()) {
-      if (h.poi === 'village') continue;
+      if (!h.herbs) continue;
       const icon = this.add
         .image(0, 0, 'herb')
         .setTint(herbForecast(h.biome, h.ring).common.color)
@@ -382,7 +382,7 @@ export class WorldMapScene extends Phaser.Scene {
       const loot = lootCount(exp.loot);
       return `Expedition · ${hp} · ${exp.areasCleared} areas${loot > 0 ? ` · ${loot} loot` : ''}`;
     }
-    return `${SEASON.name} · ${plural(this.save.segmentsCleared, 'area')} cleared · ${plural(this.save.world.waypoints.length, 'waypoint')}`;
+    return `${plural(this.save.segmentsCleared, 'area')} cleared · ${plural(this.save.world.waypoints.length, 'waypoint')}`;
   }
 
   private describeSelection(): {
@@ -414,12 +414,17 @@ export class WorldMapScene extends Phaser.Scene {
       return { title: 'Unknown land', detail: 'Explore further to reveal what lies here.' };
     }
     const forecast = herbForecast(h.biome, h.ring);
-    const herbs = {
-      text:
-        `Herbs: ${forecast.count} ${forecast.common.name}` +
-        (forecast.rare.length > 0 ? ` · rare ${forecast.rare.map((r) => r.name).join(', ')} possible` : ''),
-      color: forecast.common.color,
-    };
+    // Only some hexes have herbs; the others say nothing about them.
+    const herbs = h.herbs
+      ? {
+          text:
+            `Herbs: ${forecast.count} ${forecast.common.name}` +
+            (forecast.rare.length > 0
+              ? ` · rare ${forecast.rare.map((r) => r.name).join(', ')} possible`
+              : ''),
+          color: forecast.common.color,
+        }
+      : undefined;
     const kind: TravelKind = travelKind(this.world, progress, this.selected);
     const here = hexEquals(this.selected, parseHexKey(progress.position));
     if (h.poi === 'village') {
