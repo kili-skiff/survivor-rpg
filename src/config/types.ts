@@ -113,7 +113,7 @@ export interface SegmentDef {
 }
 
 export type BiomeId = 'meadow' | 'forest' | 'swamp' | 'graveyard' | 'hills';
-export type PoiId = 'village' | 'camp' | 'merchant' | 'dungeon' | 'tower';
+export type PoiId = 'village' | 'camp' | 'merchant' | 'dungeon' | 'tower' | 'watchfire';
 
 export interface BiomeDef {
   id: BiomeId;

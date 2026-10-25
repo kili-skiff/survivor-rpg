@@ -8,7 +8,7 @@ import type { BiomeDef, BiomeId, PoiDef, PoiId } from './types';
 export const SEASON = {
   id: 2,
   seed: 'nightwatch-season-2',
-  generatorVersion: 4,
+  generatorVersion: 5,
 } as const;
 
 export const WORLD = {
@@ -18,6 +18,13 @@ export const WORLD = {
   herbHexShare: 0.3,
   /** Points of interest never stand next to each other: minimum distance between any two */
   poiMinGap: 2,
+  /** Watchfires: one per direction (the map is split into this many slices around the village) */
+  watchfires: 6,
+  /** Ring range for watchfires */
+  watchfireRingMin: 4,
+  watchfireRingMax: 7,
+  /** Lighting a watchfire reveals every hex within this distance */
+  watchfireRevealRadius: 3,
   /**
    * Inner biome regions: one per biome, spread evenly around the village with their centre in
    * this ring, so every biome (and its herb) can be reached early.
@@ -54,4 +61,6 @@ export const POIS: Record<PoiId, PoiDef> = {
   dungeon: { id: 'dungeon', name: 'Dungeon', glyph: 'D', minRing: 3, chance: 0.03, minSpacing: 4 },
   // Exactly one, in the outermost ring: the goal of the first quest. Its gate is sealed for now.
   tower: { id: 'tower', name: 'Old Tower', glyph: 'T', minRing: 0, chance: 0, minSpacing: 0 },
+  // One per direction; their glow shows through the fog, lighting one reveals the land around it.
+  watchfire: { id: 'watchfire', name: 'Watchfire', glyph: 'W', minRing: 4, chance: 0, minSpacing: 4 },
 };

@@ -15,6 +15,7 @@ import {
   isAtHome,
   isCleared,
   isDiscovered,
+  isLit,
   isUsedUp,
   travelKind,
   type TravelKind,
@@ -71,6 +72,8 @@ export class WorldMapScene extends Phaser.Scene {
   private map!: Phaser.GameObjects.Graphics;
   /** Travel targets and selection, above the tiles */
   private outlines!: Phaser.GameObjects.Graphics;
+  /** Watchfires: a glow through the fog, a burning fire once lit */
+  private fires!: Phaser.GameObjects.Graphics;
   /** Arrows at the screen edge pointing to quest goals that are off screen */
   private questArrows!: Phaser.GameObjects.Graphics;
   /** One tile image per hex (empty when the tile art could not be loaded) */
@@ -114,6 +117,7 @@ export class WorldMapScene extends Phaser.Scene {
     this.cameras.main.setBackgroundColor(COLORS.bg);
     this.map = this.add.graphics().setDepth(-1);
     this.outlines = this.add.graphics().setDepth(0.5);
+    this.fires = this.add.graphics().setDepth(0.6);
     this.hudCam = this.cameras.add(0, 0, this.scale.width, this.scale.height);
     this.questArrows = this.add.graphics().setDepth(9).setScrollFactor(0);
     this.cameras.main.ignore(this.questArrows);
@@ -131,7 +135,9 @@ export class WorldMapScene extends Phaser.Scene {
     }
     for (const h of this.world.hexes.values()) {
       // Points of interest with their own tile need no glyph.
-      if (!h.poi || (this.tiles.length > 0 && POI_TILES[h.poi] !== undefined)) continue;
+      // Watchfires are drawn as fires; points of interest with their own tile need no glyph.
+      if (!h.poi || h.poi === 'watchfire' || (this.tiles.length > 0 && POI_TILES[h.poi] !== undefined))
+        continue;
       const text = this.add
         .text(0, 0, POIS[h.poi].glyph, {
           fontFamily: FONT,
@@ -157,6 +163,7 @@ export class WorldMapScene extends Phaser.Scene {
     this.hudCam.ignore([
       this.map,
       this.outlines,
+      this.fires,
       this.marker,
       ...this.tiles.map((t) => t.image),
       ...this.poiLabels.map((l) => l.text),
@@ -214,7 +221,7 @@ export class WorldMapScene extends Phaser.Scene {
     }
     this.headerH = this.sa.top + 64 * this.u;
     // In landscape the button sits beside the text, so the panel can be much shorter.
-    this.panelH = this.sa.bottom + (this.isWide() ? 112 : 172) * this.u;
+    this.panelH = this.sa.bottom + (this.isWide() ? 112 : 184) * this.u;
 
     for (const { hex, image } of this.tiles) {
       const p = hexToPixelFlat(hex.hex, this.hexSize);
@@ -343,6 +350,7 @@ export class WorldMapScene extends Phaser.Scene {
       o.fillStyle(0x1c1917, 1).fillCircle(p.x, top - s, s * 0.4);
     }
 
+    this.drawWatchfires();
     this.drawQuestArrows(pulse);
 
     for (const { hex, icon } of this.herbIcons) {
@@ -352,6 +360,56 @@ export class WorldMapScene extends Phaser.Scene {
       text.setVisible(this.isVisible(hex.key));
       text.setColor(progress.waypoints.includes(hex.key) ? css(COLORS.accent) : '#ffffff');
     }
+  }
+
+  /**
+   * Watchfires: a faint glow shows through the fog from far away; once explored you see a cold
+   * brazier, and once lit a flickering fire with a warm light around it.
+   */
+  private drawWatchfires(): void {
+    const g = this.fires;
+    g.clear();
+    const s = this.hexSize;
+    const t = this.time0;
+    for (const h of this.world.hexes.values()) {
+      if (h.poi !== 'watchfire') continue;
+      const p = hexToPixelFlat(h.hex, s);
+      const flicker = 0.85 + Math.sin(t * 7 + h.hex.q) * 0.08 + Math.sin(t * 13 + h.hex.r) * 0.07;
+      if (isLit(this.save.world, h.key)) {
+        for (let i = 0; i < 6; i++)
+          g.fillStyle(0xf59e0b, 0.08).fillCircle(p.x, p.y, s * (1.7 - i * 0.24) * flicker);
+        this.drawBrazier(g, p.x, p.y, s, flicker, 1);
+      } else if (this.isVisible(h.key)) {
+        this.drawBrazier(g, p.x, p.y, s, flicker, 0.35);
+      } else {
+        // Seen from afar: only a glow in the dark.
+        const glow = 0.5 + Math.sin(t * 2 + h.hex.q * 3) * 0.2;
+        for (let i = 0; i < 4; i++)
+          g.fillStyle(0xf97316, 0.07 * glow).fillCircle(p.x, p.y, s * (0.9 - i * 0.18));
+        g.fillStyle(0xfdba74, 0.8 * glow).fillCircle(p.x, p.y, s * 0.08);
+      }
+    }
+  }
+
+  /** A stone brazier with a flame; `heat` 1 = burning, lower = embers only. */
+  private drawBrazier(
+    g: Phaser.GameObjects.Graphics,
+    x: number,
+    y: number,
+    s: number,
+    flicker: number,
+    heat: number,
+  ): void {
+    const base = y + s * 0.25;
+    g.fillStyle(0x1c1917, 0.6).fillEllipse(x, base + s * 0.12, s * 0.7, s * 0.2);
+    g.fillStyle(0x57534e, 1).fillRect(x - s * 0.06, base - s * 0.2, s * 0.12, s * 0.32);
+    g.fillStyle(0x78716c, 1).fillEllipse(x, base - s * 0.22, s * 0.5, s * 0.16);
+    const fh = s * 0.7 * flicker * heat;
+    const top = base - s * 0.26;
+    g.fillStyle(0xea580c, 0.9).fillTriangle(x - s * 0.18, top, x + s * 0.18, top, x, top - fh);
+    g.fillStyle(0xfacc15, 0.95).fillTriangle(x - s * 0.1, top, x + s * 0.1, top, x, top - fh * 0.65);
+    if (heat >= 1)
+      g.fillStyle(0xfef9c3, 1).fillTriangle(x - s * 0.04, top, x + s * 0.04, top, x, top - fh * 0.35);
   }
 
   /** Quest goals off screen get an arrow at the edge of the map area, pointing towards them. */
@@ -505,7 +563,7 @@ export class WorldMapScene extends Phaser.Scene {
         const right = W - this.sa.right - 16 * u;
         this.button(right - 110 * u, panelY + 52 * u, info.action.label, info.action.run);
       } else {
-        this.button(W / 2, panelY + 126 * u, info.action.label, info.action.run);
+        this.button(W / 2, panelY + 138 * u, info.action.label, info.action.run);
       }
     }
   }
@@ -583,6 +641,12 @@ export class WorldMapScene extends Phaser.Scene {
     const key = hexKey(this.selected);
     const h = this.world.hexes.get(key);
     if (!h || !this.isVisible(key)) {
+      if (h?.poi === 'watchfire') {
+        return {
+          title: 'A distant glow',
+          detail: 'Something burns out there in the dark. Travel closer to find out what it is.',
+        };
+      }
       return { title: 'Unknown land', detail: 'Explore further to reveal what lies here.' };
     }
     const forecast = herbForecast(h.biome, h.ring);
@@ -647,9 +711,11 @@ export class WorldMapScene extends Phaser.Scene {
     if (isUsedUp(progress, key)) {
       return {
         title: `${BIOMES[h.biome].name}${h.poi ? ` · ${POIS[h.poi].name}` : ''}`,
-        detail: here
-          ? 'You are here. Move on, or go home and keep all your loot.'
-          : 'Cleared on this expedition: empty until you return home. Walk through without a fight.',
+        detail:
+          (h.poi === 'watchfire' && isLit(progress, key) ? 'The watchfire burns. ' : '') +
+          (here
+            ? 'You are here. Move on, or go home and keep all your loot.'
+            : 'Cleared on this expedition: empty until you return home. Walk through without a fight.'),
         action: here
           ? goHome
           : kind === 'walk'
@@ -659,11 +725,15 @@ export class WorldMapScene extends Phaser.Scene {
     }
     const seg = segmentForHex(h);
     const poi = h.poi ? ` · ${POIS[h.poi].name}` : '';
-    const status = here
-      ? 'You are here.'
-      : kind === 'blocked'
-        ? 'Too far: travel to a hex next to it first.'
-        : '';
+    const fireNote =
+      h.poi !== 'watchfire'
+        ? ''
+        : isLit(progress, key)
+          ? 'The watchfire burns. '
+          : 'Cold watchfire: clear the area to light it. ';
+    const status =
+      fireNote +
+      (here ? 'You are here.' : kind === 'blocked' ? 'Too far: travel to a hex next to it first.' : '');
     return {
       title: `${BIOMES[h.biome].name}${poi}`,
       detail:

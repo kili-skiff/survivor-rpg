@@ -1,6 +1,6 @@
 import type { BiomeId, PoiId, SegmentDef } from '../config/types';
 import { BIOMES, POIS, SEASON, WORLD } from '../config/world';
-import { hexDistance, hexesInRadius, hexKey, ORIGIN, pixelToHex, type Hex } from './hex';
+import { hexDistance, hexesInRadius, hexKey, hexToPixel, ORIGIN, pixelToHex, type Hex } from './hex';
 import { createRng, hash32, hashFloat, seedFromString } from './rng';
 
 export interface WorldHex {
@@ -168,6 +168,20 @@ function placePois(
   if (roadCamp) {
     roadCamp.poi = 'camp';
     placed.push(roadCamp);
+  }
+
+  // Watchfires: one in each slice around the village, so every direction has something to find.
+  const slice = (Math.PI * 2) / WORLD.watchfires;
+  for (let i = 0; i < WORLD.watchfires; i++) {
+    const fire = order.find((h) => {
+      if (h.poi || h.ring < WORLD.watchfireRingMin || h.ring > WORLD.watchfireRingMax) return false;
+      const p = hexToPixel(h.hex, 1);
+      const angle = (Math.atan2(p.y, p.x) + Math.PI * 2) % (Math.PI * 2);
+      return Math.floor(angle / slice) === i && fitsPoi(h, 'watchfire', placed);
+    });
+    if (!fire) continue;
+    fire.poi = 'watchfire';
+    placed.push(fire);
   }
   for (const id of ['dungeon', 'merchant', 'camp'] as const) {
     const def = POIS[id];

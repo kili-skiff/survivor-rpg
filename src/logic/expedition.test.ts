@@ -137,6 +137,15 @@ describe('expeditions', () => {
     expect(home.stash).toEqual({ herb: 4 });
   });
 
+  it('lights a watchfire when its hex is cleared', () => {
+    const fire = [...world.hexes.values()].find((h) => h.poi === 'watchfire')!;
+    const { save, report } = finishFight(emptySave(), world, fire.hex, 'cleared', build(), {});
+    expect(report.litWatchfire).toBe(true);
+    expect(save.world.litWatchfires).toEqual([fire.key]);
+    const again = finishFight(save, world, fire.hex, 'cleared', build(), {});
+    expect(again.report.litWatchfire).toBe(false);
+  });
+
   it('survives a save round trip and rejects broken data', () => {
     const out = finishFight(emptySave(), world, { q: 1, r: 0 }, 'cleared', build(), { herb: 1 }).save;
     const loaded = migrate(JSON.parse(JSON.stringify(out)));
