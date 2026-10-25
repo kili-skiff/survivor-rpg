@@ -1,7 +1,9 @@
 // One input layer for all devices: touch, keyboard (and later gamepads)
 // write into it, the game logic only reads actions.
 
-export type Action = 'dash' | 'nova' | 'pause';
+import type { PotionId } from '../config/types';
+
+export type Action = 'dash' | 'nova' | 'pause' | `drink:${PotionId}`;
 
 export class InputState {
   /** Movement direction, length 0..1 */

@@ -9,6 +9,7 @@ import { teleport, walkHome } from '../logic/journey';
 import { computePlayerStats } from '../logic/stats';
 import { isAtHome, isCleared, isDiscovered, travelKind, type TravelKind } from '../logic/worldProgress';
 import { seasonWorld, segmentForHex, type World, type WorldHex } from '../logic/worldgen';
+import { isDevMode } from '../ui/dev';
 import { safeArea, viewportSize, type SafeArea } from '../ui/display';
 import { COLORS, css, FONT } from '../ui/theme';
 import type { GameSceneData } from './GameScene';
@@ -173,7 +174,7 @@ export class WorldMapScene extends Phaser.Scene {
 
     for (const h of this.world.hexes.values()) {
       const p = hexToPixel(h.hex, this.hexSize);
-      const discovered = isDiscovered(progress, h.key);
+      const discovered = this.isVisible(h.key);
       const cleared = isCleared(progress, h.key);
       const fill = h.poi === 'village' ? VILLAGE_FILL : BIOMES[h.biome].color;
       if (!discovered) g.fillStyle(FOG_FILL, 1).lineStyle(1.5 * u, FOG_EDGE, 1);
@@ -198,9 +199,18 @@ export class WorldMapScene extends Phaser.Scene {
 
     for (const { hex, icon } of this.herbIcons) icon.setVisible(isDiscovered(progress, hex.key));
     for (const { hex, text } of this.poiLabels) {
-      text.setVisible(isDiscovered(progress, hex.key));
+      text.setVisible(this.isVisible(hex.key));
       text.setColor(progress.waypoints.includes(hex.key) ? css(COLORS.accent) : '#ffffff');
     }
+  }
+
+  /** Whether a hex is shown. Dev mode can lift the fog for testing; travel rules stay the same. */
+  private isVisible(key: string): boolean {
+    return this.devReveal() || isDiscovered(this.save.world, key);
+  }
+
+  private devReveal(): boolean {
+    return isDevMode() && this.registry.get('devReveal') === true;
   }
 
   private hexPath(x: number, y: number, size: number): void {
@@ -258,6 +268,7 @@ export class WorldMapScene extends Phaser.Scene {
       fontStyle: 'bold',
       color: css(COLORS.accent),
     });
+    if (isDevMode()) this.devRevealButton(W - this.sa.right - 16 * u, this.sa.top + 14 * u);
     this.text(left, this.sa.top + 38 * u, this.statusLine(), 12, {
       color: '#a1a1aa',
     });
@@ -289,6 +300,22 @@ export class WorldMapScene extends Phaser.Scene {
         this.button(W / 2, panelY + 126 * u, info.action.label, info.action.run);
       }
     }
+  }
+
+  /** Dev mode only: shows the whole map without saving anything as discovered. */
+  private devRevealButton(x: number, y: number): void {
+    const u = this.u;
+    const on = this.devReveal();
+    const t = this.text(x, y, on ? 'DEV  fog off' : 'DEV  reveal', 12, {
+      fontStyle: 'bold',
+      color: '#f0abfc',
+      backgroundColor: on ? '#6b21a8' : '#3b0764',
+      padding: { x: Math.round(10 * u), y: Math.round(7 * u) },
+    }).setOrigin(1, 0);
+    t.setInteractive({ useHandCursor: true }).on('pointerup', () => {
+      this.registry.set('devReveal', !on);
+      this.buildHud();
+    });
   }
 
   /** Header line: the expedition while out, otherwise the season summary. */
@@ -330,7 +357,7 @@ export class WorldMapScene extends Phaser.Scene {
     }
     const key = hexKey(this.selected);
     const h = this.world.hexes.get(key);
-    if (!h || !isDiscovered(progress, key)) {
+    if (!h || !this.isVisible(key)) {
       return { title: 'Unknown land', detail: 'Explore further to reveal what lies here.' };
     }
     const forecast = herbForecast(h.biome, h.ring);
