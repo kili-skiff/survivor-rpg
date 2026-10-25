@@ -115,6 +115,42 @@ export class BootScene extends Phaser.Scene {
       g.fillStyle(0xf3e8ff).fillTriangle(8, 3, 4, 11, 8, 11);
     });
     make('heart', 20, 18, (g) => drawHeart(g, 10, 9, 9, COLORS.heal));
+    make('chest', 26, 22, (g) => {
+      g.fillStyle(0x000000, 0.35).fillEllipse(13, 20, 24, 5);
+      g.fillStyle(0x7c2d12).fillRect(2, 8, 22, 12);
+      g.fillStyle(0x9a3412).fillRoundedRect(2, 2, 22, 8, 3);
+      g.fillStyle(0xfbbf24).fillRect(2, 9, 22, 2).fillRect(6, 2, 2, 18).fillRect(18, 2, 2, 18);
+      g.fillStyle(0xfde68a).fillRect(11, 8, 4, 5);
+    });
+    // Big chest for the opening screen, closed and open (drawn large so it stays sharp).
+    const S = 8;
+    make('chest-big', 26 * S, 26 * S, (g) => {
+      g.fillStyle(0x7c2d12).fillRect(2 * S, 12 * S, 22 * S, 12 * S);
+      g.fillStyle(0x9a3412).fillRoundedRect(2 * S, 5 * S, 22 * S, 8 * S, 3 * S);
+      g.fillStyle(0xfbbf24)
+        .fillRect(2 * S, 12 * S, 22 * S, 2 * S)
+        .fillRect(6 * S, 5 * S, 2 * S, 19 * S)
+        .fillRect(18 * S, 5 * S, 2 * S, 19 * S);
+      g.fillStyle(0xfde68a).fillRect(11 * S, 11 * S, 4 * S, 5 * S);
+      g.fillStyle(0x7c2d12).fillRect(12.5 * S, 13 * S, 1 * S, 2 * S);
+    });
+    make('chest-big-open', 26 * S, 26 * S, (g) => {
+      // Lid tipped back, seen from inside.
+      g.fillStyle(0x431407).fillRoundedRect(3 * S, 1 * S, 20 * S, 7 * S, 2 * S);
+      g.fillStyle(0xfbbf24)
+        .fillRect(6 * S, 1 * S, 2 * S, 7 * S)
+        .fillRect(18 * S, 1 * S, 2 * S, 7 * S);
+      // Glowing inside.
+      g.fillStyle(0xfde68a).fillRect(2 * S, 9 * S, 22 * S, 4 * S);
+      g.fillStyle(0xffffff, 0.8).fillRect(5 * S, 10 * S, 16 * S, 2 * S);
+      // Box.
+      g.fillStyle(0x7c2d12).fillRect(2 * S, 12 * S, 22 * S, 12 * S);
+      g.fillStyle(0xfbbf24)
+        .fillRect(2 * S, 12 * S, 22 * S, 2 * S)
+        .fillRect(6 * S, 12 * S, 2 * S, 12 * S)
+        .fillRect(18 * S, 12 * S, 2 * S, 12 * S);
+      g.fillStyle(0xfde68a).fillRect(11 * S, 13 * S, 4 * S, 3 * S);
+    });
     make('coin', 16, 16, (g) => {
       g.fillStyle(0x92400e).fillCircle(8, 8.6, 7);
       g.fillStyle(0xfbbf24).fillCircle(8, 8, 7);

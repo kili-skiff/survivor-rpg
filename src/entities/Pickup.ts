@@ -1,6 +1,6 @@
 import * as Phaser from 'phaser';
 
-export type PickupKind = 'xp' | 'heal' | 'gold';
+export type PickupKind = 'xp' | 'heal' | 'gold' | 'chest';
 
 /** Pooled XP gem, heal or gold pickup. */
 export class Pickup extends Phaser.GameObjects.Image {

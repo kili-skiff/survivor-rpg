@@ -23,20 +23,36 @@ export class PickupSystem {
   }
 
   drop(x: number, y: number, kind: PickupKind, value: number): void {
-    const texture = kind === 'heal' ? 'heart' : kind === 'gold' ? 'coin' : value >= 5 ? 'gem-big' : 'gem';
+    const texture =
+      kind === 'heal'
+        ? 'heart'
+        : kind === 'gold'
+          ? 'coin'
+          : kind === 'chest'
+            ? 'chest'
+            : value >= 5
+              ? 'gem-big'
+              : 'gem';
     const p = this.group.get(x, y, texture) as Pickup | null;
     if (!p) {
       // Pool is full: add the XP to an existing gem.
       const any = (this.group.getChildren() as Pickup[]).find((c) => c.active && c.kind === 'xp');
       if (any && kind === 'xp') any.value += value;
-      // Gold is never lost: with a full pool it is collected at once.
-      if (kind === 'gold') this.onCollect({ kind, value } as Pickup);
+      // Gold and chests are never lost: with a full pool they are collected at once.
+      if (kind === 'gold' || kind === 'chest') this.onCollect({ kind, value } as Pickup);
       return;
     }
     p.setTexture(texture).setActive(true).setVisible(true).setDepth(1).setPosition(x, y);
     p.kind = kind;
     p.value = value;
     p.attracted = false;
+  }
+
+  /** Positions of the treasure chests lying on the ground. */
+  chests(): { x: number; y: number }[] {
+    return (this.group.getChildren() as Pickup[])
+      .filter((p) => p.active && p.kind === 'chest')
+      .map((p) => ({ x: p.x, y: p.y }));
   }
 
   /** `magnet` is the radius within which pickups start flying to the player. */
@@ -53,6 +69,8 @@ export class PickupSystem {
         this.onCollect(p);
         continue;
       }
+      // Chests stay where they fell: walk over them to open.
+      if (p.kind === 'chest') continue;
       if (p.attracted || d < magnet) {
         p.attracted = true;
         const speed = 420 + Math.max(0, 300 - d);

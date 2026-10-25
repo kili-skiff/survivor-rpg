@@ -1,4 +1,5 @@
 import * as Phaser from 'phaser';
+import { LIGHT } from '../config/balance';
 import { PASSIVES } from '../config/passives';
 import { HERBS } from '../config/herbs';
 import { POTION_IDS, POTIONS } from '../config/potions';
@@ -15,6 +16,7 @@ import { devButtonStyle, isDevMode } from '../dev/devMode'; // DEV:
 import { safeArea, viewportSize, type SafeArea } from '../ui/display';
 import { COLORS, css, FONT } from '../ui/theme';
 import type { GameScene, RunEndInfo } from './GameScene';
+import type { ChestReward } from '../logic/chest';
 
 interface PotionButton {
   id: PotionId;
@@ -26,7 +28,14 @@ interface PotionButton {
   r: number;
 }
 
-type OverlayKind = 'none' | 'levelup' | 'pause' | 'runend';
+type OverlayKind = 'none' | 'levelup' | 'pause' | 'runend' | 'chest';
+
+/** Every upgrade icon, for the spinning reels of a treasure chest */
+const REEL_TEXTURES = [
+  ...Object.values(WEAPONS).map((w) => w.texture),
+  ...Object.values(PASSIVES).map((p) => p.texture),
+  ...Object.values(SKILLS).map((s) => s.texture),
+];
 
 interface SkillButton {
   id: SkillId;
@@ -76,6 +85,16 @@ export class UIScene extends Phaser.Scene {
   private levelUpOptions: UpgradeOption[] = [];
   private levelUpLevel = 1;
   private runEndInfo?: RunEndInfo;
+  private chestReward?: ChestReward;
+  /** Reels of the open chest that have stopped */
+  private chestRevealed = 0;
+  /** The chest is shown closed first; tapping it opens it and starts the reels. */
+  private chestStage: 'closed' | 'opening' | 'reels' = 'closed';
+  /** Opens the closed chest on screen (set while it is shown). */
+  private openShownChest?: () => void;
+  private chestEvents: Phaser.Time.TimerEvent[] = [];
+  /** Rows taken by the hints below the timer, so two hints do not overlap */
+  private readonly hintSlots = new Set<number>();
   private pressedCard = -1;
 
   /** UI scale (accounts for pixel density and screen size) */
@@ -91,6 +110,7 @@ export class UIScene extends Phaser.Scene {
     this.controls = this.registry.get('input') as InputState;
     this.isTouch = this.sys.game.device.input.touch;
     this.settings = loadSettings(safeStorage());
+    this.hintSlots.clear();
     this.skillButtons = [];
     this.potionButtons = [];
     this.loadoutIcons = [];
@@ -162,14 +182,18 @@ export class UIScene extends Phaser.Scene {
     this.layout();
     this.scale.on('resize', this.onResize, this);
     this.gs.events.on('levelup', this.onLevelUp, this);
+    this.gs.events.on('chest', this.onChest, this);
     this.gs.events.on('runend', this.onRunEnd, this);
     this.gs.events.on('herbbloom', this.onHerbBloom, this);
+    this.gs.events.on('chestdrop', this.onChestDrop, this);
     this.game.events.on(Phaser.Core.Events.HIDDEN, this.onHidden, this);
     this.events.once('shutdown', () => {
       this.scale.off('resize', this.onResize, this);
       this.gs.events.off('levelup', this.onLevelUp, this);
+      this.gs.events.off('chest', this.onChest, this);
       this.gs.events.off('runend', this.onRunEnd, this);
       this.gs.events.off('herbbloom', this.onHerbBloom, this);
+      this.gs.events.off('chestdrop', this.onChestDrop, this);
       this.game.events.off(Phaser.Core.Events.HIDDEN, this.onHidden, this);
     });
 
@@ -202,6 +226,7 @@ export class UIScene extends Phaser.Scene {
     if (this.overlayKind === 'none') {
       if (action) this.controls.press(action);
     } else if (this.overlayKind === 'pause') this.togglePause();
+    else if (this.overlayKind === 'chest') this.onChestConfirm();
     else if (this.overlayKind === 'runend' && this.time.now - this.overlayOpenedAt > 600)
       this.gs.returnToMap();
   }
@@ -344,6 +369,7 @@ export class UIScene extends Phaser.Scene {
     const kind = this.overlayKind;
     if (kind === 'levelup') this.showLevelUp();
     else if (kind === 'pause') this.showPause();
+    else if (kind === 'chest') this.showChest();
     else if (kind === 'runend' && this.runEndInfo) this.showRunEnd(this.runEndInfo);
   }
 
@@ -455,7 +481,7 @@ export class UIScene extends Phaser.Scene {
     this.herbText.setText(run.herbsTotal > 0 ? 'Herbs' : '').setPosition(this.killsText.x, rightY);
     this.drawHerbSlots(g);
 
-    this.drawHerbArrows(g);
+    this.drawEdgeArrows(g);
 
     // Skill buttons with cooldown
     for (const b of this.skillButtons) {
@@ -533,9 +559,35 @@ export class UIScene extends Phaser.Scene {
     });
   }
 
-  /** Arrows at the screen edge pointing to nearby herbs that are off screen. */
-  private drawHerbArrows(g: Phaser.GameObjects.Graphics): void {
+  /**
+   * Arrows at the screen edge: to nearby herbs that are off screen, and to every treasure chest
+   * off screen (bigger, golden and gently pulsing, so a chest that fell in the dark is not lost).
+   */
+  private drawEdgeArrows(g: Phaser.GameObjects.Graphics): void {
     if (this.overlayKind !== 'none') return;
+    const u = this.u;
+    for (const ind of this.gs.herbIndicators()) {
+      // Fresh blooms pulse and are a bit bigger so they catch the eye.
+      const pulse =
+        ind.freshness > 0 ? 1 + 0.35 * ind.freshness * (0.5 + 0.5 * Math.sin(this.time.now / 90)) : 1;
+      const size = (ind.rare ? 13 : 10) * u * pulse;
+      const alpha = ind.freshness > 0 ? 1 : Phaser.Math.Clamp(1.1 - ind.distance / 500, 0.45, 1);
+      this.drawEdgeArrow(g, ind.angle, size, ind.color, alpha);
+    }
+    for (const ind of this.gs.chestIndicators()) {
+      const size = 14 * u * (1 + 0.15 * (0.5 + 0.5 * Math.sin(this.time.now / 160)));
+      this.drawEdgeArrow(g, ind.angle, size, ind.color, 1, true);
+    }
+  }
+
+  private drawEdgeArrow(
+    g: Phaser.GameObjects.Graphics,
+    angle: number,
+    size: number,
+    color: number,
+    alpha: number,
+    outline = false,
+  ): void {
     const { width: W, height: H } = this.scale;
     const u = this.u;
     const cx = W / 2;
@@ -544,34 +596,28 @@ export class UIScene extends Phaser.Scene {
     const right = W - this.sa.right - 26 * u;
     const top = this.sa.top + 110 * u;
     const bottom = H - this.sa.bottom - 30 * u;
-    for (const ind of this.gs.herbIndicators()) {
-      const dx = Math.cos(ind.angle);
-      const dy = Math.sin(ind.angle);
-      // Walk along the direction until the inset screen rectangle is hit.
-      const tx = dx > 0 ? (right - cx) / dx : dx < 0 ? (left - cx) / dx : Infinity;
-      const ty = dy > 0 ? (bottom - cy) / dy : dy < 0 ? (top - cy) / dy : Infinity;
-      const t = Math.min(tx, ty);
-      const x = cx + dx * t;
-      const y = cy + dy * t;
-      // Fresh blooms pulse and are a bit bigger so they catch the eye.
-      const pulse =
-        ind.freshness > 0 ? 1 + 0.35 * ind.freshness * (0.5 + 0.5 * Math.sin(this.time.now / 90)) : 1;
-      const size = (ind.rare ? 13 : 10) * u * pulse;
-      const alpha = ind.freshness > 0 ? 1 : Phaser.Math.Clamp(1.1 - ind.distance / 500, 0.45, 1);
-      // A long, slim arrow so the direction is unambiguous.
-      const tip = { x: x + dx * size * 1.2, y: y + dy * size * 1.2 };
-      const back = { x: x - dx * size * 0.7, y: y - dy * size * 0.7 };
-      const side = { x: -dy * size * 0.6, y: dx * size * 0.6 };
-      g.fillStyle(0x000000, 0.5 * alpha).fillCircle(x, y, size * 1.15);
-      g.fillStyle(ind.color, alpha).fillTriangle(
-        tip.x,
-        tip.y,
-        back.x + side.x,
-        back.y + side.y,
-        back.x - side.x,
-        back.y - side.y,
-      );
-    }
+    const dx = Math.cos(angle);
+    const dy = Math.sin(angle);
+    // Walk along the direction until the inset screen rectangle is hit.
+    const tx = dx > 0 ? (right - cx) / dx : dx < 0 ? (left - cx) / dx : Infinity;
+    const ty = dy > 0 ? (bottom - cy) / dy : dy < 0 ? (top - cy) / dy : Infinity;
+    const t = Math.min(tx, ty);
+    const x = cx + dx * t;
+    const y = cy + dy * t;
+    // A long, slim arrow so the direction is unambiguous.
+    const tip = { x: x + dx * size * 1.2, y: y + dy * size * 1.2 };
+    const back = { x: x - dx * size * 0.7, y: y - dy * size * 0.7 };
+    const side = { x: -dy * size * 0.6, y: dx * size * 0.6 };
+    g.fillStyle(0x000000, 0.5 * alpha).fillCircle(x, y, size * 1.15);
+    if (outline) g.lineStyle(2 * u, color, 0.9).strokeCircle(x, y, size * 1.15);
+    g.fillStyle(color, alpha).fillTriangle(
+      tip.x,
+      tip.y,
+      back.x + side.x,
+      back.y + side.y,
+      back.x - side.x,
+      back.y - side.y,
+    );
   }
 
   private updateLoadoutIcons(): void {
@@ -608,6 +654,302 @@ export class UIScene extends Phaser.Scene {
   }
 
   // ---------------------------------------------------------------- Menus
+
+  // ---------------------------------------------------------------- Treasure chest
+
+  private onChest(reward: ChestReward): void {
+    this.chestReward = reward;
+    this.chestRevealed = 0;
+    this.chestStage = 'closed';
+    this.showChest();
+  }
+
+  /**
+   * The chest's reels spin through upgrade icons and stop one after another on what it holds;
+   * then the gold appears and "Take" applies everything. Tapping while they spin stops them all.
+   */
+  private showChest(): void {
+    if (!this.chestReward) return;
+    // A redraw (e.g. on resize) during the opening skips straight to the reels.
+    if (this.chestStage === 'opening') this.chestStage = 'reels';
+    if (this.chestStage === 'closed') this.showClosedChest();
+    else this.showChestReels();
+  }
+
+  /** The closed chest wobbles in the middle of the screen until it is tapped. */
+  private showClosedChest(): void {
+    this.beginOverlay('chest', 0.72);
+    for (const e of this.chestEvents) e.remove();
+    this.chestEvents = [];
+    const { width: W, height: H } = this.scale;
+    const u = this.u;
+    const wide = W > H * 1.3;
+    const size = Math.min(wide ? 150 * u : 180 * u, H * 0.42, W * 0.6);
+    const cy = H * (wide ? 0.48 : 0.45);
+
+    const titleY = Math.max(this.sa.top + (wide ? 72 : 70) * u, H * (wide ? 0.12 : 0.2));
+    this.text(W / 2, titleY, 'Treasure Chest!', wide ? 28 : 32, {
+      fontStyle: 'bold',
+      color: css(COLORS.accent),
+      stroke: '#000',
+      strokeThickness: 5,
+    });
+
+    const glow = this.add
+      .image(W / 2, cy, 'light')
+      .setDisplaySize(size * 1.6, size * 1.6)
+      .setTint(0xfbbf24)
+      .setAlpha(0.35)
+      .setBlendMode(Phaser.BlendModes.ADD)
+      .setDepth(51);
+    const chest = this.add
+      .image(W / 2, cy, 'chest-big')
+      .setDisplaySize(size, size)
+      .setDepth(52);
+    const base = chest.scale;
+    this.tweens.add({ targets: glow, alpha: 0.6, duration: 700, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
+    // Every now and then the chest jiggles, as if something were inside.
+    this.tweens.add({
+      targets: chest,
+      angle: { from: -6, to: 6 },
+      duration: 70,
+      yoyo: true,
+      repeat: 3,
+      repeatDelay: 0,
+      loopDelay: 900,
+      loop: -1,
+      onLoop: () => chest.setAngle(0),
+    });
+    const hint = this.text(
+      W / 2,
+      Math.min(cy + size * 0.65 + 20 * u, H - this.sa.bottom - 30 * u),
+      this.isTouch ? 'Tap to open' : 'Click or press Enter to open',
+      16,
+      { fontStyle: 'bold', color: '#e4e4e7', stroke: '#000', strokeThickness: 4 },
+    );
+    this.tweens.add({ targets: hint, alpha: 0.4, duration: 600, yoyo: true, repeat: -1 });
+    this.overlay.push(glow, chest);
+
+    const zone = this.add
+      .zone(W / 2, H / 2, W, H)
+      .setDepth(50.5)
+      .setInteractive();
+    this.openShownChest = () => this.openChest(chest, glow, hint, base);
+    zone.on('pointerup', () => this.openShownChest?.());
+    this.overlay.push(zone);
+  }
+
+  /** Lid flies open with a flash of light, then the reels screen follows. */
+  private openChest(
+    chest: Phaser.GameObjects.Image,
+    glow: Phaser.GameObjects.Image,
+    hint: Phaser.GameObjects.Text,
+    base: number,
+  ): void {
+    if (this.chestStage !== 'closed' || this.overlayKind !== 'chest') return;
+    if (this.time.now - this.overlayOpenedAt < 300) return;
+    this.chestStage = 'opening';
+    this.openShownChest = undefined;
+    this.tweens.killTweensOf([chest, glow, hint]);
+    hint.setVisible(false);
+    chest.setAngle(0);
+    // Squash, then pop open.
+    this.tweens.add({
+      targets: chest,
+      scaleX: base * 1.12,
+      scaleY: base * 0.86,
+      duration: 140,
+      ease: 'Quad.out',
+      onComplete: () => {
+        if (this.chestStage !== 'opening') return;
+        chest.setTexture('chest-big-open').setScale(base * 0.92, base * 1.15);
+        this.tweens.add({ targets: chest, scaleX: base, scaleY: base, duration: 220, ease: 'Back.out' });
+        this.tweens.add({
+          targets: glow,
+          alpha: 1,
+          displayWidth: glow.displayWidth * 1.35,
+          displayHeight: glow.displayHeight * 1.35,
+          duration: 450,
+          ease: 'Quad.out',
+        });
+        this.burstCoins(chest.x, chest.y - chest.displayHeight * 0.15, chest.displayWidth);
+        this.chestEvents.push(
+          this.time.delayedCall(750, () => {
+            if (this.chestStage !== 'opening' || this.overlayKind !== 'chest') return;
+            this.chestStage = 'reels';
+            this.overlayOpenedAt = this.time.now;
+            this.showChestReels();
+          }),
+        );
+      },
+    });
+  }
+
+  /** A handful of coins jump out of the opened chest. */
+  private burstCoins(x: number, y: number, spread: number): void {
+    for (let i = 0; i < 14; i++) {
+      const coin = this.add
+        .image(x + (Math.random() - 0.5) * spread * 0.4, y, 'coin')
+        .setDepth(53)
+        .setScale(this.u * (1.6 + Math.random() * 0.8));
+      this.overlay.push(coin);
+      const angle = -Math.PI / 2 + (Math.random() - 0.5) * 1.6;
+      const dist = spread * (0.5 + Math.random() * 0.6);
+      this.tweens.add({
+        targets: coin,
+        x: x + Math.cos(angle) * dist,
+        y: y + Math.sin(angle) * dist,
+        alpha: 0,
+        angle: (Math.random() - 0.5) * 360,
+        duration: 600 + Math.random() * 250,
+        ease: 'Quad.out',
+      });
+    }
+  }
+
+  private showChestReels(): void {
+    const reward = this.chestReward;
+    if (!reward) return;
+    this.beginOverlay('chest', 0.72);
+    for (const e of this.chestEvents) e.remove();
+    this.chestEvents = [];
+    const { width: W, height: H } = this.scale;
+    const u = this.u;
+    const wide = W > H * 1.3;
+
+    const titleY = Math.max(this.sa.top + (wide ? 72 : 70) * u, H * (wide ? 0.12 : 0.2));
+    this.text(W / 2, titleY, 'Treasure Chest!', wide ? 28 : 32, {
+      fontStyle: 'bold',
+      color: css(COLORS.accent),
+      stroke: '#000',
+      strokeThickness: 5,
+    });
+
+    const n = reward.upgrades.length;
+    const gap = 10 * u;
+    const size = Math.min(
+      wide ? 92 * u : 86 * u,
+      (W - this.sa.left - this.sa.right - 32 * u - gap * (n - 1)) / Math.max(1, n),
+    );
+    const rowY = titleY + (wide ? 36 : 70) * u;
+    const startX = W / 2 - (n * size + (n - 1) * gap) / 2;
+    const reels: {
+      icon: Phaser.GameObjects.Image;
+      label: Phaser.GameObjects.Text;
+      frame: Phaser.GameObjects.Graphics;
+      x: number;
+    }[] = [];
+    reward.upgrades.forEach((option, i) => {
+      const x = startX + i * (size + gap);
+      const frame = this.add.graphics().setDepth(51);
+      frame.fillStyle(COLORS.panel, 0.98).fillRoundedRect(x, rowY, size, size, 12 * u);
+      frame.lineStyle(2 * u, COLORS.panelEdge, 1).strokeRoundedRect(x, rowY, size, size, 12 * u);
+      const icon = this.add
+        .image(x + size / 2, rowY + size / 2, REEL_TEXTURES[i % REEL_TEXTURES.length])
+        .setDisplaySize(size * 0.62, size * 0.62)
+        .setDepth(52);
+      const card = describeUpgrade(option);
+      const label = this.text(
+        x + size / 2,
+        rowY + size + 8 * u,
+        `${card.title}\n${card.badge}`,
+        n >= 5 && !wide ? 9 : 11,
+        {
+          fontStyle: 'bold',
+          color: '#e4e4e7',
+          wordWrap: { width: size + gap },
+        },
+      )
+        .setOrigin(0.5, 0)
+        .setVisible(false);
+      this.overlay.push(frame, icon);
+      reels.push({ icon, label, frame, x });
+    });
+
+    const reveal = (i: number) => {
+      const reel = reels[i];
+      const card = describeUpgrade(reward.upgrades[i]);
+      reel.icon.setTexture(card.texture).setDisplaySize(size * 0.62, size * 0.62);
+      reel.label.setVisible(true);
+      reel.frame.lineStyle(3 * u, COLORS.accent, 1).strokeRoundedRect(reel.x, rowY, size, size, 12 * u);
+      this.tweens.add({ targets: reel.icon, scale: reel.icon.scale * 1.25, duration: 120, yoyo: true });
+    };
+    for (let i = 0; i < this.chestRevealed; i++) reveal(i);
+
+    const afterY = rowY + size + (wide ? 44 : 64) * u;
+    const finish = () => {
+      if (this.overlayKind !== 'chest') return;
+      this.chestRevealed = n;
+      for (const e of this.chestEvents) e.remove();
+      this.chestEvents = [];
+      this.text(W / 2, afterY, `+${reward.gold} gold`, 20, {
+        fontStyle: 'bold',
+        color: '#fde047',
+        stroke: '#000',
+        strokeThickness: 4,
+      });
+      const buttonY = Math.min(afterY + 56 * u, H - this.sa.bottom - 34 * u);
+      this.button(W / 2, buttonY, this.isTouch ? 'Take' : 'Take (Enter)', () => this.onChestConfirm());
+    };
+
+    if (this.chestRevealed >= n) {
+      finish();
+      return;
+    }
+    // Spin: every reel not yet stopped flips through random icons.
+    this.chestEvents.push(
+      this.time.addEvent({
+        delay: 70,
+        loop: true,
+        callback: () => {
+          for (let i = this.chestRevealed; i < n; i++) {
+            reels[i].icon
+              .setTexture(REEL_TEXTURES[Math.floor(Math.random() * REEL_TEXTURES.length)])
+              .setDisplaySize(size * 0.62, size * 0.62);
+          }
+        },
+      }),
+    );
+    for (let i = this.chestRevealed; i < n; i++) {
+      const index = i;
+      this.chestEvents.push(
+        this.time.delayedCall(700 + (i - this.chestRevealed) * 450, () => {
+          this.chestRevealed = index + 1;
+          reveal(index);
+          if (index === n - 1) finish();
+        }),
+      );
+    }
+    // Tap while spinning: stop all reels at once.
+    const skip = this.add
+      .zone(W / 2, H / 2, W, H)
+      .setDepth(50.5)
+      .setInteractive();
+    skip.on('pointerup', () => {
+      if (this.chestRevealed >= n) return;
+      for (let i = this.chestRevealed; i < n; i++) reveal(i);
+      skip.disableInteractive();
+      finish();
+    });
+    this.overlay.push(skip);
+  }
+
+  /** Takes the chest once all reels have stopped. */
+  private onChestConfirm(): void {
+    const reward = this.chestReward;
+    if (!reward) return;
+    if (this.chestStage === 'closed') {
+      this.openShownChest?.();
+      return;
+    }
+    if (this.chestStage !== 'reels' || this.chestRevealed < reward.upgrades.length) return;
+    if (this.time.now - this.overlayOpenedAt < 400) return;
+    for (const e of this.chestEvents) e.remove();
+    this.chestEvents = [];
+    this.chestReward = undefined;
+    this.clearOverlay();
+    this.gs.takeChest(reward);
+  }
 
   private clearOverlay(): void {
     for (const o of this.overlay) o.destroy();
@@ -684,21 +1026,30 @@ export class UIScene extends Phaser.Scene {
   /** A short hint below the timer when a herb blooms nearby. */
   private onHerbBloom(herb: HerbId): void {
     const def = HERBS[herb];
+    this.showHint(`${def.rare ? 'A rare ' : 'A '}${def.name} is blooming nearby`, def.color);
+  }
+
+  /** A short hint below the timer when an enemy leaves a treasure chest. */
+  private onChestDrop(): void {
+    this.showHint('A treasure chest dropped!', LIGHT.chestColor);
+  }
+
+  /** Fades a line in below the timer for a moment; a second hint goes below the first. */
+  private showHint(message: string, color: number): void {
     const u = this.u;
+    const lineH = 18 * u;
+    let slot = 0;
+    while (this.hintSlots.has(slot)) slot++;
+    this.hintSlots.add(slot);
     const hint = this.add
-      .text(
-        this.scale.width / 2,
-        this.sa.top + 62 * u,
-        `${def.rare ? 'A rare ' : 'A '}${def.name} is blooming nearby`,
-        {
-          fontFamily: FONT,
-          fontSize: `${Math.round(13 * u)}px`,
-          fontStyle: 'bold',
-          color: css(def.color),
-          stroke: '#000000',
-          strokeThickness: 3,
-        },
-      )
+      .text(this.scale.width / 2, this.sa.top + 62 * u + slot * lineH, message, {
+        fontFamily: FONT,
+        fontSize: `${Math.round(13 * u)}px`,
+        fontStyle: 'bold',
+        color: css(color),
+        stroke: '#000000',
+        strokeThickness: 3,
+      })
       .setOrigin(0.5, 0)
       .setDepth(40)
       .setAlpha(0);
@@ -708,7 +1059,10 @@ export class UIScene extends Phaser.Scene {
       duration: 250,
       yoyo: true,
       hold: 2200,
-      onComplete: () => hint.destroy(),
+      onComplete: () => {
+        this.hintSlots.delete(slot);
+        hint.destroy();
+      },
     });
   }
 
