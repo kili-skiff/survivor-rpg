@@ -1,4 +1,4 @@
-// Treasure chests: what an elite's chest holds. Pure and tested.
+// Treasure chests: when enemies drop one and what it holds. Pure and tested.
 
 import { CHEST } from '../config/balance';
 import { goldPerDrop } from './merchant';
@@ -10,6 +10,11 @@ export interface ChestReward {
   gold: number;
   /** Applied one after another, in this order */
   upgrades: UpgradeOption[];
+}
+
+/** Rolls whether a killed enemy leaves a chest; elites are far more likely to. */
+export function dropsChest(elite: boolean, rng: Rng): boolean {
+  return rng() < (elite ? CHEST.eliteDropChance : CHEST.dropChance);
 }
 
 /** Usually one upgrade, sometimes three, rarely five. */

@@ -44,6 +44,9 @@ export const ELITE = {
 
 /** Treasure chests from elites: rewards are rolled like a slot machine. */
 export const CHEST = {
+  /** Chance that a killed enemy leaves a chest: rare for anyone, likely for elites */
+  dropChance: 0.003,
+  eliteDropChance: 0.5,
   /** Chance for 5 upgrades at once, else for 3, else 1 */
   fiveChance: 0.05,
   threeChance: 0.25,

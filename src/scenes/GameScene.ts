@@ -20,7 +20,7 @@ import { addXp } from '../logic/progression';
 import { addLoot, lootGained } from '../logic/expedition';
 import { GOLD, GOLD_KEY } from '../config/merchant';
 import { goldPerDrop, lanternMultiplier } from '../logic/merchant';
-import { rollChest, type ChestReward } from '../logic/chest';
+import { dropsChest, rollChest, type ChestReward } from '../logic/chest';
 import type { ExpeditionBuild } from '../logic/expedition';
 import { parseHexKey } from '../logic/hex';
 import { planHerbBlooms } from '../logic/herbs';
@@ -524,8 +524,8 @@ export class GameScene extends Phaser.Scene {
     this.run.kills += 1;
     if (Math.random() < BALANCE.healDropChance) this.pickups.drop(e.x, e.y, 'heal', BALANCE.healAmount);
     else this.pickups.drop(e.x, e.y, 'xp', e.def.xp * (e.elite ? ELITE.xp : 1));
-    // Elites always leave a treasure chest; anyone may drop a little gold.
-    if (e.elite) this.pickups.drop(e.x, e.y + 10, 'chest', 0);
+    // Any enemy may leave a treasure chest (elites much more often) or a little gold.
+    if (dropsChest(e.elite, Math.random)) this.pickups.drop(e.x, e.y + 10, 'chest', 0);
     if (Math.random() < GOLD.dropChance) this.pickups.drop(e.x + 8, e.y - 6, 'gold', goldPerDrop(this.ring));
   }
 

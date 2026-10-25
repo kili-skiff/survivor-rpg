@@ -3,7 +3,7 @@ import { CHEST } from '../config/balance';
 import { PASSIVES } from '../config/passives';
 import { SKILLS } from '../config/skills';
 import { WEAPONS } from '../config/weapons';
-import { chestUpgradeCount, rollChest } from './chest';
+import { chestUpgradeCount, dropsChest, rollChest } from './chest';
 import { goldPerDrop } from './merchant';
 import { createStartLoadout, weaponMaxLevel, type Loadout } from './stats';
 
@@ -16,6 +16,15 @@ function seeded(seed = 7) {
 }
 
 describe('treasure chest', () => {
+  it('drops rarely from anyone and likely from elites', () => {
+    const just = (v: number) => () => v;
+    expect(CHEST.eliteDropChance).toBeGreaterThan(CHEST.dropChance * 10);
+    expect(dropsChest(false, just(CHEST.dropChance - 1e-6))).toBe(true);
+    expect(dropsChest(false, just(CHEST.dropChance))).toBe(false);
+    expect(dropsChest(true, just(CHEST.eliteDropChance - 1e-6))).toBe(true);
+    expect(dropsChest(true, just(CHEST.eliteDropChance))).toBe(false);
+  });
+
   it('holds one upgrade usually, three sometimes, five rarely', () => {
     expect(chestUpgradeCount(() => 0)).toBe(5);
     expect(chestUpgradeCount(() => CHEST.fiveChance + 0.01)).toBe(3);
