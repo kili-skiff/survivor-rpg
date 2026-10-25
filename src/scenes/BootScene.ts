@@ -1,4 +1,5 @@
 import * as Phaser from 'phaser';
+import { GROUND_TEXTURES } from '../config/ground';
 import { CHARACTER_SPRITES, dieAnim, SHEET, walkAnim, type Facing } from '../config/sprites';
 import { TILESET } from '../config/tiles';
 import { COLORS } from '../ui/theme';
@@ -21,6 +22,8 @@ export class BootScene extends Phaser.Scene {
       frameWidth: TILESET.frameWidth,
       frameHeight: TILESET.frameHeight,
     });
+    // Ground tiles for fights. A biome without its tile falls back to the grey placeholder ground.
+    for (const ground of Object.values(GROUND_TEXTURES)) this.load.image(ground.key, ground.path);
     // Animated characters for fights. Missing sheets fall back to the placeholder graphics below.
     for (const sprite of Object.values(CHARACTER_SPRITES)) {
       this.load.spritesheet(sprite.key, sprite.path, {
@@ -82,6 +85,10 @@ export class BootScene extends Phaser.Scene {
   create(): void {
     this.makeLightTexture();
     this.makeCharacterAnims();
+    for (const ground of Object.values(GROUND_TEXTURES)) {
+      if (this.textures.exists(ground.key))
+        this.textures.get(ground.key).setFilter(Phaser.Textures.FilterMode.NEAREST);
+    }
     if (this.textures.exists(TILESET.key)) {
       this.textures.get(TILESET.key).setFilter(Phaser.Textures.FilterMode.NEAREST);
     }
@@ -102,10 +109,12 @@ export class BootScene extends Phaser.Scene {
 
     // Enemies
     make('enemy-bat', 30, 22, (g) => {
-      // Until bats have a sprite: dark wings and red eyes, to fit the night.
-      g.fillStyle(0x2a2430).fillTriangle(15, 11, 1, 3, 6, 17).fillTriangle(15, 11, 29, 3, 24, 17);
-      g.fillStyle(0x3d3444).fillCircle(15, 11, 7);
-      g.fillStyle(0xef4444).fillCircle(12.5, 10, 1.6).fillCircle(17.5, 10, 1.6);
+      // Until bats have a sprite: dark purple wings with a faint rim, so they still read on dark ground.
+      g.fillStyle(0x3b2f48).fillTriangle(15, 11, 1, 3, 6, 17).fillTriangle(15, 11, 29, 3, 24, 17);
+      g.lineStyle(1, 0x8670a3).strokeTriangle(15, 11, 1, 3, 6, 17).strokeTriangle(15, 11, 29, 3, 24, 17);
+      g.fillStyle(0x54446a).fillCircle(15, 11, 7);
+      g.lineStyle(1, 0x8670a3).strokeCircle(15, 11, 7);
+      g.fillStyle(0xef4444).fillCircle(12.5, 10, 1.7).fillCircle(17.5, 10, 1.7);
     });
     make('enemy-zombie', 30, 30, (g) => {
       g.fillStyle(0x4d7c0f).fillCircle(15, 15, 13);

@@ -114,8 +114,10 @@ export interface SegmentDef {
   warningSec: number;
   /** Added to the run time when choosing enemies and difficulty (seconds) */
   difficultyOffsetSec: number;
-  /** Tint for the ground texture */
+  /** Tint for the placeholder ground, used when the biome has no ground tile */
   groundTint: number;
+  /** Biome of the hex: picks the ground tile; missing for segments outside the map */
+  biome?: BiomeId;
   /** Where herbs grow in this segment; null for segments without herbs */
   herbs: { biome: BiomeId; ring: number } | null;
 }

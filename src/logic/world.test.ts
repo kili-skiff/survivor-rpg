@@ -272,3 +272,10 @@ describe('save version 3', () => {
     expect(migrate(old).world.position).toBe('0,0');
   });
 });
+
+describe('segments of hexes', () => {
+  it('carry the biome of their hex, which picks the ground tile', () => {
+    const w = generateWorld('segment-biome', 1);
+    for (const h of [...w.hexes.values()].slice(0, 40)) expect(segmentForHex(h).biome).toBe(h.biome);
+  });
+});
