@@ -208,6 +208,7 @@ describe('save', () => {
       quests: emptySave().quests,
       lanternLevel: 0,
       recipes: ['healing'],
+      deeds: [],
     });
   });
 

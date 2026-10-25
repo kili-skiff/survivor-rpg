@@ -2,11 +2,13 @@
 // expedition and the village stash. Everything here works on the whole save and is pure.
 
 import { BALANCE } from '../config/balance';
+import type { DeedDef } from '../config/deeds';
 import { WORLD } from '../config/world';
 import { addLoot, lootAfterDeath, startExpedition, type ExpeditionBuild, type Loot } from './expedition';
 import { hexKey, ORIGIN, type Hex } from './hex';
 import type { SaveData } from './save';
 import type { RunOutcome } from './segment';
+import { deedBonus, earnDeeds } from './deeds';
 import { computePlayerStats } from './stats';
 import type { World } from './worldgen';
 import {
@@ -24,6 +26,8 @@ export interface FightReport {
   rested: boolean;
   /** Lit a watchfire: the land around it is revealed */
   litWatchfire: boolean;
+  /** Deeds earned by this fight (e.g. a new ring reached) */
+  deeds: DeedDef[];
   /** Loot kept after a death (half of it), or null when the expedition goes on */
   lootKept: Loot | null;
   lootLost: Loot | null;
@@ -65,30 +69,36 @@ export function finishFight(
     const progress = { ...applyFightResult(save.world, target, 'fallen'), expedition: null };
     return {
       save: { ...save, stash: addLoot(save.stash, kept), world: progress },
-      report: { outcome, rested: false, litWatchfire: false, lootKept: kept, lootLost: lost },
+      report: { outcome, rested: false, litWatchfire: false, deeds: [], lootKept: kept, lootLost: lost },
     };
   }
 
   const key = hexKey(target);
   const isCamp = world.hexes.get(key)?.poi === 'camp';
-  const nextBuild = isCamp ? { ...build, hp: computePlayerStats(build.loadout).maxHp } : build;
   let progress = applyFightResult(save.world, target, 'cleared');
   if (isCamp) progress = addWaypoint(progress, key);
   const litWatchfire = world.hexes.get(key)?.poi === 'watchfire' && !isLit(progress, key);
   if (litWatchfire) progress = lightWatchfire(progress, key, WORLD.watchfireRevealRadius);
-  progress = {
-    ...progress,
-    expedition: {
-      ...expedition,
-      build: nextBuild,
-      loot,
-      areasCleared: expedition.areasCleared + 1,
-      cleared: expedition.cleared.includes(key) ? expedition.cleared : [...expedition.cleared, key],
-    },
-  };
+  // Reaching a new ring, camp or watchfire can earn deeds; they are saved with this fight.
+  const { save: next, earned } = earnDeeds({ ...save, world: progress }, world);
+  // Camps heal fully, including health from deeds earned right here.
+  const maxHp = computePlayerStats(build.loadout, deedBonus(next.deeds)).maxHp;
+  const nextBuild = isCamp ? { ...build, hp: maxHp } : build;
   return {
-    save: { ...save, world: progress },
-    report: { outcome, rested: isCamp, litWatchfire, lootKept: null, lootLost: null },
+    save: {
+      ...next,
+      world: {
+        ...next.world,
+        expedition: {
+          ...expedition,
+          build: nextBuild,
+          loot,
+          areasCleared: expedition.areasCleared + 1,
+          cleared: expedition.cleared.includes(key) ? expedition.cleared : [...expedition.cleared, key],
+        },
+      },
+    },
+    report: { outcome, rested: isCamp, litWatchfire, deeds: earned, lootKept: null, lootLost: null },
   };
 }
 
