@@ -3,14 +3,14 @@ import { HERBS } from '../config/herbs';
 import { POTION_IDS, POTION_RULES, POTIONS } from '../config/potions';
 import { TOWER_QUEST, VILLAGERS, type VillagerId } from '../config/quests';
 import type { HerbDef, PotionId } from '../config/types';
-import { grantAllHerbs } from '../logic/dev';
+import { grantAllHerbs } from '../dev/devLogic'; // DEV:
 import { lootCount, type Loot } from '../logic/expedition';
 import { beltCount, brew, packPotion, unpackPotion } from '../logic/potions';
 import { acceptTowerQuest, questsOnArrival, scoutAvailable, talkToScout } from '../logic/quests';
-import { loadSave, safeStorage, writeSave, type SaveData } from '../logic/save';
+import { emptySave, loadSave, safeStorage, writeSave, type SaveData } from '../logic/save';
 import { CauldronPanel } from '../panels/CauldronPanel';
 import { DialoguePanel, type DialoguePanelOptions } from '../panels/DialoguePanel';
-import { isDevMode } from '../ui/dev';
+import { devButtonStyle, isDevMode } from '../dev/devMode'; // DEV:
 import { safeArea, viewportSize, type SafeArea } from '../ui/display';
 import { COLORS, css, FONT } from '../ui/theme';
 
@@ -180,7 +180,12 @@ export class VillageScene extends Phaser.Scene {
 
     let y = this.sa.top + 18 * u;
     this.text(left, y, 'VILLAGE', 26, { fontStyle: 'bold', color: css(COLORS.accent) });
-    if (isDevMode()) this.devButton(right, y + 4 * u);
+    // DEV: test buttons; in landscape side by side, in portrait stacked.
+    if (isDevMode()) {
+      const herbsBtn = this.devButton(right, y + 4 * u);
+      if (wide) this.devResetButton(herbsBtn.x - herbsBtn.width - 10 * u, y + 4 * u);
+      else this.devResetButton(right, y + 40 * u);
+    }
     y += 34 * u;
     this.text(left, y, `${plural(this.save.segmentsCleared, 'area')} cleared`, 12, {
       color: '#a1a1aa',
@@ -434,18 +439,36 @@ export class VillageScene extends Phaser.Scene {
     });
   }
 
-  /** Dev mode only: a small button that adds 5 of every herb to the stash. */
-  private devButton(x: number, y: number): void {
-    const u = this.u;
-    const t = this.text(x, y, 'DEV  +5 herbs', 12, {
-      fontStyle: 'bold',
-      color: '#f0abfc',
-      backgroundColor: '#3b0764',
-      padding: { x: Math.round(10 * u), y: Math.round(7 * u) },
-    }).setOrigin(1, 0);
+  // DEV: resets the save (needs a second tap within 3 s); device settings stay.
+  private devResetButton(x: number, y: number): void {
+    const armed = this.registry.get('devResetArmed') === true;
+    const label = armed ? 'DEV  tap again to reset' : 'DEV  reset save';
+    const t = this.text(x, y, label, 12, devButtonStyle(this.u, armed)).setOrigin(1, 0);
+    t.setInteractive({ useHandCursor: true }).on('pointerup', () => {
+      if (!armed) {
+        this.registry.set('devResetArmed', true);
+        this.time.delayedCall(3000, () => {
+          this.registry.set('devResetArmed', false);
+          if (this.scene.isActive()) this.build();
+        });
+        this.build();
+        return;
+      }
+      this.registry.set('devResetArmed', false);
+      this.registry.set('devReveal', false);
+      this.registry.set('mapZoom', 1);
+      writeSave(safeStorage(), emptySave());
+      this.scene.restart({});
+    });
+  }
+
+  // DEV: a small button that adds 5 of every herb to the stash.
+  private devButton(x: number, y: number): Phaser.GameObjects.Text {
+    const t = this.text(x, y, 'DEV  +5 herbs', 12, devButtonStyle(this.u)).setOrigin(1, 0);
     t.setInteractive({ useHandCursor: true }).on('pointerup', () =>
       this.commit({ ...this.save, stash: grantAllHerbs(this.save.stash, 5) }),
     );
+    return t;
   }
 
   private flask(x: number, y: number, h: number, color: number, alpha: number): void {

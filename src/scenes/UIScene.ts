@@ -11,6 +11,7 @@ import { safeStorage } from '../logic/save';
 import { isSegmentWarning, segmentRemaining } from '../logic/segment';
 import { loadSettings, otherSide, writeSettings, type Settings } from '../logic/settings';
 import { describeUpgrade, type UpgradeOption } from '../logic/upgrades';
+import { devButtonStyle, isDevMode } from '../dev/devMode'; // DEV:
 import { safeArea, viewportSize, type SafeArea } from '../ui/display';
 import { COLORS, css, FONT } from '../ui/theme';
 import type { GameScene, RunEndInfo } from './GameScene';
@@ -52,6 +53,8 @@ export class UIScene extends Phaser.Scene {
   private killsText!: Phaser.GameObjects.Text;
   private herbText!: Phaser.GameObjects.Text;
   private pauseBtn!: Phaser.GameObjects.Text;
+  private devClearBtn: Phaser.GameObjects.Text | null = null; // DEV:
+  private devGodBtn: Phaser.GameObjects.Text | null = null; // DEV:
   private skillButtons: SkillButton[] = [];
   private potionButtons: PotionButton[] = [];
   private loadoutIcons: Phaser.GameObjects.GameObject[] = [];
@@ -117,6 +120,24 @@ export class UIScene extends Phaser.Scene {
       .setOrigin(1, 0)
       .setInteractive({ useHandCursor: true });
     this.pauseBtn.on('pointerdown', () => this.togglePause());
+    // DEV: win the fight at once.
+    this.devClearBtn = isDevMode()
+      ? this.add
+          .text(0, 0, 'DEV  clear area', devButtonStyle(this.u))
+          .setInteractive({ useHandCursor: true })
+          .on('pointerdown', () => this.overlayKind === 'none' && this.gs.devClearArea())
+      : null;
+    // DEV: god mode toggle.
+    this.devGodBtn = isDevMode()
+      ? this.add
+          .text(0, 0, '', devButtonStyle(this.u))
+          .setInteractive({ useHandCursor: true })
+          .on('pointerdown', () => {
+            if (this.overlayKind !== 'none') return;
+            this.gs.devToggleGodMode();
+            this.layoutDevButtons();
+          })
+      : null;
 
     this.createSkillButton('dash', this.isTouch ? 'Dash' : 'Dash · Space');
     this.createSkillButton('nova', this.isTouch ? 'Nova' : 'Nova · E');
@@ -227,6 +248,19 @@ export class UIScene extends Phaser.Scene {
     this.controls.setMove(x, y);
   }
 
+  // DEV: clear and god mode buttons below the weapon icons on the left.
+  private layoutDevButtons(): void {
+    const u = this.u;
+    const left = this.sa.left + 12 * u;
+    const top = this.sa.top + 10 * u;
+    this.devClearBtn?.setStyle(devButtonStyle(u)).setPosition(left, top + 84 * u);
+    const god = this.gs.devGodMode();
+    this.devGodBtn
+      ?.setText(god ? 'DEV  god mode on' : 'DEV  god mode off')
+      .setStyle(devButtonStyle(u, god))
+      .setPosition(left, top + 84 * u + (this.devClearBtn?.height ?? 0) + 6 * u);
+  }
+
   private createPotionButton(id: PotionId, label: string): void {
     const icon = this.add.image(0, 0, 'potion').setTint(POTIONS[id].color);
     // A generous round hit area: the flask itself is small.
@@ -322,6 +356,7 @@ export class UIScene extends Phaser.Scene {
       .setFontSize(Math.round(16 * u))
       .setPadding(Math.round(12 * u), Math.round(6 * u))
       .setPosition(right, top);
+    this.layoutDevButtons(); // DEV:
     this.killsText
       .setFontSize(Math.round(14 * u))
       .setPosition(right - this.pauseBtn.width - 10 * u, top + 6 * u);
