@@ -2,7 +2,7 @@ import * as Phaser from 'phaser';
 import { BIOMES, POIS } from '../config/world';
 import { TOWER_QUEST } from '../config/quests';
 import { herbForecast } from '../logic/herbs';
-import { questMarked, questRevealed, questsAfterMove } from '../logic/quests';
+import { questGoals, questMarked, questRevealed, questsAfterMove, toggleTracking } from '../logic/quests';
 import { BIOME_TILES, POI_TILES, TILESET } from '../config/tiles';
 import { hexEquals, hexKey, hexToPixelFlat, parseHexKey, pixelToHexFlat, type Hex } from '../logic/hex';
 import { hash32 } from '../logic/rng';
@@ -406,6 +406,9 @@ export class WorldMapScene extends Phaser.Scene {
       color: css(COLORS.accent),
     });
     if (isDevMode()) this.devRevealButton(W - this.sa.right - 16 * u, this.sa.top + 14 * u);
+    if (questGoals(this.save.quests, this.world, this.save.world).length > 0) {
+      this.trackingButton(W - this.sa.right - 16 * u, this.headerH + 10 * u);
+    }
     this.text(left, this.sa.top + 38 * u, this.statusLine(), 12, {
       color: '#a1a1aa',
     });
@@ -437,6 +440,23 @@ export class WorldMapScene extends Phaser.Scene {
         this.button(W / 2, panelY + 126 * u, info.action.label, info.action.run);
       }
     }
+  }
+
+  /** Switches the quest marks (ring, pin, edge arrow) on the map on and off. */
+  private trackingButton(x: number, y: number): void {
+    const u = this.u;
+    const on = this.save.quests.tracked;
+    const t = this.text(x, y, on ? '◆  Quest marks on' : '◇  Quest marks off', 12, {
+      fontStyle: 'bold',
+      color: on ? '#1c1917' : '#d8b4fe',
+      backgroundColor: on ? css(QUEST_COLOR) : '#2e1065',
+      padding: { x: Math.round(10 * u), y: Math.round(7 * u) },
+    }).setOrigin(1, 0);
+    t.setInteractive({ useHandCursor: true }).on('pointerup', () => {
+      this.save = { ...this.save, quests: toggleTracking(this.save.quests) };
+      writeSave(safeStorage(), this.save);
+      this.buildHud();
+    });
   }
 
   /** Dev mode only: shows the whole map without saving anything as discovered. */

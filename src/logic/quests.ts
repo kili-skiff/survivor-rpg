@@ -12,10 +12,12 @@ export interface QuestProgress {
   tower: QuestStage;
   /** The scout told you about the camp on the way to the tower */
   scoutTalked: boolean;
+  /** Quest goals are marked on the map (the player can switch this off) */
+  tracked: boolean;
 }
 
 export function freshQuests(): QuestProgress {
-  return { tower: 'none', scoutTalked: false };
+  return { tower: 'none', scoutTalked: false, tracked: true };
 }
 
 /** Coming home for the first time: the elder offers the tower quest. */
@@ -52,13 +54,22 @@ export function questRevealed(q: QuestProgress, world: World): string[] {
   return keys;
 }
 
-/** Hexes marked as goals: the tower until reached, the road camp until it is a waypoint. */
-export function questMarked(q: QuestProgress, world: World, progress: WorldProgress): string[] {
+/** Hexes that are quest goals: the tower until reached, the road camp until it is a waypoint. */
+export function questGoals(q: QuestProgress, world: World, progress: WorldProgress): string[] {
   const keys: string[] = [];
   if (q.tower === 'active') keys.push(world.tower);
   if (q.scoutTalked && world.roadCamp && !progress.waypoints.includes(world.roadCamp))
     keys.push(world.roadCamp);
   return keys;
+}
+
+/** Goals marked on the map: none while tracking is switched off. */
+export function questMarked(q: QuestProgress, world: World, progress: WorldProgress): string[] {
+  return q.tracked ? questGoals(q, world, progress) : [];
+}
+
+export function toggleTracking(q: QuestProgress): QuestProgress {
+  return { ...q, tracked: !q.tracked };
 }
 
 const STAGES: readonly QuestStage[] = ['none', 'offered', 'active', 'done'];
@@ -70,5 +81,6 @@ export function parseQuests(raw: unknown): QuestProgress {
   return {
     tower: STAGES.includes(d.tower as QuestStage) ? (d.tower as QuestStage) : base.tower,
     scoutTalked: d.scoutTalked === true,
+    tracked: d.tracked !== false,
   };
 }

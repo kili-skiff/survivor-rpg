@@ -5,12 +5,14 @@ import {
   acceptTowerQuest,
   freshQuests,
   parseQuests,
+  questGoals,
   questMarked,
   questRevealed,
   questsAfterMove,
   questsOnArrival,
   scoutAvailable,
   talkToScout,
+  toggleTracking,
 } from './quests';
 import { emptySave, migrate } from './save';
 import { generateWorld } from './worldgen';
@@ -41,6 +43,17 @@ describe('tower quest', () => {
     expect(questMarked(told, world, addWaypoint(progress, world.roadCamp!))).toEqual([world.tower]);
   });
 
+  it('can switch the map marks off and on', () => {
+    const told = talkToScout(acceptTowerQuest(questsOnArrival(freshQuests())));
+    const off = toggleTracking(told);
+    expect(off.tracked).toBe(false);
+    expect(questMarked(off, world, progress)).toEqual([]);
+    expect(questGoals(off, world, progress)).toEqual([world.tower, world.roadCamp]);
+    // Revealed hexes stay visible either way.
+    expect(questRevealed(off, world)).toEqual([world.tower, world.roadCamp]);
+    expect(toggleTracking(off).tracked).toBe(true);
+  });
+
   it('is done when standing next to the tower, whose gate stays sealed', () => {
     const active = acceptTowerQuest(questsOnArrival(freshQuests()));
     const tower = parseHexKey(world.tower);
@@ -57,7 +70,7 @@ describe('tower quest', () => {
   it('is saved and survives broken data', () => {
     expect(parseQuests(null)).toEqual(freshQuests());
     expect(parseQuests({ tower: 'weird', scoutTalked: 'yes' })).toEqual(freshQuests());
-    const save = { ...emptySave(), quests: { tower: 'active' as const, scoutTalked: true } };
+    const save = { ...emptySave(), quests: { tower: 'active' as const, scoutTalked: true, tracked: false } };
     expect(migrate(JSON.parse(JSON.stringify(save))).quests).toEqual(save.quests);
     expect(migrate({ version: 6 }).quests).toEqual(freshQuests());
   });
