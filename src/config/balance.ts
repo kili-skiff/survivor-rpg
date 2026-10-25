@@ -63,6 +63,8 @@ export const CHEST = {
  * it are dimmed but still visible. A better lantern could raise `radius` later.
  */
 export const LIGHT = {
+  /** Enemies show their eyes up to this share of the light radius; weapons only aim that far */
+  visionReach: 1.15,
   /** Radius of the player's light (px, world units). Small at first, so a better lantern matters. */
   radius: 190,
   /** How dark it is outside any light (0..1) */

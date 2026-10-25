@@ -16,6 +16,7 @@ import { buyLantern, buyRecipe, goldOf, sellHerb } from '../logic/merchant';
 import { GOLD_KEY } from '../config/merchant';
 import { DialoguePanel, type DialoguePanelOptions } from '../panels/DialoguePanel';
 import { devButtonStyle, isDevMode } from '../dev/devMode'; // DEV:
+import { SHOW_RESET_BUTTON } from '../config/build';
 import { safeArea, viewportSize, type SafeArea } from '../ui/display';
 import { COLORS, css, FONT } from '../ui/theme';
 
@@ -189,8 +190,12 @@ export class VillageScene extends Phaser.Scene {
     // DEV: test buttons; in landscape side by side, in portrait stacked.
     if (isDevMode()) {
       const herbsBtn = this.devButton(right, y + 4 * u);
-      if (wide) this.devResetButton(herbsBtn.x - herbsBtn.width - 10 * u, y + 4 * u);
-      else this.devResetButton(right, y + 40 * u);
+      if (SHOW_RESET_BUTTON || isDevMode()) {
+        if (wide) this.resetButton(herbsBtn.x - herbsBtn.width - 10 * u, y + 4 * u);
+        else this.resetButton(right, y + 40 * u);
+      }
+    } else if (SHOW_RESET_BUTTON) {
+      this.resetButton(right, y + 4 * u);
     }
     y += 34 * u;
     const sub = this.text(left, y, `${plural(this.save.segmentsCleared, 'area')} cleared · `, 12, {
@@ -502,22 +507,26 @@ export class VillageScene extends Phaser.Scene {
     });
   }
 
-  // DEV: resets the save (needs a second tap within 3 s); device settings stay.
-  private devResetButton(x: number, y: number): void {
-    const armed = this.registry.get('devResetArmed') === true;
-    const label = armed ? 'DEV  tap again to reset' : 'DEV  reset save';
-    const t = this.text(x, y, label, 12, devButtonStyle(this.u, armed)).setOrigin(1, 0);
+  /** Resets the save (needs a second tap within 3 s); device settings stay. */
+  private resetButton(x: number, y: number): void {
+    const armed = this.registry.get('resetArmed') === true;
+    const label = armed ? 'Tap again to reset' : 'Reset save';
+    const t = this.text(x, y, label, 12, {
+      color: armed ? '#fda4af' : '#a1a1aa',
+      backgroundColor: armed ? '#3b1f2b' : '#2a2438',
+      padding: { x: Math.round(10 * this.u), y: Math.round(7 * this.u) },
+    }).setOrigin(1, 0);
     t.setInteractive({ useHandCursor: true }).on('pointerup', () => {
       if (!armed) {
-        this.registry.set('devResetArmed', true);
+        this.registry.set('resetArmed', true);
         this.time.delayedCall(3000, () => {
-          this.registry.set('devResetArmed', false);
+          this.registry.set('resetArmed', false);
           if (this.scene.isActive()) this.build();
         });
         this.build();
         return;
       }
-      this.registry.set('devResetArmed', false);
+      this.registry.set('resetArmed', false);
       this.registry.set('devReveal', false);
       this.registry.set('mapZoom', 1);
       writeSave(safeStorage(), emptySave());

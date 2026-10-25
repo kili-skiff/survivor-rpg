@@ -9,4 +9,6 @@ export interface CombatContext {
   enemies: EnemySystem;
   /** Game clock in ms (stops while paused) */
   now(): number;
+  /** How far weapons aim (px): what the player can see */
+  visionRange(): number;
 }
