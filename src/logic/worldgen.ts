@@ -92,6 +92,7 @@ export function segmentForHex(h: WorldHex): SegmentDef {
     warningSec: 15,
     difficultyOffsetSec: steps * WORLD.difficultyOffsetPerRingSec,
     groundTint: biome.groundTint,
+    herbs: { biome: h.biome, ring: h.ring },
   };
 }
 

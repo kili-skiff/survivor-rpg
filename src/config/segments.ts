@@ -8,6 +8,7 @@ export const SEGMENTS: Record<string, SegmentDef> = {
     warningSec: 15,
     difficultyOffsetSec: 0,
     groundTint: 0x29223a,
+    herbs: null,
   },
 };
 

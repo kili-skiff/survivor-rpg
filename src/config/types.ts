@@ -108,6 +108,8 @@ export interface SegmentDef {
   difficultyOffsetSec: number;
   /** Tint for the ground texture */
   groundTint: number;
+  /** Where herbs grow in this segment; null for segments without herbs */
+  herbs: { biome: BiomeId; ring: number } | null;
 }
 
 export type BiomeId = 'meadow' | 'forest' | 'swamp' | 'graveyard' | 'hills';
@@ -131,4 +133,16 @@ export interface PoiDef {
   minRing: number;
   /** Chance per hex (0..1) */
   chance: number;
+}
+
+export type HerbId = 'moonbloom' | 'shadowcap' | 'mirewort' | 'gravemoss' | 'emberroot' | 'starlily';
+
+export interface HerbDef {
+  id: HerbId;
+  name: string;
+  /** Biome where this herb grows; null for rare herbs that can grow anywhere */
+  biome: BiomeId | null;
+  rare: boolean;
+  /** Tint of the herb sprite */
+  color: number;
 }

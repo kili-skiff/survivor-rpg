@@ -9,6 +9,7 @@ import { InputState } from '../input/InputState';
 import { addXp } from '../logic/progression';
 import type { ExpeditionBuild } from '../logic/expedition';
 import { parseHexKey } from '../logic/hex';
+import { planHerbBlooms } from '../logic/herbs';
 import { currentBuild, finishFight, type FightReport } from '../logic/journey';
 import { loadSave, recordRun, safeStorage, writeSave, type SaveData } from '../logic/save';
 import { isSegmentCleared, type RunOutcome } from '../logic/segment';
@@ -24,6 +25,7 @@ import { applyUpgrade, rollUpgradeOptions, type UpgradeOption } from '../logic/u
 import { seasonWorld, segmentForHex } from '../logic/worldgen';
 import type { CombatContext } from '../systems/CombatContext';
 import { DamageNumbers } from '../systems/DamageNumbers';
+import { HerbSystem, type HerbIndicator, type HerbSlot } from '../systems/HerbSystem';
 import { EnemySystem } from '../systems/EnemySystem';
 import { PickupSystem } from '../systems/PickupSystem';
 import { PlayerController } from '../systems/PlayerController';
@@ -50,6 +52,9 @@ export interface RunState {
   level: number;
   xp: number;
   kills: number;
+  /** Herbs gathered in this fight */
+  herbsGathered: number;
+  herbsTotal: number;
   loadout: Loadout;
   stats: PlayerStats;
 }
@@ -61,6 +66,8 @@ export interface RunEndInfo {
   time: number;
   level: number;
   kills: number;
+  herbsGathered: number;
+  herbsTotal: number;
   save: SaveData;
   /** Expedition consequences; null for fights outside the world map */
   report: FightReport | null;
@@ -83,6 +90,7 @@ export class GameScene extends Phaser.Scene {
   private enemies!: EnemySystem;
   private pickups!: PickupSystem;
   private numbers!: DamageNumbers;
+  private herbs!: HerbSystem;
   private ground!: Phaser.GameObjects.TileSprite;
 
   private weapons = new Map<WeaponId, Weapon>();
@@ -155,10 +163,22 @@ export class GameScene extends Phaser.Scene {
       level: build?.level ?? 1,
       xp: build?.xp ?? 0,
       kills: 0,
+      herbsGathered: 0,
+      herbsTotal: 0,
       loadout,
       stats,
     };
     this.refreshStats();
+
+    // Fresh herbs every time a hex is entered. They bloom one by one at random moments;
+    // nothing grows back during the fight.
+    const blooms = segment.herbs
+      ? planHerbBlooms(segment.herbs.biome, segment.herbs.ring, segment.durationSec, Math.random)
+      : [];
+    this.herbs = new HerbSystem(this, blooms, this.player, this.numbers, (herb) =>
+      this.events.emit('herbbloom', herb),
+    );
+    this.run.herbsTotal = this.herbs.totalCount;
 
     this.cameras.main.startFollow(this.player.sprite, false, 1, 1);
     this.onResize();
@@ -210,6 +230,21 @@ export class GameScene extends Phaser.Scene {
     this.scene.resume();
   }
 
+  /** Edge arrows for nearby herbs that are off screen. */
+  herbIndicators(): HerbIndicator[] {
+    return this.run.alive ? this.herbs.indicators(this.viewW, this.viewH) : [];
+  }
+
+  /** Gathered, bloomed and upcoming herbs of this fight, for the HUD. */
+  herbSlots(): HerbSlot[] {
+    return this.herbs.slots();
+  }
+
+  /** Herbs gathered in this fight, by id. */
+  gatheredHerbs(): Record<string, number> {
+    return this.herbs.loot;
+  }
+
   /** Giving up counts like falling: the expedition ends. */
   giveUp(): void {
     if (!this.run.alive) return;
@@ -243,6 +278,8 @@ export class GameScene extends Phaser.Scene {
     this.enemies.update();
     for (const [id, weapon] of this.weapons) weapon.update(this.weaponStats[id]!, dms, dt);
     this.pickups.update(dt, this.run.stats.magnet);
+    this.herbs.update(dt, this.run.time, this.viewW, this.viewH);
+    this.run.herbsGathered = this.herbs.gatheredCount;
     this.numbers.update(dt);
 
     if (this.run.stats.regen > 0) this.heal(this.run.stats.regen * dt);
@@ -308,6 +345,7 @@ export class GameScene extends Phaser.Scene {
 
   private onPlayerTouched(e: Enemy): void {
     if (!e.active || !this.run.alive || !this.player.tryTakeHit()) return;
+    this.herbs.interrupt();
     const dmg = damageAfterArmor(e.def.damage, this.run.stats.armor);
     this.run.hp -= dmg;
     this.numbers.show(this.player.x, this.player.y - 22, `-${Math.round(dmg)}`, '#ff6b81', true);
@@ -372,7 +410,14 @@ export class GameScene extends Phaser.Scene {
         hp: Math.max(1, this.run.hp),
         loadout: this.run.loadout,
       };
-      const result = finishFight(save, seasonWorld(), parseHexKey(this.hexKey), outcome, build, {});
+      const result = finishFight(
+        save,
+        seasonWorld(),
+        parseHexKey(this.hexKey),
+        outcome,
+        build,
+        this.herbs.loot,
+      );
       finalSave = result.save;
       report = result.report;
     }
@@ -385,6 +430,8 @@ export class GameScene extends Phaser.Scene {
       time,
       level: this.run.level,
       kills: this.run.kills,
+      herbsGathered: this.herbs.gatheredCount,
+      herbsTotal: this.herbs.totalCount,
       save: finalSave,
       report,
       newBestTime: time > before.bestTime,

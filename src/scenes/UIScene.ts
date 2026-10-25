@@ -1,7 +1,8 @@
 import * as Phaser from 'phaser';
 import { PASSIVES } from '../config/passives';
+import { HERBS } from '../config/herbs';
 import { SKILLS } from '../config/skills';
-import type { PassiveId, SkillId, WeaponId } from '../config/types';
+import type { HerbId, PassiveId, SkillId, WeaponId } from '../config/types';
 import { WEAPONS } from '../config/weapons';
 import type { InputState } from '../input/InputState';
 import { formatTime, xpToNext } from '../logic/progression';
@@ -36,6 +37,7 @@ export class UIScene extends Phaser.Scene {
   private levelText!: Phaser.GameObjects.Text;
   private hpText!: Phaser.GameObjects.Text;
   private killsText!: Phaser.GameObjects.Text;
+  private herbText!: Phaser.GameObjects.Text;
   private pauseBtn!: Phaser.GameObjects.Text;
   private skillButtons: SkillButton[] = [];
   private loadoutIcons: Phaser.GameObjects.GameObject[] = [];
@@ -92,6 +94,7 @@ export class UIScene extends Phaser.Scene {
     this.levelText = this.add.text(0, 0, 'Level 1', textStyle(14));
     this.hpText = this.add.text(0, 0, '', textStyle(10)).setOrigin(0.5, 0.5).setDepth(1);
     this.killsText = this.add.text(0, 0, '', textStyle(14)).setOrigin(1, 0);
+    this.herbText = this.add.text(0, 0, '', { ...textStyle(13), color: '#bbf7d0' }).setOrigin(1, 0);
     this.pauseBtn = this.add
       .text(0, 0, 'II', { ...textStyle(18), backgroundColor: '#00000066', padding: { x: 12, y: 6 } })
       .setOrigin(1, 0)
@@ -108,11 +111,13 @@ export class UIScene extends Phaser.Scene {
     this.scale.on('resize', this.onResize, this);
     this.gs.events.on('levelup', this.onLevelUp, this);
     this.gs.events.on('runend', this.onRunEnd, this);
+    this.gs.events.on('herbbloom', this.onHerbBloom, this);
     this.game.events.on(Phaser.Core.Events.HIDDEN, this.onHidden, this);
     this.events.once('shutdown', () => {
       this.scale.off('resize', this.onResize, this);
       this.gs.events.off('levelup', this.onLevelUp, this);
       this.gs.events.off('runend', this.onRunEnd, this);
+      this.gs.events.off('herbbloom', this.onHerbBloom, this);
       this.game.events.off(Phaser.Core.Events.HIDDEN, this.onHidden, this);
     });
 
@@ -316,6 +321,12 @@ export class UIScene extends Phaser.Scene {
       .setColor(isSegmentWarning(run.segment, run.time) ? css(COLORS.accent) : '#ffffff');
     this.segmentText.setText(run.segment.name);
     this.killsText.setText(`☠ ${run.kills}`);
+    this.herbText
+      .setText(run.herbsTotal > 0 ? 'Herbs' : '')
+      .setPosition(this.killsText.x, this.killsText.y + this.killsText.height + 4 * u);
+    this.drawHerbSlots(g);
+
+    this.drawHerbArrows(g);
 
     // Skill buttons with cooldown
     for (const b of this.skillButtons) {
@@ -350,6 +361,70 @@ export class UIScene extends Phaser.Scene {
     }
 
     this.updateLoadoutIcons();
+  }
+
+  /**
+   * One dot per herb next to the "Herbs" label: filled when gathered, glowing when bloomed and
+   * waiting, hollow when still to come.
+   */
+  private drawHerbSlots(g: Phaser.GameObjects.Graphics): void {
+    const slots = this.gs.herbSlots();
+    if (slots.length === 0) return;
+    const u = this.u;
+    const r = 4.5 * u;
+    const gap = 4 * u;
+    const y = this.herbText.y + this.herbText.height + r + 4 * u;
+    const right = this.herbText.x;
+    const pulse = 0.6 + Math.sin(this.time.now / 160) * 0.4;
+    slots.forEach((slot, i) => {
+      const x = right - r - (slots.length - 1 - i) * (r * 2 + gap);
+      if (slot === 'gathered') g.fillStyle(0x4ade80, 1).fillCircle(x, y, r);
+      else if (slot === 'bloomed') {
+        g.fillStyle(0xbbf7d0, pulse).fillCircle(x, y, r);
+        g.lineStyle(1.5 * u, 0xffffff, pulse).strokeCircle(x, y, r + 1.5 * u);
+      } else g.lineStyle(1.5 * u, 0xffffff, 0.45).strokeCircle(x, y, r - 0.5 * u);
+    });
+  }
+
+  /** Arrows at the screen edge pointing to nearby herbs that are off screen. */
+  private drawHerbArrows(g: Phaser.GameObjects.Graphics): void {
+    if (this.overlayKind !== 'none') return;
+    const { width: W, height: H } = this.scale;
+    const u = this.u;
+    const cx = W / 2;
+    const cy = H / 2;
+    const left = this.sa.left + 26 * u;
+    const right = W - this.sa.right - 26 * u;
+    const top = this.sa.top + 110 * u;
+    const bottom = H - this.sa.bottom - 30 * u;
+    for (const ind of this.gs.herbIndicators()) {
+      const dx = Math.cos(ind.angle);
+      const dy = Math.sin(ind.angle);
+      // Walk along the direction until the inset screen rectangle is hit.
+      const tx = dx > 0 ? (right - cx) / dx : dx < 0 ? (left - cx) / dx : Infinity;
+      const ty = dy > 0 ? (bottom - cy) / dy : dy < 0 ? (top - cy) / dy : Infinity;
+      const t = Math.min(tx, ty);
+      const x = cx + dx * t;
+      const y = cy + dy * t;
+      // Fresh blooms pulse and are a bit bigger so they catch the eye.
+      const pulse =
+        ind.freshness > 0 ? 1 + 0.35 * ind.freshness * (0.5 + 0.5 * Math.sin(this.time.now / 90)) : 1;
+      const size = (ind.rare ? 13 : 10) * u * pulse;
+      const alpha = ind.freshness > 0 ? 1 : Phaser.Math.Clamp(1.1 - ind.distance / 500, 0.45, 1);
+      // A long, slim arrow so the direction is unambiguous.
+      const tip = { x: x + dx * size * 1.2, y: y + dy * size * 1.2 };
+      const back = { x: x - dx * size * 0.7, y: y - dy * size * 0.7 };
+      const side = { x: -dy * size * 0.6, y: dx * size * 0.6 };
+      g.fillStyle(0x000000, 0.5 * alpha).fillCircle(x, y, size * 1.15);
+      g.fillStyle(ind.color, alpha).fillTriangle(
+        tip.x,
+        tip.y,
+        back.x + side.x,
+        back.y + side.y,
+        back.x - side.x,
+        back.y - side.y,
+      );
+    }
   }
 
   private updateLoadoutIcons(): void {
@@ -457,6 +532,37 @@ export class UIScene extends Phaser.Scene {
       if (this.time.now - this.overlayOpenedAt > 250) onClick();
     });
     this.overlay.push(g, zone);
+  }
+
+  /** A short hint below the timer when a herb blooms nearby. */
+  private onHerbBloom(herb: HerbId): void {
+    const def = HERBS[herb];
+    const u = this.u;
+    const hint = this.add
+      .text(
+        this.scale.width / 2,
+        this.sa.top + 62 * u,
+        `${def.rare ? 'A rare ' : 'A '}${def.name} is blooming nearby`,
+        {
+          fontFamily: FONT,
+          fontSize: `${Math.round(13 * u)}px`,
+          fontStyle: 'bold',
+          color: css(def.color),
+          stroke: '#000000',
+          strokeThickness: 3,
+        },
+      )
+      .setOrigin(0.5, 0)
+      .setDepth(40)
+      .setAlpha(0);
+    this.tweens.add({
+      targets: hint,
+      alpha: 1,
+      duration: 250,
+      yoyo: true,
+      hold: 2200,
+      onComplete: () => hint.destroy(),
+    });
   }
 
   /** Shows the area name and goal for a moment when a fight starts. */
@@ -670,7 +776,7 @@ export class UIScene extends Phaser.Scene {
     if (!r) return '';
     if (r.outcome === 'fallen') {
       const lost = r.lootLost ? Object.values(r.lootLost).reduce((a, b) => a + b, 0) : 0;
-      return `Expedition lost. You wake up in the village${lost > 0 ? ` and lost ${lost} items` : ''}.`;
+      return `Expedition lost. You wake up in the village${lost > 0 ? ` and lost ${lost} ${lost === 1 ? 'item' : 'items'}` : ''}.`;
     }
     if (r.rested) return 'Camp reached: fully healed, waypoint unlocked.';
     return 'Your expedition continues.';
@@ -681,40 +787,58 @@ export class UIScene extends Phaser.Scene {
     const { width: W, height: H } = this.scale;
     const u = this.u;
     const cleared = info.outcome === 'cleared';
-    this.text(W / 2, H * 0.22, cleared ? 'Area Cleared' : 'You Fell', 38, {
+    // Landscape has little height: stats go on one line there.
+    const wide = W > H * 1.3;
+    // Everything is stacked from the title downwards so nothing overlaps.
+    let y = Math.max(this.sa.top + (wide ? 44 : 70) * u, H * (wide ? 0.1 : 0.18));
+    this.text(W / 2, y, cleared ? 'Area Cleared' : 'You Fell', wide ? 32 : 38, {
       fontStyle: 'bold',
       color: cleared ? css(COLORS.accent) : '#fb7185',
       stroke: '#000',
       strokeThickness: 6,
     });
+    y += (wide ? 36 : 44) * u;
     const subtitle = cleared ? info.segment.name : info.newBestTime ? 'New best time!' : '';
     if (subtitle) {
-      this.text(W / 2, H * 0.22 + 40 * u, subtitle, 16, {
+      this.text(W / 2, y, subtitle, 16, {
         color: cleared ? '#e5e7eb' : css(COLORS.accent),
         fontStyle: 'bold',
       });
+      y += 26 * u;
     }
     const consequence = this.describeConsequence(info);
     if (consequence) {
-      this.text(W / 2, H * 0.22 + 68 * u, consequence, 14, {
+      const t = this.text(W / 2, y, consequence, 14, {
         color: cleared ? '#c4b5fd' : '#fda4af',
         wordWrap: { width: W - 48 * u },
-      });
+      }).setOrigin(0.5, 0);
+      y += t.height + 14 * u;
+    } else {
+      y += 10 * u;
     }
-    const lines = [
+    const stats = [
       `Time  ${formatTime(info.time)} / ${formatTime(info.segment.durationSec)}`,
       `Level  ${info.level}`,
       `Kills  ${info.kills}`,
-    ].join('\n');
-    this.text(W / 2, H * 0.44, lines, 20, { lineSpacing: 10 * u, fontStyle: 'bold' });
-    this.text(
+      ...(info.herbsTotal > 0 ? [`Herbs  ${info.herbsGathered} / ${info.herbsTotal}`] : []),
+    ];
+    const block = this.text(W / 2, y, stats.join(wide ? '   ·   ' : '\n'), wide ? 17 : 20, {
+      lineSpacing: 10 * u,
+      fontStyle: 'bold',
+    }).setOrigin(0.5, 0);
+    y += block.height + 10 * u;
+    const summary = this.text(
       W / 2,
-      H * 0.44 + 70 * u,
+      y,
       `Areas cleared ${info.save.segmentsCleared} · Runs ${info.save.runs}`,
       13,
-      { color: '#a1a1aa' },
-    );
-    this.button(W / 2, H * 0.72, this.isTouch ? 'Back to map' : 'Back to map (Enter)', () =>
+      {
+        color: '#a1a1aa',
+      },
+    ).setOrigin(0.5, 0);
+    y += summary.height;
+    const buttonY = Math.min(Math.max(y + 50 * u, H * 0.72), H - this.sa.bottom - 34 * u);
+    this.button(W / 2, buttonY, this.isTouch ? 'Back to map' : 'Back to map (Enter)', () =>
       this.gs.returnToMap(),
     );
   }

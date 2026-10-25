@@ -28,7 +28,7 @@ Goal: web first, native apps later (Capacitor for Android/iOS, Tauri for desktop
 
 ```
 src/
-  config/    Game data: weapons, items, skills, enemies, segments, world/season, balancing (NO Phaser)
+  config/    Game data: weapons, items, skills, enemies, herbs, segments, world/season, balancing (NO Phaser)
   logic/     Pure game logic (NO Phaser, tested): stats, XP, upgrades, spawning, segments, save data,
              hex math, seeded RNG, world generation, world progress, expeditions and journeys
   entities/  Pooled Phaser objects (Enemy, Projectile, Pickup)
@@ -36,7 +36,7 @@ src/
   systems/   Gameplay behaviour, one job per file:
     weapons/   one class per weapon + factory in index.ts
     skills/    active skills (e.g. Frost Nova)
-    PlayerController, EnemySystem, PickupSystem, DamageNumbers
+    PlayerController, EnemySystem, PickupSystem, HerbSystem, DamageNumbers
   scenes/    Boot (placeholder graphics), WorldMap (hex map, travel), Game (one fight, owns run state,
              wires systems), UI (HUD, touch, menus during a fight)
   ui/        Display helpers (pixel density, safe area), colors
@@ -75,13 +75,15 @@ A small but complete piece of the game from `docs/vision.md`. Each step is its o
 - [x] Hex world map from a seed: rings, biomes, fog of war; tap a neighbour hex to play it
 - [x] Expeditions: build carries over between segments, camps as waypoints, partial loot loss on death
 - [ ] Village as the starting point (simple screen: stash and "set out")
-- [ ] Herbs dropped by biome and collected during expeditions
+- [x] Herbs that grow in hexes by biome, gathered by standing next to them
 - [ ] Herb garden and brewing of three potions taken on an expedition
 - [ ] One class with a small skill tree
 - [ ] A boss guarding a dungeon or the outer ring
 
 ### Later
 
+- [ ] Richer expedition panel on the map: health bar and the collected weapons, items and skills
+- [ ] Professions (e.g. herbalist) with skills such as faster gathering
 - [ ] Seasons with a shared seed, then leaderboards (needs a server)
 - [ ] More biomes, enemies, weapons and classes
 - [ ] Sound effects and music

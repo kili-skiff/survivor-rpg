@@ -149,6 +149,7 @@ describe('segment', () => {
     warningSec: 10,
     difficultyOffsetSec: 0,
     groundTint: 0,
+    herbs: null,
   };
 
   it('counts down and clears at the duration', () => {
