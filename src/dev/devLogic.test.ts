@@ -2,6 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { HERBS } from '../config/herbs';
 import { emptySave } from '../logic/save';
 import { isDiscovered } from '../logic/worldProgress';
+import { SEASON } from '../config/world';
+import { areNeighbors, hexDistance, hexKey, hexNeighbors, parseHexKey } from '../logic/hex';
+import { generateWorld } from '../logic/worldgen';
 import { grantAllHerbs, jumpTo } from './devLogic';
 
 describe('dev helpers', () => {
@@ -12,10 +15,21 @@ describe('dev helpers', () => {
     for (const id of Object.keys(HERBS)) expect(stash[id]).toBeGreaterThanOrEqual(5);
   });
 
+  const world = generateWorld(SEASON.seed, SEASON.generatorVersion);
+
   it('jumps to any hex and reveals its neighbours', () => {
-    const save = jumpTo(emptySave(), { q: 4, r: -2 });
-    expect(save.world.position).toBe('4,-2');
-    expect(isDiscovered(save.world, '5,-2')).toBe(true);
+    const plain = [...world.hexes.values()].find((h) => h.ring === 4 && !h.poi)!;
+    const save = jumpTo(world, emptySave(), plain.hex);
+    expect(save.world.position).toBe(plain.key);
+    expect(isDiscovered(save.world, hexKey(hexNeighbors(plain.hex)[0]))).toBe(true);
     expect(save.stash).toEqual(emptySave().stash);
+  });
+
+  it('lands next to an unlit watchfire, so its fight can still light it', () => {
+    const fire = [...world.hexes.values()].find((h) => h.poi === 'watchfire')!;
+    const save = jumpTo(world, emptySave(), fire.hex);
+    const pos = parseHexKey(save.world.position);
+    expect(areNeighbors(pos, fire.hex)).toBe(true);
+    expect(hexDistance(pos, { q: 0, r: 0 })).toBe(fire.ring - 1);
   });
 });

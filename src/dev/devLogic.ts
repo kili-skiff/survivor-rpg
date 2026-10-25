@@ -2,9 +2,10 @@
 
 import { HERBS } from '../config/herbs';
 import { addLoot, type Loot } from '../logic/expedition';
-import type { Hex } from '../logic/hex';
+import { hexDistance, hexKey, hexNeighbors, ORIGIN, type Hex } from '../logic/hex';
 import type { SaveData } from '../logic/save';
-import { walkTo } from '../logic/worldProgress';
+import type { World } from '../logic/worldgen';
+import { isLit, walkTo } from '../logic/worldProgress';
 
 /** Adds `amount` of every herb to the stash. */
 export function grantAllHerbs(stash: Loot, amount: number): Loot {
@@ -13,7 +14,22 @@ export function grantAllHerbs(stash: Loot, amount: number): Loot {
   return addLoot(stash, gift);
 }
 
-/** Jumps to any hex without a fight: the expedition and its loot stay as they are. */
-export function jumpTo(save: SaveData, target: Hex): SaveData {
-  return { ...save, world: walkTo(save.world, target) };
+/**
+ * Where a jump to `target` lands. An unlit watchfire is only lit by winning its fight, so the jump
+ * lands next to it (on the side towards the village) instead of on it.
+ */
+export function jumpTarget(world: World, save: SaveData, target: Hex): Hex {
+  const info = world.hexes.get(hexKey(target));
+  if (info?.poi !== 'watchfire' || isLit(save.world, info.key)) return target;
+  const options = hexNeighbors(target).filter((n) => world.hexes.has(hexKey(n)));
+  return options.reduce(
+    (best, n) => (hexDistance(n, ORIGIN) < hexDistance(best, ORIGIN) ? n : best),
+    options[0],
+  );
+}
+
+/** Jumps without a fight (see jumpTarget): the expedition and its loot stay as they are. */
+export function jumpTo(world: World, save: SaveData, target: Hex): SaveData {
+  const landing = jumpTarget(world, save, target);
+  return { ...save, world: walkTo(save.world, landing) };
 }

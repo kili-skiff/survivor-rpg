@@ -579,8 +579,9 @@ export class WorldMapScene extends Phaser.Scene {
   private devJumpButton(x: number, y: number, hex: Hex): void {
     const t = this.text(x, y, 'DEV  jump here', 12, devButtonStyle(this.u)).setOrigin(1, 0);
     t.setInteractive({ useHandCursor: true }).on('pointerup', () => {
-      this.commit(jumpTo(this.save, hex));
-      this.centerOn(hex);
+      const next = jumpTo(this.world, this.save, hex);
+      this.commit(next);
+      this.centerOn(parseHexKey(next.world.position));
     });
   }
 
