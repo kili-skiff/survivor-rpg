@@ -1,7 +1,14 @@
 import * as Phaser from 'phaser';
 import { BALANCE } from '../config/balance';
 import { DASH_SPEED } from '../config/skills';
-import { CHARACTER_SPRITES, dieAnim, SHEET, walkAnim, type CharacterSprite } from '../config/sprites';
+import {
+  CHARACTER_SPRITES,
+  dieAnim,
+  SHEET,
+  walkAnim,
+  type CharacterSprite,
+  type Facing,
+} from '../config/sprites';
 import type { SkillStats } from '../config/types';
 import { facingFor } from '../logic/facing';
 import type { EnemySystem } from './EnemySystem';
@@ -59,6 +66,16 @@ export class PlayerController {
       this.sprite.anims.stop();
       this.sprite.setFrame(SHEET.rows[facing] * SHEET.columns);
     }
+  }
+
+  /** Which way the character looks, for things it carries */
+  heading(): Facing {
+    return facingFor(this.facing.x, this.facing.y);
+  }
+
+  /** Current velocity (px/s) */
+  get velocity(): Phaser.Math.Vector2 {
+    return (this.sprite.body as Phaser.Physics.Arcade.Body).velocity;
   }
 
   get x(): number {

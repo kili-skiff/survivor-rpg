@@ -49,6 +49,7 @@ import { EnemySystem } from '../systems/EnemySystem';
 import { PickupSystem } from '../systems/PickupSystem';
 import { PlayerController } from '../systems/PlayerController';
 import { PotionSystem } from '../systems/PotionSystem';
+import { LanternSystem } from '../systems/LanternSystem';
 import { LightingSystem } from '../systems/LightingSystem';
 import { godModeStats } from '../dev/devLogic'; // DEV:
 import { isDevMode } from '../dev/devMode'; // DEV:
@@ -124,6 +125,7 @@ export class GameScene extends Phaser.Scene {
   private lanternLevel = 0;
   /** Permanent bonuses from deeds, added to the player stats */
   private deedBonus: Partial<PlayerStats> = {};
+  private lantern!: LanternSystem;
   private lighting!: LightingSystem;
   private ground!: Phaser.GameObjects.TileSprite;
 
@@ -234,10 +236,12 @@ export class GameScene extends Phaser.Scene {
     );
     this.run.herbsTotal = this.herbs.totalCount;
     // Night: darkness with the player's light, torches around and faintly glowing herbs.
+    this.lantern = new LanternSystem(this, this.player, this.lanternLevel);
     this.lighting = new LightingSystem(
       this,
-      this.player,
+      this.lantern,
       () => [
+        ...[this.lantern.light(this.time.now)].filter((l) => l !== null),
         ...this.herbs.lights(),
         ...this.pickups.chests().map((c) => ({ ...c, radius: LIGHT.chestRadius, color: LIGHT.chestColor })),
       ],
@@ -436,6 +440,7 @@ export class GameScene extends Phaser.Scene {
     if (!this.run.started || !this.run.alive) {
       this.player.stop();
       this.updateGround();
+      this.lantern.update(Math.min(deltaMs, 50) / 1000);
       this.lighting.update(this.time.now);
       return;
     }
@@ -449,6 +454,7 @@ export class GameScene extends Phaser.Scene {
     if (this.potions.update()) this.refreshStats();
     this.player.update(this.controls.moveX, this.controls.moveY, this.run.stats.moveSpeed, this.enemies);
     this.updateGround();
+    this.lantern.update(dt);
     this.lighting.update(this.time.now);
     this.enemies.spawn(dms, this.run.time + this.run.segment.difficultyOffsetSec);
     this.enemies.update();
@@ -549,6 +555,7 @@ export class GameScene extends Phaser.Scene {
     if (this.run.hp <= 0) {
       this.run.hp = 0;
       this.player.showDefeated();
+      this.lantern.snuff();
       this.endRun('fallen');
     }
   }
