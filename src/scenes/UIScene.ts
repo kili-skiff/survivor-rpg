@@ -847,18 +847,44 @@ export class UIScene extends Phaser.Scene {
     this.beginOverlay('pause', 0.6);
     const { width: W, height: H } = this.scale;
     const u = this.u;
-    const y = Math.max(H * 0.42, this.sa.top + 120 * u);
-    this.text(W / 2, y - 76 * u, 'Paused', 34, { fontStyle: 'bold' });
-    this.button(W / 2, y, 'Resume', () => this.togglePause());
     const side = this.settings.skillSide === 'left' ? 'left' : 'right';
-    this.button(W / 2, y + 64 * u, `Skills: ${side} side`, () => this.toggleSkillSide(), false);
-    this.button(W / 2, y + 128 * u, 'Give up', () => this.gs.giveUp(), false);
-    this.text(W / 2, y + 170 * u, 'Giving up ends the expedition, like falling.', 12, {
-      color: '#a1a1aa',
-    });
+    const light = this.settings.lighting ? 'on' : 'off';
+    const resume = () => this.togglePause();
+    const skills = () => this.toggleSkillSide();
+    const lighting = () => this.toggleLighting();
+    const giveUp = () => this.gs.giveUp();
+    const hint = 'Giving up ends the expedition, like falling.';
+    if (W > H * 1.3) {
+      // Landscape: game actions on the left, settings on the right.
+      const y = Math.max(H * 0.45, this.sa.top + 110 * u);
+      this.text(W / 2, y - 70 * u, 'Paused', 30, { fontStyle: 'bold' });
+      const lx = W / 2 - 115 * u;
+      const rx = W / 2 + 115 * u;
+      this.button(lx, y, 'Resume', resume);
+      this.button(lx, y + 64 * u, 'Give up', giveUp, false);
+      this.button(rx, y, `Skills: ${side} side`, skills, false);
+      this.button(rx, y + 64 * u, `Night light: ${light}`, lighting, false);
+      this.text(W / 2, y + 106 * u, hint, 12, { color: '#a1a1aa' });
+      return;
+    }
+    const y = Math.max(H * 0.38, this.sa.top + 120 * u);
+    this.text(W / 2, y - 76 * u, 'Paused', 34, { fontStyle: 'bold' });
+    this.button(W / 2, y, 'Resume', resume);
+    this.button(W / 2, y + 64 * u, `Skills: ${side} side`, skills, false);
+    this.button(W / 2, y + 128 * u, `Night light: ${light}`, lighting, false);
+    this.button(W / 2, y + 192 * u, 'Give up', giveUp, false);
+    this.text(W / 2, y + 234 * u, hint, 12, { color: '#a1a1aa' });
   }
 
   /** Moves the skill buttons to the other screen edge and remembers the choice on this device. */
+  /** Night lighting on or off, remembered on this device. */
+  private toggleLighting(): void {
+    this.settings = { ...this.settings, lighting: !this.settings.lighting };
+    writeSettings(safeStorage(), this.settings);
+    this.gs.setLighting(this.settings.lighting);
+    this.showPause();
+  }
+
   private toggleSkillSide(): void {
     this.settings = { ...this.settings, skillSide: otherSide(this.settings.skillSide) };
     writeSettings(safeStorage(), this.settings);

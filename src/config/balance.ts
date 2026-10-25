@@ -16,3 +16,30 @@ export const BALANCE = {
   /** Hard cap on simultaneous enemies (performance) */
   maxEnemiesHardCap: 320,
 } as const;
+
+/**
+ * Light in fights. For now it is only atmosphere: darkness around a light circle; enemies outside
+ * it are dimmed but still visible. A better lantern could raise `radius` later.
+ */
+export const LIGHT = {
+  /** Radius of the player's light (px, world units). Small at first, so a better lantern matters. */
+  radius: 190,
+  /** How dark it is outside any light (0..1) */
+  darkness: 0.93,
+  /** Strength of torch and herb glows (additive, 0..1) */
+  glowStrength: 0.35,
+  /** Darkness colour: a cold night blue */
+  color: 0x05040e,
+  /** Light radius flickers by this share */
+  flicker: 0.035,
+  /** Torches stand on a grid of cells this big; each cell may hold one */
+  torchCell: 640,
+  /** Share of cells with a torch */
+  torchChance: 0.12,
+  torchRadius: 125,
+  /** Bloomed herbs give off a faint light so they are easier to spot in the dark */
+  herbRadius: 70,
+  rareHerbRadius: 100,
+  /** Enemies in the dark show only their glowing eyes, so you see danger coming */
+  eyesColor: 0xff5a3c,
+} as const;
