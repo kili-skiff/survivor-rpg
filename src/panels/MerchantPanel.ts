@@ -1,6 +1,6 @@
 import * as Phaser from 'phaser';
 import { HERBS } from '../config/herbs';
-import { HERB_PRICES, LANTERN_BONUS_PER_TIER, LANTERN_TIERS, RECIPE_PRICES } from '../config/merchant';
+import { HERB_PRICES, LANTERN_TIERS, RECIPE_PRICES, type LanternTier } from '../config/merchant';
 import { POTION_IDS, POTIONS } from '../config/potions';
 import type { HerbId, PotionId } from '../config/types';
 import type { Loot } from '../logic/expedition';
@@ -87,11 +87,11 @@ export class MerchantPanel {
     const { u } = this.frame;
     const level = this.opts.lanternLevel;
     this.card(x, y, w, h, 'Lantern');
-    const current = level > 0 ? LANTERN_TIERS[level - 1].name : 'Old lantern';
+    const owned = level > 0 ? LANTERN_TIERS[level - 1] : null;
     this.text(
       x + 12 * u,
       y + 34 * u,
-      `${current} · light +${Math.round(level * LANTERN_BONUS_PER_TIER * 100)}%`,
+      `${owned?.name ?? 'Old lantern'} · ${owned ? lanternEffect(owned) : 'a small light'}`,
       12,
       {
         color: '#d4d4d8',
@@ -103,16 +103,10 @@ export class MerchantPanel {
       return;
     }
     this.text(x + 12 * u, y + 58 * u, `Next: ${next.name}`, 13, { fontStyle: 'bold' });
-    this.text(
-      x + 12 * u,
-      y + 76 * u,
-      `+${Math.round(LANTERN_BONUS_PER_TIER * 100)}% light radius, for good`,
-      12,
-      {
-        color: '#a1a1aa',
-        wordWrap: { width: w - 24 * u },
-      },
-    );
+    this.text(x + 12 * u, y + 76 * u, `${lanternEffect(LANTERN_TIERS[level])}, for good`, 12, {
+      color: '#a1a1aa',
+      wordWrap: { width: w - 24 * u },
+    });
     const affordable = goldOf(this.opts.stash) >= next.price;
     this.smallButton(
       x + w - 12 * u - 60 * u,
@@ -264,4 +258,9 @@ export class MerchantPanel {
         .setDepth(102),
     );
   }
+}
+
+/** What a lantern does, e.g. "light +70%" or "lights up the whole screen". */
+function lanternEffect(tier: LanternTier): string {
+  return tier.lightsAll ? 'lights up the whole screen' : `light +${Math.round((tier.light - 1) * 100)}%`;
 }

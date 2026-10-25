@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { LANTERN_TIERS } from '../config/merchant';
 import { ENEMIES } from '../config/enemies';
 import { PASSIVES } from '../config/passives';
 import { SKILLS } from '../config/skills';
@@ -214,7 +215,7 @@ describe('save', () => {
     expect(migrate({ version: 8 }).recipes).toEqual(['healing']);
     expect(migrate({ version: 9, recipes: ['ward', 'nope'], lanternLevel: 7 })).toMatchObject({
       recipes: ['healing', 'ward'],
-      lanternLevel: 3,
+      lanternLevel: LANTERN_TIERS.length,
     });
   });
 

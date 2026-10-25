@@ -122,7 +122,8 @@ up one by one.
 - **Gold** (built): rare and slow, the long-term currency. Dropped rarely in fights (later mostly by
   elites and chests); herbs, ores and items can be sold for it. Part of the expedition loot (half lost
   on death).
-- **Merchant** (built, village): three lantern tiers (+20% light each, for good), potion recipes
+- **Merchant** (built, village): four lantern tiers (light +30%, +70%, +130%, for good; the
+  Sunstone Lantern lights up the whole screen and could later come from a special place instead), potion recipes
   (start with the healing potion, buy the others), buys herbs. Later maybe seeds or maps; merchant
   points of interest on the map could sell rarer goods.
 - **Treasure chest** (built): any enemy may leave a chest by chance, elites far more often. Tapping

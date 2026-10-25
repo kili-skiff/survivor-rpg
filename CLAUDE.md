@@ -106,7 +106,7 @@ A small but complete piece of the game from `docs/vision.md`. Each step is its o
 - [x] Brewing of three potions in the village, packed into a belt and drunk with a button in a fight
 - [x] First quest: the elder sends you to an old tower at the edge of the map (the way there;
       the tower stays sealed for now), the scout points out a camp on the way
-- [x] Gold and the village merchant: lantern tiers (+light for good), potion recipes, selling herbs
+- [x] Gold and the village merchant: lantern tiers (+light for good, the best lights up the whole screen), potion recipes, selling herbs
 - [x] Ring difficulty and elite enemies (golden ring, often leave a chest)
 - [x] Treasure chests (rare from anyone, likely from elites) with a slot-machine roll (gold, upgrades; equipment later)
 - [ ] Herb garden: plant herbs and harvest more of them, growing in real time

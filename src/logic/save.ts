@@ -28,7 +28,7 @@ export interface SaveData {
   belt: Belt;
   /** Added in version 7: quests from villagers; kept when the map is reset */
   quests: QuestProgress;
-  /** Added in version 9: lantern tiers bought from the merchant (0..3) */
+  /** Added in version 9: lantern tiers bought from the merchant (0..LANTERN_TIERS.length) */
   lanternLevel: number;
   /** Added in version 9: potion recipes the player knows */
   recipes: PotionId[];
