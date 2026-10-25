@@ -32,6 +32,11 @@ export class DialoguePanel {
     this.build();
   }
 
+  /** The panel's game objects, e.g. to hide them from another camera */
+  getObjects(): readonly Phaser.GameObjects.GameObject[] {
+    return this.objects;
+  }
+
   destroy(): void {
     for (const o of this.objects) o.destroy();
     this.objects = [];

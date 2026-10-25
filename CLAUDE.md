@@ -115,6 +115,7 @@ A small but complete piece of the game from `docs/vision.md`. Each step is its o
 - [x] Gold and the village merchant: lantern tiers (+light for good, the best lights up the whole screen), potion recipes, selling herbs
 - [x] Ring difficulty and elite enemies (golden ring, often leave a chest)
 - [x] Treasure chests (rare from anyone, likely from elites) with a slot-machine roll (gold, upgrades; equipment later)
+- [x] Intro quest: at the first start the elder hands over the lantern and points to the nearest watchfire; lighting it pays gold
 - [x] Deeds: exploration milestones (new rings, camps, watchfires, the tower) with small bonuses for good
 - [ ] Herb garden: plant herbs and harvest more of them, growing in real time
 - [ ] One class with a small skill tree
