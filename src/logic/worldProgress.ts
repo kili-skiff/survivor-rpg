@@ -20,6 +20,8 @@ export interface WorldProgress {
   waypoints: string[];
   /** The expedition in progress, or null while at home */
   expedition: Expedition | null;
+  /** Watchfires the player has lit */
+  litWatchfires: string[];
 }
 
 export function createWorldProgress(seasonId: number, generatorVersion: number): WorldProgress {
@@ -31,6 +33,7 @@ export function createWorldProgress(seasonId: number, generatorVersion: number):
     cleared: [hexKey(ORIGIN)],
     waypoints: [],
     expedition: null,
+    litWatchfires: [],
   };
   return reveal(progress, ORIGIN);
 }
@@ -82,6 +85,23 @@ export function travelKind(world: World, progress: WorldProgress, target: Hex): 
 }
 
 /** Moves the player without a fight (e.g. back into the village). */
+/** Lights a watchfire: it stays lit, and every hex within `radius` is revealed. */
+export function lightWatchfire(progress: WorldProgress, key: string, radius: number): WorldProgress {
+  if (progress.litWatchfires.includes(key)) return progress;
+  const center = parseHexKey(key);
+  const discovered = new Set(progress.discovered);
+  for (let q = -radius; q <= radius; q++) {
+    for (let r = Math.max(-radius, -q - radius); r <= Math.min(radius, -q + radius); r++) {
+      discovered.add(hexKey({ q: center.q + q, r: center.r + r }));
+    }
+  }
+  return { ...progress, discovered: [...discovered], litWatchfires: [...progress.litWatchfires, key] };
+}
+
+export function isLit(progress: WorldProgress, key: string): boolean {
+  return progress.litWatchfires.includes(key);
+}
+
 export function walkTo(progress: WorldProgress, target: Hex): WorldProgress {
   return reveal({ ...progress, position: hexKey(target) }, target);
 }
@@ -123,5 +143,6 @@ export function parseWorldProgress(raw: unknown): WorldProgress | null {
     // Added later: default when missing.
     waypoints: isKeyList(d.waypoints) ? d.waypoints : [],
     expedition: parseExpedition(d.expedition),
+    litWatchfires: isKeyList(d.litWatchfires) ? d.litWatchfires : [],
   };
 }

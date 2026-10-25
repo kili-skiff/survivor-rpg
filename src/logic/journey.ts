@@ -2,18 +2,28 @@
 // expedition and the village stash. Everything here works on the whole save and is pure.
 
 import { BALANCE } from '../config/balance';
+import { WORLD } from '../config/world';
 import { addLoot, lootAfterDeath, startExpedition, type ExpeditionBuild, type Loot } from './expedition';
 import { hexKey, ORIGIN, type Hex } from './hex';
 import type { SaveData } from './save';
 import type { RunOutcome } from './segment';
 import { computePlayerStats } from './stats';
 import type { World } from './worldgen';
-import { addWaypoint, applyFightResult, walkTo, type WorldProgress } from './worldProgress';
+import {
+  addWaypoint,
+  applyFightResult,
+  isLit,
+  lightWatchfire,
+  walkTo,
+  type WorldProgress,
+} from './worldProgress';
 
 export interface FightReport {
   outcome: RunOutcome;
   /** Reached a camp: healed and unlocked as a waypoint */
   rested: boolean;
+  /** Lit a watchfire: the land around it is revealed */
+  litWatchfire: boolean;
   /** Loot kept after a death (half of it), or null when the expedition goes on */
   lootKept: Loot | null;
   lootLost: Loot | null;
@@ -54,7 +64,7 @@ export function finishFight(
     const progress = { ...applyFightResult(save.world, target, 'fallen'), expedition: null };
     return {
       save: { ...save, stash: addLoot(save.stash, kept), world: progress },
-      report: { outcome, rested: false, lootKept: kept, lootLost: lost },
+      report: { outcome, rested: false, litWatchfire: false, lootKept: kept, lootLost: lost },
     };
   }
 
@@ -63,6 +73,8 @@ export function finishFight(
   const nextBuild = isCamp ? { ...build, hp: computePlayerStats(build.loadout).maxHp } : build;
   let progress = applyFightResult(save.world, target, 'cleared');
   if (isCamp) progress = addWaypoint(progress, key);
+  const litWatchfire = world.hexes.get(key)?.poi === 'watchfire' && !isLit(progress, key);
+  if (litWatchfire) progress = lightWatchfire(progress, key, WORLD.watchfireRevealRadius);
   progress = {
     ...progress,
     expedition: {
@@ -75,7 +87,7 @@ export function finishFight(
   };
   return {
     save: { ...save, world: progress },
-    report: { outcome, rested: isCamp, lootKept: null, lootLost: null },
+    report: { outcome, rested: isCamp, litWatchfire, lootKept: null, lootLost: null },
   };
 }
 

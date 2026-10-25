@@ -879,6 +879,7 @@ export class UIScene extends Phaser.Scene {
       const lost = r.lootLost ? Object.values(r.lootLost).reduce((a, b) => a + b, 0) : 0;
       return `Expedition lost. You wake up in the village${lost > 0 ? ` and lost ${lost} ${lost === 1 ? 'item' : 'items'}` : ''}.`;
     }
+    if (r.litWatchfire) return 'Watchfire lit: the land around it is revealed.';
     if (r.rested) return 'Camp reached: fully healed, waypoint unlocked.';
     return 'Your expedition continues.';
   }

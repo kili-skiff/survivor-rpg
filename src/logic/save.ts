@@ -6,7 +6,7 @@ import { parseBelt, type Belt } from './potions';
 import { freshQuests, parseQuests, type QuestProgress } from './quests';
 import { createWorldProgress, parseWorldProgress, type WorldProgress } from './worldProgress';
 
-export const SAVE_VERSION = 7;
+export const SAVE_VERSION = 8;
 const SAVE_KEY = 'survivor-rpg.save';
 
 export interface SaveData {
@@ -74,7 +74,8 @@ export function migrate(raw: unknown): SaveData {
   const base = emptySave();
   // Older versions: keep known fields, fill in missing ones
   // (version 2 added `segmentsCleared`, version 3 `world`, version 4 `stash`, waypoints and expeditions,
-  // version 5 `belt`, version 6 `cleared` hexes of the current expedition, version 7 `quests`).
+  // version 5 `belt`, version 6 `cleared` hexes of the current expedition, version 7 `quests`,
+  // version 8 `litWatchfires` in the world progress).
   const data2 = raw as Partial<SaveData> & {
     world?: unknown;
     stash?: unknown;

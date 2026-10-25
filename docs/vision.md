@@ -102,6 +102,38 @@ stronger: with a better class build, a growing herb garden and potions for the n
 - On phones walking is slower than tapping, so the walkable village probably needs shortcuts
   (e.g. a button that takes you straight to a building).
 
+## Progression: guiding goal and ideas
+
+**Guiding goal:** exploring must pay off in every direction, not only on the way to the tower.
+Every part of the map should hold a reason to go there.
+
+The ideas below are **not decided**; they are collected here so nothing gets lost, and are picked
+up one by one.
+
+- **Watchfires** (prototype): old watchfires scattered over the map, one in each direction. Their
+  glow shows through the fog; lighting one (clearing its hex) reveals the land around it. Later they
+  could become waypoints, raise the light radius, or be part of a quest to light them all.
+- **Places with a story in each direction**, each unlocking something in the village (the village
+  grows by exploring):
+  - an abandoned mine in the hills: the lost blacksmith, ores and the smithy
+  - a herb witch's hut in the mire: rare potion recipes
+  - a crypt of fallen guardians in the graveyard: a boss and the first equipment
+  - a trading post or second village far out: a better merchant, selling loot, a far waypoint
+- **Gold:** rare and slow, the long-term currency. Dropped rarely in fights; herbs, ores and items
+  can be sold for it. Part of the expedition loot (half lost on death).
+- **Merchant:** sells lantern upgrades, potion recipes (start with one recipe, buy the others),
+  later seeds or maps. Merchant points of interest on the map sell rarer goods.
+- **Lantern and light radius:** a better lantern means a bigger light radius in fights. For now
+  light is only visual (see Look and feel); later it could matter for gameplay.
+- **Mining and blacksmith:** ore veins in some hexes by biome, gathered like herbs; the smith turns
+  ores and gold into equipment. Herbs and ores could share one "resource" system and fit
+  professions later.
+- **Equipment with random stats** (Diablo-like): slots such as lantern, armour, ring and amulet,
+  equipped in the village, permanent. Rare drops from elites, chests and dungeons count as loot until
+  you are home. An inventory shows what you found, also during a fight and on the map.
+- **Layers of progression:** character (class, skill tree), equipment, village (merchant, smith,
+  garden), knowledge (recipes), world (how far you get, up to the tower).
+
 ## Seasons
 
 - Every season everyone plays **the same map**, generated from a shared seed.
@@ -129,6 +161,7 @@ stronger: with a better class build, a growing herb garden and potions for the n
 ## Open questions
 
 - How long should a full expedition take?
+- Theme: is "Nightwatch" (night, light, watchfires) the identity of the game?
 - What exactly survives a new season?
 - Perspective: isometric or 3/4 top-down (see Look and feel).
 - Walkable village: when to build it (ideally with real art), and how shortcuts work on phones.

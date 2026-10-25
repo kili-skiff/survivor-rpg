@@ -15,7 +15,15 @@ import {
 } from './hex';
 import { createRng, hash32, seedFromString } from './rng';
 import { emptySave, migrate } from './save';
-import { applyFightResult, createWorldProgress, isDiscovered, travelKind, walkTo } from './worldProgress';
+import {
+  applyFightResult,
+  createWorldProgress,
+  isDiscovered,
+  isLit,
+  lightWatchfire,
+  travelKind,
+  walkTo,
+} from './worldProgress';
 import { generateWorld, segmentForHex } from './worldgen';
 
 describe('rng', () => {
@@ -132,6 +140,40 @@ describe('world generation', () => {
       // It lies on the tower's side of the village: closer to the tower than the village is.
       expect(hexDistance(camp.hex, towers[0].hex)).toBeLessThan(world.radius);
     }
+  });
+
+  it('places one watchfire in each direction', () => {
+    for (let s = 0; s < 30; s++) {
+      const world = generateWorld(`seed-${s}`, SEASON.generatorVersion);
+      const fires = [...world.hexes.values()].filter((h) => h.poi === 'watchfire');
+      expect(fires.length, `seed-${s}`).toBeGreaterThanOrEqual(WORLD.watchfires - 1);
+      expect(fires.length).toBeLessThanOrEqual(WORLD.watchfires);
+      const slices = new Set(
+        fires.map((h) => {
+          const p = hexToPixel(h.hex, 1);
+          const angle = (Math.atan2(p.y, p.x) + Math.PI * 2) % (Math.PI * 2);
+          return Math.floor(angle / ((Math.PI * 2) / WORLD.watchfires));
+        }),
+      );
+      expect(slices.size).toBe(fires.length);
+      for (const f of fires) {
+        expect(f.ring).toBeGreaterThanOrEqual(WORLD.watchfireRingMin);
+        expect(f.ring).toBeLessThanOrEqual(WORLD.watchfireRingMax);
+      }
+    }
+  });
+
+  it('lights a watchfire once and reveals the land around it', () => {
+    const fire = [...generateWorld(SEASON.seed, SEASON.generatorVersion).hexes.values()].find(
+      (h) => h.poi === 'watchfire',
+    )!;
+    const fresh = createWorldProgress(1, 1);
+    const lit = lightWatchfire(fresh, fire.key, 2);
+    expect(isLit(lit, fire.key)).toBe(true);
+    for (const n of hexNeighbors(fire.hex)) expect(isDiscovered(lit, hexKey(n))).toBe(true);
+    expect(isDiscovered(lit, hexKey({ q: fire.hex.q + 2, r: fire.hex.r }))).toBe(true);
+    expect(isDiscovered(lit, hexKey({ q: fire.hex.q + 3, r: fire.hex.r }))).toBe(false);
+    expect(lightWatchfire(lit, fire.key, 2)).toBe(lit);
   });
 
   it('spreads points of interest out', () => {
