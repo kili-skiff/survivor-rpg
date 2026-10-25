@@ -1,7 +1,16 @@
 import * as Phaser from 'phaser';
 import { BALANCE } from '../config/balance';
+import { POTION_IDS, POTIONS } from '../config/potions';
 import { DEFAULT_SEGMENT } from '../config/segments';
-import type { PlayerStats, SegmentDef, SkillId, SkillStats, WeaponId, WeaponStats } from '../config/types';
+import type {
+  PlayerStats,
+  PotionId,
+  SegmentDef,
+  SkillId,
+  SkillStats,
+  WeaponId,
+  WeaponStats,
+} from '../config/types';
 import { START_WEAPON } from '../config/weapons';
 import type { Enemy } from '../entities/Enemy';
 import type { Pickup } from '../entities/Pickup';
@@ -10,6 +19,7 @@ import { addXp } from '../logic/progression';
 import type { ExpeditionBuild } from '../logic/expedition';
 import { parseHexKey } from '../logic/hex';
 import { planHerbBlooms } from '../logic/herbs';
+import { applyBuffs, damageTakenMultiplier } from '../logic/potions';
 import { currentBuild, finishFight, type FightReport } from '../logic/journey';
 import { loadSave, recordRun, safeStorage, writeSave, type SaveData } from '../logic/save';
 import { isSegmentCleared, type RunOutcome } from '../logic/segment';
@@ -30,10 +40,11 @@ import { HerbSystem, type HerbIndicator, type HerbSlot } from '../systems/HerbSy
 import { EnemySystem } from '../systems/EnemySystem';
 import { PickupSystem } from '../systems/PickupSystem';
 import { PlayerController } from '../systems/PlayerController';
+import { PotionSystem } from '../systems/PotionSystem';
 import { castFrostNova } from '../systems/skills/frostNova';
 import { createWeapon, type Weapon } from '../systems/weapons';
 import { viewportSize } from '../ui/display';
-import { COLORS } from '../ui/theme';
+import { COLORS, css } from '../ui/theme';
 
 /** Everything the HUD needs to know about the current run. */
 /** Data passed when starting the Game scene. */
@@ -92,6 +103,7 @@ export class GameScene extends Phaser.Scene {
   private pickups!: PickupSystem;
   private numbers!: DamageNumbers;
   private herbs!: HerbSystem;
+  private potions!: PotionSystem;
   private ground!: Phaser.GameObjects.TileSprite;
 
   private weapons = new Map<WeaponId, Weapon>();
@@ -153,7 +165,9 @@ export class GameScene extends Phaser.Scene {
     this.ground.setTint(segment.groundTint);
 
     // On an expedition the character keeps its build from the previous hex.
-    const build = this.hexKey ? currentBuild(loadSave(safeStorage())) : null;
+    const saved = loadSave(safeStorage());
+    const build = this.hexKey ? currentBuild(saved) : null;
+    this.potions = new PotionSystem(saved.belt, now);
     const loadout = build?.loadout ?? createStartLoadout(START_WEAPON);
     const stats = computePlayerStats(loadout);
     this.run = {
@@ -201,6 +215,16 @@ export class GameScene extends Phaser.Scene {
 
   skillCooldownRemaining(id: SkillId): number {
     return Math.max(0, this.skillReadyAt[id] - this.clock);
+  }
+
+  /** Potions of this kind left in the belt. */
+  potionCount(id: PotionId): number {
+    return this.potions.count(id);
+  }
+
+  /** 1 = buff just started, 0 = not active. */
+  potionBuffFraction(id: PotionId): number {
+    return this.potions.buffFraction(id);
   }
 
   chooseUpgrade(option: UpgradeOption): void {
@@ -284,6 +308,8 @@ export class GameScene extends Phaser.Scene {
     this.run.time += dt;
 
     this.handleSkillInput();
+    this.handlePotionInput();
+    if (this.potions.update()) this.refreshStats();
     this.player.update(this.controls.moveX, this.controls.moveY, this.run.stats.moveSpeed, this.enemies);
     this.updateGround();
     this.enemies.spawn(dms, this.run.time + this.run.segment.difficultyOffsetSec);
@@ -301,7 +327,7 @@ export class GameScene extends Phaser.Scene {
   /** Recomputes all stats after the loadout changed and creates newly acquired weapons. */
   private refreshStats(): void {
     const prevMax = this.run.stats.maxHp;
-    this.run.stats = computePlayerStats(this.run.loadout);
+    this.run.stats = applyBuffs(computePlayerStats(this.run.loadout), this.potions.active);
     if (this.run.stats.maxHp > prevMax) this.run.hp += this.run.stats.maxHp - prevMax;
 
     this.weaponStats = {};
@@ -324,6 +350,22 @@ export class GameScene extends Phaser.Scene {
     if (controls.consume('nova') && this.clock >= this.skillReadyAt.nova) {
       castFrostNova(this.ctx, this.skillStats.nova);
       this.skillReadyAt.nova = this.clock + this.skillStats.nova.cooldown;
+    }
+  }
+
+  private handlePotionInput(): void {
+    for (const id of POTION_IDS) {
+      if (!this.controls.consume(`drink:${id}`)) continue;
+      const result = this.potions.drink(id, this.run.hp, this.run.stats.maxHp);
+      if (!result) continue;
+      if (result.heal > 0) {
+        this.heal(result.heal);
+        this.numbers.show(this.player.x, this.player.y - 24, `+${result.heal}`, '#4ade80', true);
+      }
+      if (result.buffStarted) {
+        this.refreshStats();
+        this.numbers.show(this.player.x, this.player.y - 30, POTIONS[id].short, css(POTIONS[id].color), true);
+      }
     }
   }
 
@@ -358,7 +400,8 @@ export class GameScene extends Phaser.Scene {
   private onPlayerTouched(e: Enemy): void {
     if (!e.active || !this.run.alive || !this.player.tryTakeHit()) return;
     this.herbs.interrupt();
-    const dmg = damageAfterArmor(e.def.damage, this.run.stats.armor);
+    const dmg =
+      damageAfterArmor(e.def.damage, this.run.stats.armor) * damageTakenMultiplier(this.potions.active);
     this.run.hp -= dmg;
     this.numbers.show(this.player.x, this.player.y - 22, `-${Math.round(dmg)}`, '#ff6b81', true);
     if (this.run.hp <= 0) {
@@ -433,6 +476,8 @@ export class GameScene extends Phaser.Scene {
       finalSave = result.save;
       report = result.report;
     }
+    // Potions not drunk stay in the belt, whatever the outcome.
+    finalSave = { ...finalSave, belt: this.potions.remaining };
     writeSave(storage, finalSave);
 
     const info: RunEndInfo = {

@@ -28,16 +28,18 @@ Goal: web first, native apps later (Capacitor for Android/iOS, Tauri for desktop
 
 ```
 src/
-  config/    Game data: weapons, items, skills, enemies, herbs, segments, world/season, balancing (NO Phaser)
+  config/    Game data: weapons, items, skills, enemies, herbs, potions, segments, world/season, balancing (NO Phaser)
   logic/     Pure game logic (NO Phaser, tested): stats, XP, upgrades, spawning, segments, save data,
-             hex math, seeded RNG, world generation, world progress, expeditions and journeys
+             hex math, seeded RNG, world generation, world progress, expeditions and journeys,
+             potions (brewing, belt, buffs), device settings
   entities/  Pooled Phaser objects (Enemy, Projectile, Pickup)
   input/     InputState: one input layer for touch, keyboard, later gamepads
   systems/   Gameplay behaviour, one job per file:
     weapons/   one class per weapon + factory in index.ts
     skills/    active skills (e.g. Frost Nova)
-    PlayerController, EnemySystem, PickupSystem, HerbSystem, DamageNumbers
-  scenes/    Boot (placeholder graphics), WorldMap (hex map, travel), Village (stash, what came home),
+    PlayerController, EnemySystem, PickupSystem, HerbSystem, PotionSystem, DamageNumbers
+  panels/    Village panels (e.g. CauldronPanel): drawn on top of any scene, logic lives in logic/
+  scenes/    Boot (placeholder graphics), WorldMap (hex map, travel), Village (stash, belt, panels),
              Game (one fight, owns run state, wires systems), UI (HUD, touch, menus during a fight)
   ui/        Display helpers (pixel density, safe area), colors
 ```
@@ -86,7 +88,8 @@ A small but complete piece of the game from `docs/vision.md`. Each step is its o
 - [x] Expeditions: build carries over between segments, camps as waypoints, partial loot loss on death
 - [x] Village as the starting point (simple screen: stash and "set out")
 - [x] Herbs that grow in hexes by biome, gathered by standing next to them
-- [ ] Herb garden and brewing of three potions taken on an expedition
+- [x] Brewing of three potions in the village, packed into a belt and drunk with a button in a fight
+- [ ] Herb garden: plant herbs and harvest more of them, growing in real time
 - [ ] One class with a small skill tree
 - [ ] A boss guarding a dungeon or the outer ring
 

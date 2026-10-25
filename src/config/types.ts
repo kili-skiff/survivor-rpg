@@ -146,3 +146,32 @@ export interface HerbDef {
   /** Tint of the herb sprite */
   color: number;
 }
+
+export type PotionId = 'healing' | 'haste' | 'ward';
+
+/** What drinking a potion does. Buff multipliers apply for `durationSec`. */
+export interface PotionEffect {
+  /** Share of max health restored at once (0..1) */
+  healShare?: number;
+  /** How long the buff lasts (seconds); 0 for instant potions */
+  durationSec: number;
+  /** Multiplies move speed while active */
+  moveSpeedMul?: number;
+  /** Multiplies weapon and skill cooldowns while active (lower = faster) */
+  cooldownMul?: number;
+  /** Multiplies incoming damage while active (lower = less damage) */
+  damageTakenMul?: number;
+}
+
+export interface PotionDef {
+  id: PotionId;
+  name: string;
+  /** Short name for small buttons */
+  short: string;
+  description: string;
+  /** Tint of the potion sprite */
+  color: number;
+  /** Herbs used up to brew one potion */
+  recipe: Partial<Record<HerbId, number>>;
+  effect: PotionEffect;
+}

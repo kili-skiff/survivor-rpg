@@ -197,6 +197,14 @@ describe('save', () => {
       segmentsCleared: 0,
       world: emptySave().world,
       stash: {},
+      belt: {},
     });
+  });
+
+  it('migrates a version 4 save and keeps stash and belt valid', () => {
+    const v4 = { ...emptySave(), version: 4, stash: { moonbloom: 3 } } as Record<string, unknown>;
+    delete v4.belt;
+    expect(migrate(v4)).toMatchObject({ version: SAVE_VERSION, stash: { moonbloom: 3 }, belt: {} });
+    expect(migrate({ ...v4, belt: { healing: 2 } }).belt).toEqual({ healing: 2 });
   });
 });
