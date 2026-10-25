@@ -10,10 +10,12 @@ export type Side = 'left' | 'right';
 export interface Settings {
   /** Screen side of the skill buttons on touch screens. */
   skillSide: Side;
+  /** Night lighting in fights (darkness and lights); can be switched off on slow devices. */
+  lighting: boolean;
 }
 
 export function defaultSettings(): Settings {
-  return { skillSide: 'right' };
+  return { skillSide: 'right', lighting: true };
 }
 
 /** Reads settings leniently: unknown or broken values fall back to the defaults. */
@@ -23,6 +25,7 @@ export function parseSettings(raw: unknown): Settings {
   const data = raw as Partial<Record<keyof Settings, unknown>>;
   return {
     skillSide: data.skillSide === 'left' || data.skillSide === 'right' ? data.skillSide : base.skillSide,
+    lighting: typeof data.lighting === 'boolean' ? data.lighting : base.lighting,
   };
 }
 

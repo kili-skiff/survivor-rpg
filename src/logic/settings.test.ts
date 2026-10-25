@@ -29,14 +29,21 @@ describe('settings', () => {
 
   it('round-trips through storage', () => {
     const storage = memoryStorage();
-    writeSettings(storage, { skillSide: 'left' });
-    expect(loadSettings(storage).skillSide).toBe('left');
+    writeSettings(storage, { skillSide: 'left', lighting: false });
+    expect(loadSettings(storage)).toEqual({ skillSide: 'left', lighting: false });
   });
 
   it('does not touch the save data', () => {
     const storage = memoryStorage();
-    writeSettings(storage, { skillSide: 'left' });
+    writeSettings(storage, { skillSide: 'left', lighting: true });
     expect(storage.data.has('survivor-rpg.save')).toBe(false);
+  });
+
+  it('keeps the lighting switch and defaults it to on', () => {
+    expect(defaultSettings().lighting).toBe(true);
+    expect(parseSettings({ skillSide: 'left' }).lighting).toBe(true);
+    expect(parseSettings({ lighting: false }).lighting).toBe(false);
+    expect(parseSettings({ lighting: 'no' }).lighting).toBe(true);
   });
 
   it('flips sides', () => {
