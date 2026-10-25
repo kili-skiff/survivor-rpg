@@ -47,6 +47,11 @@ export function isDiscovered(progress: WorldProgress, key: string): boolean {
   return progress.discovered.includes(key);
 }
 
+/** Cleared on the current expedition: empty until you return home. */
+export function isUsedUp(progress: WorldProgress, key: string): boolean {
+  return progress.expedition?.cleared.includes(key) ?? false;
+}
+
 export function isCleared(progress: WorldProgress, key: string): boolean {
   return progress.cleared.includes(key);
 }
@@ -68,7 +73,8 @@ export function travelKind(world: World, progress: WorldProgress, target: Hex): 
   const info = world.hexes.get(key);
   if (!info || key === progress.position) return 'blocked';
   const from = parseHexKey(progress.position);
-  if (areNeighbors(from, target)) return info.poi === 'village' ? 'walk' : 'fight';
+  // The village and hexes already cleared on this expedition are walked into without a fight.
+  if (areNeighbors(from, target)) return info.poi === 'village' || isUsedUp(progress, key) ? 'walk' : 'fight';
   if (isAtHome(progress) && progress.waypoints.includes(key)) return 'teleport';
   if (info.poi === 'village' && progress.waypoints.includes(progress.position)) return 'teleport';
   return 'blocked';

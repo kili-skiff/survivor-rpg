@@ -23,10 +23,12 @@ export interface Expedition {
   areasCleared: number;
   /** Hex key where the expedition started (village or a waypoint) */
   startedFrom: string;
+  /** Hex keys cleared on this expedition: used up, walked through freely until you return home */
+  cleared: string[];
 }
 
 export function startExpedition(fromKey: string): Expedition {
-  return { build: null, loot: {}, areasCleared: 0, startedFrom: fromKey };
+  return { build: null, loot: {}, areasCleared: 0, startedFrom: fromKey, cleared: [] };
 }
 
 export function addLoot(a: Loot, b: Loot): Loot {
@@ -120,6 +122,7 @@ export function parseExpedition(raw: unknown): Expedition | null {
     loot: parseLoot(d.loot),
     areasCleared: isNumber(d.areasCleared) ? Math.max(0, Math.floor(d.areasCleared)) : 0,
     startedFrom: d.startedFrom,
+    cleared: Array.isArray(d.cleared) ? d.cleared.filter((k): k is string => typeof k === 'string') : [],
   };
 }
 

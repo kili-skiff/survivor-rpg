@@ -16,11 +16,12 @@ import type { Enemy } from '../entities/Enemy';
 import type { Pickup } from '../entities/Pickup';
 import { InputState } from '../input/InputState';
 import { addXp } from '../logic/progression';
+import { lootGained } from '../logic/expedition';
 import type { ExpeditionBuild } from '../logic/expedition';
 import { parseHexKey } from '../logic/hex';
 import { planHerbBlooms } from '../logic/herbs';
 import { applyBuffs, damageTakenMultiplier } from '../logic/potions';
-import { currentBuild, finishFight, type FightReport } from '../logic/journey';
+import { currentBuild, finishFight, returnHome, type FightReport } from '../logic/journey';
 import { loadSave, recordRun, safeStorage, writeSave, type SaveData } from '../logic/save';
 import { isSegmentCleared, type RunOutcome } from '../logic/segment';
 import {
@@ -280,6 +281,25 @@ export class GameScene extends Phaser.Scene {
   }
 
   /** Returns to the world map after the result screen. */
+  /** True when the fight was won on an expedition, so the result screen can offer to go home. */
+  canReturnHome(): boolean {
+    return this.endInfo?.report?.outcome === 'cleared';
+  }
+
+  /** After a won fight: end the expedition right away and bring all loot home. */
+  returnHomeFromFight(): void {
+    if (!this.canReturnHome()) return;
+    const storage = safeStorage();
+    const before = loadSave(storage);
+    const home = returnHome(before);
+    writeSave(storage, home);
+    this.scene.stop('UI');
+    const data: VillageSceneData = {
+      arrival: { reason: 'returned', kept: lootGained(before.stash, home.stash), lost: {} },
+    };
+    this.scene.start('Village', data);
+  }
+
   returnToMap(): void {
     this.scene.stop('UI');
     const report = this.endInfo?.report;

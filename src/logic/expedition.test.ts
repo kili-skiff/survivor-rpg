@@ -8,11 +8,11 @@ import {
   startExpedition,
   type ExpeditionBuild,
 } from './expedition';
-import { finishFight, teleport, walkHome } from './journey';
+import { finishFight, returnHome, teleport, walkHome, walkThrough } from './journey';
 import { emptySave, migrate, type SaveData } from './save';
 import { computePlayerStats, createStartLoadout } from './stats';
 import { generateWorld, type World } from './worldgen';
-import { travelKind } from './worldProgress';
+import { isUsedUp, travelKind } from './worldProgress';
 
 const world: World = generateWorld('expedition-test', 1);
 const camp = [...world.hexes.values()].find((h) => h.poi === 'camp' && h.ring <= 2)!;
@@ -107,6 +107,36 @@ describe('expeditions', () => {
     expect(save.world.expedition).toEqual(startExpedition(camp.key));
   });
 
+  it('walks back through hexes cleared on this expedition without a fight', () => {
+    const first = { q: 1, r: 0 };
+    const second = { q: 2, r: 0 };
+    let save = clearPath(emptySave(), [first, second]);
+    expect(isUsedUp(save.world, '1,0')).toBe(true);
+    expect(travelKind(world, save.world, first)).toBe('walk');
+    save = walkThrough(save, first);
+    expect(save.world.position).toBe('1,0');
+    expect(save.world.expedition?.cleared).toEqual(['1,0', '2,0']);
+    // A fresh expedition starts with every hex full again.
+    const home = walkHome(save, ORIGIN);
+    expect(isUsedUp(home.world, '1,0')).toBe(false);
+    expect(travelKind(world, home.world, first)).toBe('fight');
+  });
+
+  it('returns home from anywhere and keeps all loot', () => {
+    const save = clearPath(
+      emptySave(),
+      [
+        { q: 1, r: 0 },
+        { q: 2, r: 0 },
+      ],
+      { herb: 2 },
+    );
+    const home = returnHome(save);
+    expect(home.world.position).toBe('0,0');
+    expect(home.world.expedition).toBeNull();
+    expect(home.stash).toEqual({ herb: 4 });
+  });
+
   it('survives a save round trip and rejects broken data', () => {
     const out = finishFight(emptySave(), world, { q: 1, r: 0 }, 'cleared', build(), { herb: 1 }).save;
     const loaded = migrate(JSON.parse(JSON.stringify(out)));
@@ -116,6 +146,7 @@ describe('expeditions', () => {
         ?.build,
     ).toBeNull();
     expect(parseExpedition('nope')).toBeNull();
+    expect(parseExpedition({ startedFrom: '0,0' })?.cleared).toEqual([]);
   });
 
   it('migrates version 3 saves with empty stash and no expedition', () => {

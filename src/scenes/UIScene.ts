@@ -891,7 +891,7 @@ export class UIScene extends Phaser.Scene {
     // Landscape has little height: stats go on one line there.
     const wide = W > H * 1.3;
     // Everything is stacked from the title downwards so nothing overlaps.
-    let y = Math.max(this.sa.top + (wide ? 44 : 70) * u, H * (wide ? 0.1 : 0.18));
+    let y = Math.max(this.sa.top + (wide ? 72 : 70) * u, H * (wide ? 0.1 : 0.18));
     this.text(W / 2, y, cleared ? 'Area Cleared' : 'You Fell', wide ? 32 : 38, {
       fontStyle: 'bold',
       color: cleared ? css(COLORS.accent) : '#fb7185',
@@ -938,9 +938,23 @@ export class UIScene extends Phaser.Scene {
       },
     ).setOrigin(0.5, 0);
     y += summary.height;
-    const buttonY = Math.min(Math.max(y + 50 * u, H * 0.72), H - this.sa.bottom - 34 * u);
-    this.button(W / 2, buttonY, this.isTouch ? 'Back to map' : 'Back to map (Enter)', () =>
-      this.gs.returnToMap(),
-    );
+    const mapLabel = this.isTouch ? 'Back to map' : 'Back to map (Enter)';
+    if (!this.gs.canReturnHome()) {
+      const buttonY = Math.min(Math.max(y + 50 * u, H * 0.72), H - this.sa.bottom - 34 * u);
+      this.button(W / 2, buttonY, mapLabel, () => this.gs.returnToMap());
+      return;
+    }
+    // Won on an expedition: move on, or go home with all the loot.
+    const homeLabel = 'Return to village';
+    if (wide) {
+      const buttonY = Math.min(Math.max(y + 46 * u, H * 0.72), H - this.sa.bottom - 34 * u);
+      this.button(W / 2 - 115 * u, buttonY, mapLabel, () => this.gs.returnToMap());
+      this.button(W / 2 + 115 * u, buttonY, homeLabel, () => this.gs.returnHomeFromFight(), false);
+    } else {
+      const gap = 62 * u;
+      const buttonY = Math.min(Math.max(y + 50 * u, H * 0.68), H - this.sa.bottom - 34 * u - gap);
+      this.button(W / 2, buttonY, mapLabel, () => this.gs.returnToMap());
+      this.button(W / 2, buttonY + gap, homeLabel, () => this.gs.returnHomeFromFight(), false);
+    }
   }
 }
