@@ -138,7 +138,15 @@ up one by one.
 - **Equipment with random stats** (Diablo-like): slots such as lantern, armour, ring and amulet,
   equipped in the village, permanent. Rare drops from elites, chests and dungeons count as loot until
   you are home. An inventory shows what you found, also during a fight and on the map.
-- **Layers of progression:** character (class, skill tree), equipment, village (merchant, smith,
+- **Deeds** (built): milestones of exploring, each earned once and giving a small bonus for good:
+  reaching rings 2, 4, 6 and 8, the first camp, one, three and all watchfires, and the old tower.
+  Saved the moment they are earned, so they stay when you fall, and kept when the map is reset.
+  The village shows which are earned and which are still open. They give the watchfires a real
+  purpose and make even a failed expedition count. Open: whether a new season lets you earn them
+  again; more deeds later (e.g. first elite, a dungeon cleared), maybe a reward in gold or a recipe.
+- **Trainer** (idea): fixed bonuses bought with gold, like the lantern tiers (e.g. health, armour, a
+  fourth belt slot), so gold keeps a purpose after the merchant is sold out.
+- **Layers of progression:** character (deeds, later class and skill tree), equipment, village (merchant, smith,
   garden), knowledge (recipes), world (how far you get, up to the tower).
 
 ## Seasons
