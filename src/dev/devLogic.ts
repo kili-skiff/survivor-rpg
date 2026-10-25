@@ -1,5 +1,6 @@
 // Dev-only game logic (no Phaser, tested). See devMode.ts for how to remove dev tools.
 
+import { DEEDS, type DeedId } from '../config/deeds';
 import { HERBS } from '../config/herbs';
 import { GOLD_KEY } from '../config/merchant';
 import type { PlayerStats } from '../config/types';
@@ -45,4 +46,9 @@ export function jumpTarget(world: World, save: SaveData, target: Hex): Hex {
 export function jumpTo(world: World, save: SaveData, target: Hex): SaveData {
   const landing = jumpTarget(world, save, target);
   return { ...save, world: walkTo(save.world, landing) };
+}
+
+/** All deeds, or none once you have them all: to try out their bonuses. */
+export function toggleAllDeeds(deeds: readonly DeedId[]): DeedId[] {
+  return deeds.length === DEEDS.length ? [] : DEEDS.map((d) => d.id);
 }

@@ -18,6 +18,7 @@ import type { Pickup } from '../entities/Pickup';
 import { InputState } from '../input/InputState';
 import { addXp } from '../logic/progression';
 import { addLoot, lootGained } from '../logic/expedition';
+import { deedBonus } from '../logic/deeds';
 import { GOLD, GOLD_KEY } from '../config/merchant';
 import { goldPerDrop, lanternLightsAll, lanternMultiplier } from '../logic/merchant';
 import { dropsChest, rollChest, type ChestReward } from '../logic/chest';
@@ -120,6 +121,8 @@ export class GameScene extends Phaser.Scene {
   private ring = 1;
   /** Lantern tiers bought from the merchant: a bigger light, for good */
   private lanternLevel = 0;
+  /** Permanent bonuses from deeds, added to the player stats */
+  private deedBonus: Partial<PlayerStats> = {};
   private lighting!: LightingSystem;
   private ground!: Phaser.GameObjects.TileSprite;
 
@@ -192,9 +195,10 @@ export class GameScene extends Phaser.Scene {
     const saved = loadSave(safeStorage());
     const build = this.hexKey ? currentBuild(saved) : null;
     this.lanternLevel = saved.lanternLevel;
+    this.deedBonus = deedBonus(saved.deeds);
     this.potions = new PotionSystem(saved.belt, now);
     const loadout = build?.loadout ?? createStartLoadout(START_WEAPON);
-    const stats = computePlayerStats(loadout);
+    const stats = computePlayerStats(loadout, this.deedBonus);
     this.run = {
       started: true,
       alive: true,
@@ -454,7 +458,7 @@ export class GameScene extends Phaser.Scene {
   /** Recomputes all stats after the loadout changed and creates newly acquired weapons. */
   private refreshStats(): void {
     const prevMax = this.run.stats.maxHp;
-    this.run.stats = applyBuffs(computePlayerStats(this.run.loadout), this.potions.active);
+    this.run.stats = applyBuffs(computePlayerStats(this.run.loadout, this.deedBonus), this.potions.active);
     this.run.stats.light *= lanternMultiplier(this.lanternLevel);
     if (this.devGodMode()) this.run.stats = godModeStats(this.run.stats); // DEV:
     this.lighting?.setRadiusScale(this.run.stats.light);

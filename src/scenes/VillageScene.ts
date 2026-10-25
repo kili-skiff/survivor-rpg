@@ -3,12 +3,14 @@ import { HERBS } from '../config/herbs';
 import { POTION_IDS, POTION_RULES, POTIONS } from '../config/potions';
 import { TOWER_QUEST, VILLAGERS, type VillagerId } from '../config/quests';
 import type { HerbDef, PotionId } from '../config/types';
-import { grantTestLoot } from '../dev/devLogic'; // DEV:
+import { grantTestLoot, toggleAllDeeds } from '../dev/devLogic'; // DEV:
 import { lootCount, type Loot } from '../logic/expedition';
 import { beltCount, brew, packPotion, unpackPotion } from '../logic/potions';
 import { acceptTowerQuest, questsOnArrival, scoutAvailable, talkToScout } from '../logic/quests';
 import { emptySave, loadSave, safeStorage, writeSave, type SaveData } from '../logic/save';
 import { CauldronPanel } from '../panels/CauldronPanel';
+import { DeedsPanel } from '../panels/DeedsPanel';
+import { DEEDS } from '../config/deeds';
 import { MerchantPanel } from '../panels/MerchantPanel';
 import { buyLantern, buyRecipe, goldOf, sellHerb } from '../logic/merchant';
 import { GOLD_KEY } from '../config/merchant';
@@ -36,7 +38,7 @@ const HERB_LIST: HerbDef[] = Object.values(HERBS);
 const POTIONS_BLOCK_H = 162;
 const STATIONS_BLOCK_H = 186;
 
-type PanelId = 'cauldron' | 'merchant' | VillagerId;
+type PanelId = 'cauldron' | 'merchant' | 'deeds' | VillagerId;
 
 /**
  * The village: shows the stash of everything brought home, the potion belt for the next
@@ -49,7 +51,7 @@ export class VillageScene extends Phaser.Scene {
   private sa: SafeArea = { top: 0, right: 0, bottom: 0, left: 0 };
   private objects: Phaser.GameObjects.GameObject[] = [];
   private openPanel: PanelId | null = null;
-  private panel: CauldronPanel | MerchantPanel | DialoguePanel | null = null;
+  private panel: CauldronPanel | MerchantPanel | DeedsPanel | DialoguePanel | null = null;
 
   constructor() {
     super('Village');
@@ -266,6 +268,19 @@ export class VillageScene extends Phaser.Scene {
           onClose: () => this.showPanel(null),
         },
       );
+    } else if (this.openPanel === 'deeds') {
+      this.panel = new DeedsPanel(
+        this,
+        { width: W, height: H, u, sa: this.sa },
+        {
+          earned: this.save.deeds,
+          onClose: () => this.showPanel(null),
+          // DEV: all deeds on or off.
+          onDevToggle: isDevMode()
+            ? () => this.commit({ ...this.save, deeds: toggleAllDeeds(this.save.deeds) })
+            : undefined,
+        },
+      );
     } else if (this.openPanel) {
       this.panel = new DialoguePanel(
         this,
@@ -441,13 +456,15 @@ export class VillageScene extends Phaser.Scene {
     station(x0, 'Cauldron', 'Brew potions.', 'cauldron');
     station(x0 + half + gap, 'Merchant', 'Lanterns, recipes, gold.', 'merchant');
 
-    // Herb garden: next step
+    // Deeds, and the herb garden as the next step
     y += h + gap;
-    g.lineStyle(1.5 * u, COLORS.panelEdge, 0.8).strokeRoundedRect(x0, y, x1 - x0, h, 10 * u);
-    this.text(x0 + 12 * u, y + 10 * u, 'Herb garden', 14, { fontStyle: 'bold', color: '#d4d4d8' });
-    this.text(x1 - 12 * u, y + 10 * u, 'Coming soon', 11, { color: css(COLORS.accent) }).setOrigin(1, 0);
+    const earned = DEEDS.filter((d) => this.save.deeds.includes(d.id)).length;
+    station(x0, 'Deeds', `${earned} of ${DEEDS.length} earned.`, 'deeds');
+    const gx = x0 + half + gap;
+    g.lineStyle(1.5 * u, COLORS.panelEdge, 0.8).strokeRoundedRect(gx, y, half, h, 10 * u);
+    this.text(gx + 12 * u, y + 10 * u, 'Herb garden', 14, { fontStyle: 'bold', color: '#d4d4d8' });
     if (h >= 56 * u) {
-      this.text(x0 + 12 * u, y + 30 * u, 'Plant herbs to grow more of them.', 12, { color: '#a1a1aa' });
+      this.text(gx + 12 * u, y + 30 * u, 'Coming soon.', 11, { color: css(COLORS.accent) });
     }
 
     // Villagers: tap to talk; a "!" means they have something new to say.

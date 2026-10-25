@@ -6,7 +6,8 @@ import { SEASON } from '../config/world';
 import { areNeighbors, hexDistance, hexKey, hexNeighbors, parseHexKey } from '../logic/hex';
 import { generateWorld } from '../logic/worldgen';
 import { BASE_PLAYER_STATS } from '../config/passives';
-import { godModeStats, grantTestLoot, jumpTo } from './devLogic';
+import { DEEDS } from '../config/deeds';
+import { godModeStats, grantTestLoot, jumpTo, toggleAllDeeds } from './devLogic';
 
 describe('dev helpers', () => {
   it('adds every herb and some gold to the stash and keeps what is there', () => {
@@ -40,5 +41,11 @@ describe('dev helpers', () => {
     expect(god.might).toBeCloseTo(BASE_PLAYER_STATS.might * 10);
     expect(god.haste).toBeLessThan(BASE_PLAYER_STATS.haste);
     expect(god.maxHp).toBe(BASE_PLAYER_STATS.maxHp);
+  });
+
+  it('grants all deeds, then takes them all back', () => {
+    expect(toggleAllDeeds([])).toHaveLength(DEEDS.length);
+    expect(toggleAllDeeds(['ring2'])).toHaveLength(DEEDS.length);
+    expect(toggleAllDeeds(DEEDS.map((d) => d.id))).toEqual([]);
   });
 });

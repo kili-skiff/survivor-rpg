@@ -7,6 +7,7 @@ import { SKILLS } from '../config/skills';
 import type { HerbId, PassiveId, PotionId, SkillId, WeaponId } from '../config/types';
 import { WEAPONS } from '../config/weapons';
 import type { InputState } from '../input/InputState';
+import { describeEarned } from '../logic/deeds';
 import { formatTime, xpToNext } from '../logic/progression';
 import { safeStorage } from '../logic/save';
 import { isSegmentWarning, segmentRemaining } from '../logic/segment';
@@ -1350,6 +1351,17 @@ export class UIScene extends Phaser.Scene {
       y += t.height + 14 * u;
     } else {
       y += 10 * u;
+    }
+    // Deeds earned by this fight: permanent bonuses, so they get their own gold line.
+    const deeds = info.report?.deeds ?? [];
+    if (deeds.length > 0) {
+      const t = this.text(W / 2, y - 6 * u, describeEarned(deeds), 14, {
+        fontStyle: 'bold',
+        color: css(COLORS.accent),
+        align: 'center',
+        wordWrap: { width: W - 48 * u },
+      }).setOrigin(0.5, 0);
+      y += t.height + 8 * u;
     }
     const stats = [
       `Time  ${formatTime(info.time)} / ${formatTime(info.segment.durationSec)}`,
