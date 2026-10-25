@@ -42,4 +42,6 @@ export const HERB_RULES = {
    * Measured from the screen edge, so it works the same in portrait and landscape.
    */
   revealBeyondScreen: 420,
+  /** A freshly bloomed herb keeps its edge arrow this long, however far away you are (seconds) */
+  freshArrowSec: 10,
 } as const;

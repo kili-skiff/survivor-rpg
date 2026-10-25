@@ -25,7 +25,7 @@ import { applyUpgrade, rollUpgradeOptions, type UpgradeOption } from '../logic/u
 import { seasonWorld, segmentForHex } from '../logic/worldgen';
 import type { CombatContext } from '../systems/CombatContext';
 import { DamageNumbers } from '../systems/DamageNumbers';
-import { HerbSystem, type HerbIndicator } from '../systems/HerbSystem';
+import { HerbSystem, type HerbIndicator, type HerbSlot } from '../systems/HerbSystem';
 import { EnemySystem } from '../systems/EnemySystem';
 import { PickupSystem } from '../systems/PickupSystem';
 import { PlayerController } from '../systems/PlayerController';
@@ -233,6 +233,11 @@ export class GameScene extends Phaser.Scene {
   /** Edge arrows for nearby herbs that are off screen. */
   herbIndicators(): HerbIndicator[] {
     return this.run.alive ? this.herbs.indicators(this.viewW, this.viewH) : [];
+  }
+
+  /** Gathered, bloomed and upcoming herbs of this fight, for the HUD. */
+  herbSlots(): HerbSlot[] {
+    return this.herbs.slots();
   }
 
   /** Herbs gathered in this fight, by id. */

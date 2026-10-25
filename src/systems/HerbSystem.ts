@@ -18,6 +18,8 @@ interface GrowingHerb {
   glow: Phaser.GameObjects.Image | null;
   progress: number;
   gathered: boolean;
+  /** Segment time (seconds) when the herb bloomed */
+  bloomedAt: number;
 }
 
 /** Edge-arrow information for the HUD: direction from the player and distance beyond the screen edge. */
@@ -26,7 +28,12 @@ export interface HerbIndicator {
   distance: number;
   color: number;
   rare: boolean;
+  /** 0..1 while the herb is fresh (counts down), used to pulse the arrow */
+  freshness: number;
 }
+
+/** State of each herb in this fight, in bloom order, for the HUD. */
+export type HerbSlot = 'gathered' | 'bloomed' | 'coming';
 
 /**
  * Herbs in the current hex. They bloom one by one at planned, randomised moments just off screen
@@ -38,6 +45,7 @@ export class HerbSystem {
   private readonly pending: HerbBloom[];
   private readonly ring: Phaser.GameObjects.Graphics;
   private gatheredLoot: Loot = {};
+  private runTime = 0;
 
   constructor(
     private readonly scene: Phaser.Scene,
@@ -72,6 +80,7 @@ export class HerbSystem {
 
   /** `runTime` is the segment time in seconds; `viewW`/`viewH` the visible world area. */
   update(dt: number, runTime: number, viewW: number, viewH: number): void {
+    this.runTime = runTime;
     while (this.pending.length > 0 && this.pending[0].atSec <= runTime) {
       this.bloom(this.pending.shift()!, viewW, viewH);
     }
@@ -89,7 +98,17 @@ export class HerbSystem {
     }
   }
 
-  /** Herbs off screen but close to its edge, for the edge arrows. */
+  slots(): HerbSlot[] {
+    return [
+      ...this.herbs.map((h): HerbSlot => (h.gathered ? 'gathered' : 'bloomed')),
+      ...this.pending.map((): HerbSlot => 'coming'),
+    ];
+  }
+
+  /**
+   * Herbs off screen for the edge arrows: those close to the screen edge, plus freshly bloomed
+   * ones for a few seconds wherever they are, so a bloom is not missed while running away.
+   */
   indicators(viewW: number, viewH: number): HerbIndicator[] {
     const out: HerbIndicator[] = [];
     for (const h of this.herbs) {
@@ -100,9 +119,11 @@ export class HerbSystem {
       const outX = Math.max(0, Math.abs(dx) - (viewW / 2 - 20));
       const outY = Math.max(0, Math.abs(dy) - (viewH / 2 - 20));
       const distance = Math.hypot(outX, outY);
-      if (distance === 0 || distance > HERB_RULES.revealBeyondScreen) continue;
+      const age = this.runTime - h.bloomedAt;
+      const freshness = Math.max(0, 1 - age / HERB_RULES.freshArrowSec);
+      if (distance === 0 || (distance > HERB_RULES.revealBeyondScreen && freshness === 0)) continue;
       const def = HERBS[h.herb];
-      out.push({ angle: Math.atan2(dy, dx), distance, color: def.color, rare: def.rare });
+      out.push({ angle: Math.atan2(dy, dx), distance, color: def.color, rare: def.rare, freshness });
     }
     return out;
   }
@@ -120,7 +141,16 @@ export class HerbSystem {
       : null;
     const image = this.scene.add.image(x, y, 'herb').setTint(def.color).setDepth(0.6).setScale(0.2);
     this.scene.tweens.add({ targets: image, scale: 1, duration: 500, ease: 'Back.easeOut' });
-    this.herbs.push({ herb: b.herb, x, y, image, glow, progress: 0, gathered: false });
+    this.herbs.push({
+      herb: b.herb,
+      x,
+      y,
+      image,
+      glow,
+      progress: 0,
+      gathered: false,
+      bloomedAt: this.runTime,
+    });
     this.onBloom(b.herb);
   }
 

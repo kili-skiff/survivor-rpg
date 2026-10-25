@@ -322,8 +322,9 @@ export class UIScene extends Phaser.Scene {
     this.segmentText.setText(run.segment.name);
     this.killsText.setText(`☠ ${run.kills}`);
     this.herbText
-      .setText(run.herbsTotal > 0 ? `Herbs ${run.herbsGathered}/${run.herbsTotal}` : '')
+      .setText(run.herbsTotal > 0 ? 'Herbs' : '')
       .setPosition(this.killsText.x, this.killsText.y + this.killsText.height + 4 * u);
+    this.drawHerbSlots(g);
 
     this.drawHerbArrows(g);
 
@@ -362,6 +363,29 @@ export class UIScene extends Phaser.Scene {
     this.updateLoadoutIcons();
   }
 
+  /**
+   * One dot per herb next to the "Herbs" label: filled when gathered, glowing when bloomed and
+   * waiting, hollow when still to come.
+   */
+  private drawHerbSlots(g: Phaser.GameObjects.Graphics): void {
+    const slots = this.gs.herbSlots();
+    if (slots.length === 0) return;
+    const u = this.u;
+    const r = 4.5 * u;
+    const gap = 4 * u;
+    const y = this.herbText.y + this.herbText.height + r + 4 * u;
+    const right = this.herbText.x;
+    const pulse = 0.6 + Math.sin(this.time.now / 160) * 0.4;
+    slots.forEach((slot, i) => {
+      const x = right - r - (slots.length - 1 - i) * (r * 2 + gap);
+      if (slot === 'gathered') g.fillStyle(0x4ade80, 1).fillCircle(x, y, r);
+      else if (slot === 'bloomed') {
+        g.fillStyle(0xbbf7d0, pulse).fillCircle(x, y, r);
+        g.lineStyle(1.5 * u, 0xffffff, pulse).strokeCircle(x, y, r + 1.5 * u);
+      } else g.lineStyle(1.5 * u, 0xffffff, 0.45).strokeCircle(x, y, r - 0.5 * u);
+    });
+  }
+
   /** Arrows at the screen edge pointing to nearby herbs that are off screen. */
   private drawHerbArrows(g: Phaser.GameObjects.Graphics): void {
     if (this.overlayKind !== 'none') return;
@@ -382,8 +406,11 @@ export class UIScene extends Phaser.Scene {
       const t = Math.min(tx, ty);
       const x = cx + dx * t;
       const y = cy + dy * t;
-      const size = (ind.rare ? 13 : 10) * u;
-      const alpha = Phaser.Math.Clamp(1.1 - ind.distance / 400, 0.45, 1);
+      // Fresh blooms pulse and are a bit bigger so they catch the eye.
+      const pulse =
+        ind.freshness > 0 ? 1 + 0.35 * ind.freshness * (0.5 + 0.5 * Math.sin(this.time.now / 90)) : 1;
+      const size = (ind.rare ? 13 : 10) * u * pulse;
+      const alpha = ind.freshness > 0 ? 1 : Phaser.Math.Clamp(1.1 - ind.distance / 500, 0.45, 1);
       // A long, slim arrow so the direction is unambiguous.
       const tip = { x: x + dx * size * 1.2, y: y + dy * size * 1.2 };
       const back = { x: x - dx * size * 0.7, y: y - dy * size * 0.7 };

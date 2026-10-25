@@ -57,9 +57,11 @@ stronger: with a better class build, a growing herb garden and potions for the n
 - Fresh herbs every time a hex is entered. They **bloom one by one at random moments** spread over
   the fight, just off screen around the player, with a short hint. Nothing grows back during a fight.
 - **Gathering:** stand next to a herb for about a second. Moving away resets it, a hit halves it.
-- Arrows at the screen edge only appear for herbs just off screen; far herbs have to be found.
+- Arrows at the screen edge point to herbs just off screen. A fresh bloom keeps its arrow for
+  10 seconds wherever you are; after that only nearby herbs have one.
 - Gathered herbs are expedition loot: brought home safely, or halved on death.
 - Later: **professions** (e.g. herbalist) with skills such as faster or uninterruptible gathering.
+  The edge arrows could become a herbalist skill too; for now they are on for everyone.
 
 ## Village
 
