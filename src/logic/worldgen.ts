@@ -138,7 +138,7 @@ export function segmentForHex(h: WorldHex): SegmentDef {
     id: `hex:${h.key}`,
     name: h.poi && h.poi !== 'village' ? `${biome.name} · ${POIS[h.poi].name}` : biome.name,
     durationSec: Math.min(WORLD.maxDurationSec, WORLD.baseDurationSec + steps * WORLD.durationPerRingSec),
-    warningSec: 15,
+    warningSec: WORLD.warningSec,
     difficultyOffsetSec: steps * WORLD.difficultyOffsetPerRingSec,
     groundTint: biome.groundTint,
     herbs: { biome: h.biome, ring: h.ring },
