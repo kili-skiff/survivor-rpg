@@ -1,4 +1,5 @@
 import * as Phaser from 'phaser';
+import { LIGHT } from '../config/balance';
 import { PASSIVES } from '../config/passives';
 import { HERBS } from '../config/herbs';
 import { POTION_IDS, POTIONS } from '../config/potions';
@@ -92,6 +93,8 @@ export class UIScene extends Phaser.Scene {
   /** Opens the closed chest on screen (set while it is shown). */
   private openShownChest?: () => void;
   private chestEvents: Phaser.Time.TimerEvent[] = [];
+  /** Rows taken by the hints below the timer, so two hints do not overlap */
+  private readonly hintSlots = new Set<number>();
   private pressedCard = -1;
 
   /** UI scale (accounts for pixel density and screen size) */
@@ -107,6 +110,7 @@ export class UIScene extends Phaser.Scene {
     this.controls = this.registry.get('input') as InputState;
     this.isTouch = this.sys.game.device.input.touch;
     this.settings = loadSettings(safeStorage());
+    this.hintSlots.clear();
     this.skillButtons = [];
     this.potionButtons = [];
     this.loadoutIcons = [];
@@ -181,6 +185,7 @@ export class UIScene extends Phaser.Scene {
     this.gs.events.on('chest', this.onChest, this);
     this.gs.events.on('runend', this.onRunEnd, this);
     this.gs.events.on('herbbloom', this.onHerbBloom, this);
+    this.gs.events.on('chestdrop', this.onChestDrop, this);
     this.game.events.on(Phaser.Core.Events.HIDDEN, this.onHidden, this);
     this.events.once('shutdown', () => {
       this.scale.off('resize', this.onResize, this);
@@ -188,6 +193,7 @@ export class UIScene extends Phaser.Scene {
       this.gs.events.off('chest', this.onChest, this);
       this.gs.events.off('runend', this.onRunEnd, this);
       this.gs.events.off('herbbloom', this.onHerbBloom, this);
+      this.gs.events.off('chestdrop', this.onChestDrop, this);
       this.game.events.off(Phaser.Core.Events.HIDDEN, this.onHidden, this);
     });
 
@@ -475,7 +481,7 @@ export class UIScene extends Phaser.Scene {
     this.herbText.setText(run.herbsTotal > 0 ? 'Herbs' : '').setPosition(this.killsText.x, rightY);
     this.drawHerbSlots(g);
 
-    this.drawHerbArrows(g);
+    this.drawEdgeArrows(g);
 
     // Skill buttons with cooldown
     for (const b of this.skillButtons) {
@@ -553,9 +559,35 @@ export class UIScene extends Phaser.Scene {
     });
   }
 
-  /** Arrows at the screen edge pointing to nearby herbs that are off screen. */
-  private drawHerbArrows(g: Phaser.GameObjects.Graphics): void {
+  /**
+   * Arrows at the screen edge: to nearby herbs that are off screen, and to every treasure chest
+   * off screen (bigger, golden and gently pulsing, so a chest that fell in the dark is not lost).
+   */
+  private drawEdgeArrows(g: Phaser.GameObjects.Graphics): void {
     if (this.overlayKind !== 'none') return;
+    const u = this.u;
+    for (const ind of this.gs.herbIndicators()) {
+      // Fresh blooms pulse and are a bit bigger so they catch the eye.
+      const pulse =
+        ind.freshness > 0 ? 1 + 0.35 * ind.freshness * (0.5 + 0.5 * Math.sin(this.time.now / 90)) : 1;
+      const size = (ind.rare ? 13 : 10) * u * pulse;
+      const alpha = ind.freshness > 0 ? 1 : Phaser.Math.Clamp(1.1 - ind.distance / 500, 0.45, 1);
+      this.drawEdgeArrow(g, ind.angle, size, ind.color, alpha);
+    }
+    for (const ind of this.gs.chestIndicators()) {
+      const size = 14 * u * (1 + 0.15 * (0.5 + 0.5 * Math.sin(this.time.now / 160)));
+      this.drawEdgeArrow(g, ind.angle, size, ind.color, 1, true);
+    }
+  }
+
+  private drawEdgeArrow(
+    g: Phaser.GameObjects.Graphics,
+    angle: number,
+    size: number,
+    color: number,
+    alpha: number,
+    outline = false,
+  ): void {
     const { width: W, height: H } = this.scale;
     const u = this.u;
     const cx = W / 2;
@@ -564,34 +596,28 @@ export class UIScene extends Phaser.Scene {
     const right = W - this.sa.right - 26 * u;
     const top = this.sa.top + 110 * u;
     const bottom = H - this.sa.bottom - 30 * u;
-    for (const ind of this.gs.herbIndicators()) {
-      const dx = Math.cos(ind.angle);
-      const dy = Math.sin(ind.angle);
-      // Walk along the direction until the inset screen rectangle is hit.
-      const tx = dx > 0 ? (right - cx) / dx : dx < 0 ? (left - cx) / dx : Infinity;
-      const ty = dy > 0 ? (bottom - cy) / dy : dy < 0 ? (top - cy) / dy : Infinity;
-      const t = Math.min(tx, ty);
-      const x = cx + dx * t;
-      const y = cy + dy * t;
-      // Fresh blooms pulse and are a bit bigger so they catch the eye.
-      const pulse =
-        ind.freshness > 0 ? 1 + 0.35 * ind.freshness * (0.5 + 0.5 * Math.sin(this.time.now / 90)) : 1;
-      const size = (ind.rare ? 13 : 10) * u * pulse;
-      const alpha = ind.freshness > 0 ? 1 : Phaser.Math.Clamp(1.1 - ind.distance / 500, 0.45, 1);
-      // A long, slim arrow so the direction is unambiguous.
-      const tip = { x: x + dx * size * 1.2, y: y + dy * size * 1.2 };
-      const back = { x: x - dx * size * 0.7, y: y - dy * size * 0.7 };
-      const side = { x: -dy * size * 0.6, y: dx * size * 0.6 };
-      g.fillStyle(0x000000, 0.5 * alpha).fillCircle(x, y, size * 1.15);
-      g.fillStyle(ind.color, alpha).fillTriangle(
-        tip.x,
-        tip.y,
-        back.x + side.x,
-        back.y + side.y,
-        back.x - side.x,
-        back.y - side.y,
-      );
-    }
+    const dx = Math.cos(angle);
+    const dy = Math.sin(angle);
+    // Walk along the direction until the inset screen rectangle is hit.
+    const tx = dx > 0 ? (right - cx) / dx : dx < 0 ? (left - cx) / dx : Infinity;
+    const ty = dy > 0 ? (bottom - cy) / dy : dy < 0 ? (top - cy) / dy : Infinity;
+    const t = Math.min(tx, ty);
+    const x = cx + dx * t;
+    const y = cy + dy * t;
+    // A long, slim arrow so the direction is unambiguous.
+    const tip = { x: x + dx * size * 1.2, y: y + dy * size * 1.2 };
+    const back = { x: x - dx * size * 0.7, y: y - dy * size * 0.7 };
+    const side = { x: -dy * size * 0.6, y: dx * size * 0.6 };
+    g.fillStyle(0x000000, 0.5 * alpha).fillCircle(x, y, size * 1.15);
+    if (outline) g.lineStyle(2 * u, color, 0.9).strokeCircle(x, y, size * 1.15);
+    g.fillStyle(color, alpha).fillTriangle(
+      tip.x,
+      tip.y,
+      back.x + side.x,
+      back.y + side.y,
+      back.x - side.x,
+      back.y - side.y,
+    );
   }
 
   private updateLoadoutIcons(): void {
@@ -1000,21 +1026,30 @@ export class UIScene extends Phaser.Scene {
   /** A short hint below the timer when a herb blooms nearby. */
   private onHerbBloom(herb: HerbId): void {
     const def = HERBS[herb];
+    this.showHint(`${def.rare ? 'A rare ' : 'A '}${def.name} is blooming nearby`, def.color);
+  }
+
+  /** A short hint below the timer when an enemy leaves a treasure chest. */
+  private onChestDrop(): void {
+    this.showHint('A treasure chest dropped!', LIGHT.chestColor);
+  }
+
+  /** Fades a line in below the timer for a moment; a second hint goes below the first. */
+  private showHint(message: string, color: number): void {
     const u = this.u;
+    const lineH = 18 * u;
+    let slot = 0;
+    while (this.hintSlots.has(slot)) slot++;
+    this.hintSlots.add(slot);
     const hint = this.add
-      .text(
-        this.scale.width / 2,
-        this.sa.top + 62 * u,
-        `${def.rare ? 'A rare ' : 'A '}${def.name} is blooming nearby`,
-        {
-          fontFamily: FONT,
-          fontSize: `${Math.round(13 * u)}px`,
-          fontStyle: 'bold',
-          color: css(def.color),
-          stroke: '#000000',
-          strokeThickness: 3,
-        },
-      )
+      .text(this.scale.width / 2, this.sa.top + 62 * u + slot * lineH, message, {
+        fontFamily: FONT,
+        fontSize: `${Math.round(13 * u)}px`,
+        fontStyle: 'bold',
+        color: css(color),
+        stroke: '#000000',
+        strokeThickness: 3,
+      })
       .setOrigin(0.5, 0)
       .setDepth(40)
       .setAlpha(0);
@@ -1024,7 +1059,10 @@ export class UIScene extends Phaser.Scene {
       duration: 250,
       yoyo: true,
       hold: 2200,
-      onComplete: () => hint.destroy(),
+      onComplete: () => {
+        this.hintSlots.delete(slot);
+        hint.destroy();
+      },
     });
   }
 

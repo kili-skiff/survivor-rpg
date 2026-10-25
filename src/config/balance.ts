@@ -81,6 +81,9 @@ export const LIGHT = {
   /** Bloomed herbs give off a faint light so they are easier to spot in the dark */
   herbRadius: 70,
   rareHerbRadius: 100,
+  /** Dropped treasure chests glow golden, so they can be found in the dark */
+  chestRadius: 90,
+  chestColor: 0xfbbf24,
   /** Enemies in the dark show only their glowing eyes, so you see danger coming */
   eyesColor: 0xff5a3c,
 } as const;

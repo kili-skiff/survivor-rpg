@@ -1,5 +1,5 @@
 import * as Phaser from 'phaser';
-import { BALANCE, ELITE } from '../config/balance';
+import { BALANCE, ELITE, LIGHT } from '../config/balance';
 import { ENEMIES } from '../config/enemies';
 import { POTION_IDS, POTIONS } from '../config/potions';
 import { DEFAULT_SEGMENT } from '../config/segments';
@@ -42,7 +42,7 @@ import { seasonWorld, segmentForHex } from '../logic/worldgen';
 import type { CombatContext } from '../systems/CombatContext';
 import type { VillageSceneData } from './VillageScene';
 import { DamageNumbers } from '../systems/DamageNumbers';
-import { HerbSystem, type HerbIndicator, type HerbSlot } from '../systems/HerbSystem';
+import { HerbSystem, type EdgeIndicator, type HerbIndicator, type HerbSlot } from '../systems/HerbSystem';
 import { EnemySystem } from '../systems/EnemySystem';
 import { PickupSystem } from '../systems/PickupSystem';
 import { PlayerController } from '../systems/PlayerController';
@@ -226,7 +226,10 @@ export class GameScene extends Phaser.Scene {
     this.lighting = new LightingSystem(
       this,
       this.player,
-      () => this.herbs.lights(),
+      () => [
+        ...this.herbs.lights(),
+        ...this.pickups.chests().map((c) => ({ ...c, radius: LIGHT.chestRadius, color: LIGHT.chestColor })),
+      ],
       () => this.enemies.group.getChildren() as Enemy[],
       Math.floor(Math.random() * 2 ** 31),
     );
@@ -323,6 +326,22 @@ export class GameScene extends Phaser.Scene {
   /** Edge arrows for nearby herbs that are off screen. */
   herbIndicators(): HerbIndicator[] {
     return this.run.alive ? this.herbs.indicators(this.viewW, this.viewH) : [];
+  }
+
+  /** Edge arrows for treasure chests off screen, however far away. */
+  chestIndicators(): EdgeIndicator[] {
+    if (!this.run.alive) return [];
+    const { x: px, y: py } = this.player;
+    const out: EdgeIndicator[] = [];
+    for (const c of this.pickups.chests()) {
+      const dx = c.x - px;
+      const dy = c.y - py;
+      const outX = Math.max(0, Math.abs(dx) - (this.viewW / 2 - 20));
+      const outY = Math.max(0, Math.abs(dy) - (this.viewH / 2 - 20));
+      const distance = Math.hypot(outX, outY);
+      if (distance > 0) out.push({ angle: Math.atan2(dy, dx), distance, color: LIGHT.chestColor });
+    }
+    return out;
   }
 
   /** Gathered, bloomed and upcoming herbs of this fight, for the HUD. */
@@ -525,7 +544,10 @@ export class GameScene extends Phaser.Scene {
     if (Math.random() < BALANCE.healDropChance) this.pickups.drop(e.x, e.y, 'heal', BALANCE.healAmount);
     else this.pickups.drop(e.x, e.y, 'xp', e.def.xp * (e.elite ? ELITE.xp : 1));
     // Any enemy may leave a treasure chest (elites much more often) or a little gold.
-    if (dropsChest(e.elite, Math.random)) this.pickups.drop(e.x, e.y + 10, 'chest', 0);
+    if (dropsChest(e.elite, Math.random)) {
+      this.pickups.drop(e.x, e.y + 10, 'chest', 0);
+      this.events.emit('chestdrop');
+    }
     if (Math.random() < GOLD.dropChance) this.pickups.drop(e.x + 8, e.y - 6, 'gold', goldPerDrop(this.ring));
   }
 

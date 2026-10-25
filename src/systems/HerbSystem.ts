@@ -24,6 +24,13 @@ interface GrowingHerb {
 }
 
 /** Edge-arrow information for the HUD: direction from the player and distance beyond the screen edge. */
+export interface EdgeIndicator {
+  angle: number;
+  distance: number;
+  color: number;
+}
+
+/** Edge arrow for a herb. */
 export interface HerbIndicator {
   angle: number;
   distance: number;

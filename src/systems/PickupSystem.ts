@@ -48,6 +48,13 @@ export class PickupSystem {
     p.attracted = false;
   }
 
+  /** Positions of the treasure chests lying on the ground. */
+  chests(): { x: number; y: number }[] {
+    return (this.group.getChildren() as Pickup[])
+      .filter((p) => p.active && p.kind === 'chest')
+      .map((p) => ({ x: p.x, y: p.y }));
+  }
+
   /** `magnet` is the radius within which pickups start flying to the player. */
   update(dt: number, magnet: number): void {
     const { x: px, y: py } = this.target;
