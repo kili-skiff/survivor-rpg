@@ -205,6 +205,7 @@ export function segmentForHex(h: WorldHex): SegmentDef {
     warningSec: WORLD.warningSec,
     difficultyOffsetSec: steps * WORLD.difficultyOffsetPerRingSec,
     groundTint: biome.groundTint,
+    biome: h.biome,
     herbs: h.herbs ? { biome: h.biome, ring: h.ring } : null,
   };
 }

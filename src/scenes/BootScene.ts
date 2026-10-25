@@ -1,4 +1,5 @@
 import * as Phaser from 'phaser';
+import { GROUND_TEXTURES } from '../config/ground';
 import { CHARACTER_SPRITES, dieAnim, SHEET, walkAnim, type Facing } from '../config/sprites';
 import { TILESET } from '../config/tiles';
 import { COLORS } from '../ui/theme';
@@ -21,6 +22,8 @@ export class BootScene extends Phaser.Scene {
       frameWidth: TILESET.frameWidth,
       frameHeight: TILESET.frameHeight,
     });
+    // Ground tiles for fights. A biome without its tile falls back to the grey placeholder ground.
+    for (const ground of Object.values(GROUND_TEXTURES)) this.load.image(ground.key, ground.path);
     // Animated characters for fights. Missing sheets fall back to the placeholder graphics below.
     for (const sprite of Object.values(CHARACTER_SPRITES)) {
       this.load.spritesheet(sprite.key, sprite.path, {
@@ -82,6 +85,10 @@ export class BootScene extends Phaser.Scene {
   create(): void {
     this.makeLightTexture();
     this.makeCharacterAnims();
+    for (const ground of Object.values(GROUND_TEXTURES)) {
+      if (this.textures.exists(ground.key))
+        this.textures.get(ground.key).setFilter(Phaser.Textures.FilterMode.NEAREST);
+    }
     if (this.textures.exists(TILESET.key)) {
       this.textures.get(TILESET.key).setFilter(Phaser.Textures.FilterMode.NEAREST);
     }

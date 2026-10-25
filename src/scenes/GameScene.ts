@@ -23,6 +23,7 @@ import { GOLD, GOLD_KEY } from '../config/merchant';
 import { goldPerDrop, lanternLightsAll, lanternMultiplier } from '../logic/merchant';
 import { dropsChest, rollChest, type ChestReward } from '../logic/chest';
 import type { ExpeditionBuild } from '../logic/expedition';
+import { GROUND_TEXTURES, GROUND_TILE } from '../config/ground';
 import { parseHexKey } from '../logic/hex';
 import { planHerbBlooms } from '../logic/herbs';
 import { applyBuffs, damageTakenMultiplier } from '../logic/potions';
@@ -189,7 +190,13 @@ export class GameScene extends Phaser.Scene {
     const segment = hexInfo ? segmentForHex(hexInfo) : DEFAULT_SEGMENT;
     this.ring = hexInfo?.ring ?? 1;
     this.enemies.setRing(this.ring);
-    this.ground.setTint(segment.groundTint);
+    // Each biome has its own ground tile; without one, the grey placeholder is tinted instead.
+    const groundTile = segment.biome ? GROUND_TEXTURES[segment.biome] : undefined;
+    if (groundTile && this.textures.exists(groundTile.key)) {
+      this.ground.setTexture(groundTile.key).clearTint();
+    } else {
+      this.ground.setTexture('ground').setTint(segment.groundTint);
+    }
 
     // On an expedition the character keeps its build from the previous hex.
     const saved = loadSave(safeStorage());
@@ -520,14 +527,14 @@ export class GameScene extends Phaser.Scene {
     this.viewW = width / zoom;
     this.viewH = height / zoom;
     this.enemies.viewDiag = Math.hypot(this.viewW, this.viewH);
-    this.ground.setSize(this.viewW + 256, this.viewH + 256);
+    this.ground.setSize(this.viewW + GROUND_TILE * 2, this.viewH + GROUND_TILE * 2);
     this.lighting.resize(this.viewW, this.viewH);
   }
 
   /** Keeps the tiled ground under the camera, snapped to the tile grid. */
   private updateGround(): void {
-    const x = Math.floor((this.player.x - this.viewW / 2) / 64) * 64 - 128;
-    const y = Math.floor((this.player.y - this.viewH / 2) / 64) * 64 - 128;
+    const x = Math.floor((this.player.x - this.viewW / 2) / GROUND_TILE) * GROUND_TILE - GROUND_TILE;
+    const y = Math.floor((this.player.y - this.viewH / 2) / GROUND_TILE) * GROUND_TILE - GROUND_TILE;
     this.ground.setPosition(x, y);
   }
 
