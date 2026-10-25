@@ -1,9 +1,10 @@
 // Versioned save data: old saves are migrated instead of discarded.
 
 import { SEASON } from '../config/world';
+import { parseLoot, type Loot } from './expedition';
 import { createWorldProgress, parseWorldProgress, type WorldProgress } from './worldProgress';
 
-export const SAVE_VERSION = 3;
+export const SAVE_VERSION = 4;
 const SAVE_KEY = 'survivor-rpg.save';
 
 export interface SaveData {
@@ -16,6 +17,8 @@ export interface SaveData {
   segmentsCleared: number;
   /** Added in version 3: progress on the current season's map */
   world: WorldProgress;
+  /** Added in version 4: loot brought home, kept across seasons */
+  stash: Loot;
 }
 
 export interface RunResult {
@@ -39,6 +42,7 @@ export function emptySave(): SaveData {
     runs: 0,
     segmentsCleared: 0,
     world: freshWorld(),
+    stash: {},
   };
 }
 
@@ -61,8 +65,8 @@ export function migrate(raw: unknown): SaveData {
   const data = raw as Partial<SaveData>;
   const base = emptySave();
   // Older versions: keep known fields, fill in missing ones
-  // (version 2 added `segmentsCleared`, version 3 added `world`).
-  const data2 = raw as Partial<SaveData> & { world?: unknown };
+  // (version 2 added `segmentsCleared`, version 3 `world`, version 4 `stash`, waypoints and expeditions).
+  const data2 = raw as Partial<SaveData> & { world?: unknown; stash?: unknown };
   return {
     version: SAVE_VERSION,
     bestTime: Number(data.bestTime) || base.bestTime,
@@ -71,6 +75,7 @@ export function migrate(raw: unknown): SaveData {
     runs: Number(data.runs) || base.runs,
     segmentsCleared: Number(data.segmentsCleared) || base.segmentsCleared,
     world: worldForCurrentSeason(data2.world),
+    stash: parseLoot(data2.stash),
   };
 }
 

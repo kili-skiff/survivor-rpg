@@ -653,12 +653,27 @@ export class UIScene extends Phaser.Scene {
     const u = this.u;
     this.text(W / 2, H * 0.3, 'Paused', 34, { fontStyle: 'bold' });
     this.button(W / 2, H * 0.5, 'Resume', () => this.togglePause());
-    this.button(W / 2, H * 0.5 + 64 * u, 'Leave area', () => this.gs.returnToMap(), false);
+    this.button(W / 2, H * 0.5 + 64 * u, 'Give up', () => this.gs.giveUp(), false);
+    this.text(W / 2, H * 0.5 + 106 * u, 'Giving up ends the expedition, like falling.', 12, {
+      color: '#a1a1aa',
+    });
   }
 
   private onRunEnd(info: RunEndInfo): void {
     this.runEndInfo = info;
     this.showRunEnd(info);
+  }
+
+  /** One line about what the fight means for the expedition. */
+  private describeConsequence(info: RunEndInfo): string {
+    const r = info.report;
+    if (!r) return '';
+    if (r.outcome === 'fallen') {
+      const lost = r.lootLost ? Object.values(r.lootLost).reduce((a, b) => a + b, 0) : 0;
+      return `Expedition lost. You wake up in the village${lost > 0 ? ` and lost ${lost} items` : ''}.`;
+    }
+    if (r.rested) return 'Camp reached: fully healed, waypoint unlocked.';
+    return 'Your expedition continues.';
   }
 
   private showRunEnd(info: RunEndInfo): void {
@@ -677,6 +692,13 @@ export class UIScene extends Phaser.Scene {
       this.text(W / 2, H * 0.22 + 40 * u, subtitle, 16, {
         color: cleared ? '#e5e7eb' : css(COLORS.accent),
         fontStyle: 'bold',
+      });
+    }
+    const consequence = this.describeConsequence(info);
+    if (consequence) {
+      this.text(W / 2, H * 0.22 + 68 * u, consequence, 14, {
+        color: cleared ? '#c4b5fd' : '#fda4af',
+        wordWrap: { width: W - 48 * u },
       });
     }
     const lines = [

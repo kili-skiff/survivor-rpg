@@ -7,7 +7,9 @@ import type { Enemy } from '../entities/Enemy';
 import type { Pickup } from '../entities/Pickup';
 import { InputState } from '../input/InputState';
 import { addXp } from '../logic/progression';
+import type { ExpeditionBuild } from '../logic/expedition';
 import { parseHexKey } from '../logic/hex';
+import { currentBuild, finishFight, type FightReport } from '../logic/journey';
 import { loadSave, recordRun, safeStorage, writeSave, type SaveData } from '../logic/save';
 import { isSegmentCleared, type RunOutcome } from '../logic/segment';
 import {
@@ -19,7 +21,6 @@ import {
   type Loadout,
 } from '../logic/stats';
 import { applyUpgrade, rollUpgradeOptions, type UpgradeOption } from '../logic/upgrades';
-import { applyFightResult } from '../logic/worldProgress';
 import { seasonWorld, segmentForHex } from '../logic/worldgen';
 import type { CombatContext } from '../systems/CombatContext';
 import { DamageNumbers } from '../systems/DamageNumbers';
@@ -61,6 +62,8 @@ export interface RunEndInfo {
   level: number;
   kills: number;
   save: SaveData;
+  /** Expedition consequences; null for fights outside the world map */
+  report: FightReport | null;
   newBestTime: boolean;
 }
 
@@ -138,7 +141,9 @@ export class GameScene extends Phaser.Scene {
     const segment = hexInfo ? segmentForHex(hexInfo) : DEFAULT_SEGMENT;
     this.ground.setTint(segment.groundTint);
 
-    const loadout = createStartLoadout(START_WEAPON);
+    // On an expedition the character keeps its build from the previous hex.
+    const build = this.hexKey ? currentBuild(loadSave(safeStorage())) : null;
+    const loadout = build?.loadout ?? createStartLoadout(START_WEAPON);
     const stats = computePlayerStats(loadout);
     this.run = {
       started: true,
@@ -146,9 +151,9 @@ export class GameScene extends Phaser.Scene {
       segment,
       outcome: null,
       time: 0,
-      hp: stats.maxHp,
-      level: 1,
-      xp: 0,
+      hp: Math.min(build?.hp ?? stats.maxHp, stats.maxHp),
+      level: build?.level ?? 1,
+      xp: build?.xp ?? 0,
       kills: 0,
       loadout,
       stats,
@@ -205,7 +210,14 @@ export class GameScene extends Phaser.Scene {
     this.scene.resume();
   }
 
-  /** Returns to the world map. Leaving mid-fight keeps your map position and clears nothing. */
+  /** Giving up counts like falling: the expedition ends. */
+  giveUp(): void {
+    if (!this.run.alive) return;
+    this.scene.resume();
+    this.endRun('fallen');
+  }
+
+  /** Returns to the world map after the result screen. */
   returnToMap(): void {
     this.scene.stop('UI');
     this.scene.start('WorldMap');
@@ -351,8 +363,20 @@ export class GameScene extends Phaser.Scene {
       level: this.run.level,
       cleared: outcome === 'cleared',
     });
-    if (this.hexKey) save.world = applyFightResult(save.world, parseHexKey(this.hexKey), outcome);
-    writeSave(storage, save);
+    let finalSave: SaveData = save;
+    let report: FightReport | null = null;
+    if (this.hexKey) {
+      const build: ExpeditionBuild = {
+        level: this.run.level,
+        xp: this.run.xp,
+        hp: Math.max(1, this.run.hp),
+        loadout: this.run.loadout,
+      };
+      const result = finishFight(save, seasonWorld(), parseHexKey(this.hexKey), outcome, build, {});
+      finalSave = result.save;
+      report = result.report;
+    }
+    writeSave(storage, finalSave);
 
     const info: RunEndInfo = {
       outcome,
@@ -361,7 +385,8 @@ export class GameScene extends Phaser.Scene {
       time,
       level: this.run.level,
       kills: this.run.kills,
-      save,
+      save: finalSave,
+      report,
       newBestTime: time > before.bestTime,
     };
     this.controls.reset();

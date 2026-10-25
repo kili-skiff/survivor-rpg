@@ -195,6 +195,7 @@ describe('save', () => {
       version: SAVE_VERSION,
       segmentsCleared: 0,
       world: emptySave().world,
+      stash: {},
     });
   });
 });

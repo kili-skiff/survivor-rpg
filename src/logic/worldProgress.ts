@@ -1,3 +1,4 @@
+import { parseExpedition, type Expedition } from './expedition';
 import { areNeighbors, hexKey, hexNeighbors, ORIGIN, parseHexKey, type Hex } from './hex';
 import type { RunOutcome } from './segment';
 import type { World } from './worldgen';
@@ -15,6 +16,10 @@ export interface WorldProgress {
   discovered: string[];
   /** Hex keys the player has cleared at least once */
   cleared: string[];
+  /** Camps the player reached; they can be teleported to from the village */
+  waypoints: string[];
+  /** The expedition in progress, or null while at home */
+  expedition: Expedition | null;
 }
 
 export function createWorldProgress(seasonId: number, generatorVersion: number): WorldProgress {
@@ -24,6 +29,8 @@ export function createWorldProgress(seasonId: number, generatorVersion: number):
     position: hexKey(ORIGIN),
     discovered: [hexKey(ORIGIN)],
     cleared: [hexKey(ORIGIN)],
+    waypoints: [],
+    expedition: null,
   };
   return reveal(progress, ORIGIN);
 }
@@ -44,20 +51,27 @@ export function isCleared(progress: WorldProgress, key: string): boolean {
   return progress.cleared.includes(key);
 }
 
-export type TravelKind = 'fight' | 'walk' | 'blocked';
+export type TravelKind = 'fight' | 'walk' | 'teleport' | 'blocked';
+
+export function isAtHome(progress: WorldProgress): boolean {
+  return progress.position === hexKey(ORIGIN);
+}
 
 /**
- * What happens when the player taps a hex: neighbours inside the world can be entered.
- * The village is safe and reached without a fight; every other hex means a fight
- * (cleared hexes fill with monsters again).
+ * What happens when the player taps a hex:
+ * - neighbours can be entered; the village needs no fight, every other hex does
+ *   (cleared hexes fill with monsters again),
+ * - from the village you can teleport to any waypoint, and from a waypoint back home.
  */
 export function travelKind(world: World, progress: WorldProgress, target: Hex): TravelKind {
   const key = hexKey(target);
   const info = world.hexes.get(key);
-  if (!info) return 'blocked';
+  if (!info || key === progress.position) return 'blocked';
   const from = parseHexKey(progress.position);
-  if (!areNeighbors(from, target)) return 'blocked';
-  return info.poi === 'village' ? 'walk' : 'fight';
+  if (areNeighbors(from, target)) return info.poi === 'village' ? 'walk' : 'fight';
+  if (isAtHome(progress) && progress.waypoints.includes(key)) return 'teleport';
+  if (info.poi === 'village' && progress.waypoints.includes(progress.position)) return 'teleport';
+  return 'blocked';
 }
 
 /** Moves the player without a fight (e.g. back into the village). */
@@ -71,6 +85,12 @@ export function applyFightResult(progress: WorldProgress, target: Hex, outcome: 
   const key = hexKey(target);
   const cleared = progress.cleared.includes(key) ? progress.cleared : [...progress.cleared, key];
   return reveal({ ...progress, position: key, cleared }, target);
+}
+
+export function addWaypoint(progress: WorldProgress, key: string): WorldProgress {
+  return progress.waypoints.includes(key)
+    ? progress
+    : { ...progress, waypoints: [...progress.waypoints, key] };
 }
 
 /** Validates loaded data; returns null when it is unusable. */
@@ -93,5 +113,8 @@ export function parseWorldProgress(raw: unknown): WorldProgress | null {
     position: d.position,
     discovered: d.discovered,
     cleared: d.cleared,
+    // Added later: default when missing.
+    waypoints: isKeyList(d.waypoints) ? d.waypoints : [],
+    expedition: parseExpedition(d.expedition),
   };
 }
