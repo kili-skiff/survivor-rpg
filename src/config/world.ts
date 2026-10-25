@@ -8,7 +8,7 @@ import type { BiomeDef, BiomeId, PoiDef, PoiId } from './types';
 export const SEASON = {
   id: 2,
   seed: 'nightwatch-season-2',
-  generatorVersion: 5,
+  generatorVersion: 6,
 } as const;
 
 export const WORLD = {
@@ -16,6 +16,8 @@ export const WORLD = {
   radius: 8,
   /** Share of hexes where herbs grow; the others are empty, so finding herbs stays rewarding */
   herbHexShare: 0.3,
+  /** The first rings around the village are quiet: no herbs grow closer than this */
+  herbMinRing: 2,
   /** Points of interest never stand next to each other: minimum distance between any two */
   poiMinGap: 2,
   /** Watchfires: one per direction (the map is split into this many slices around the village) */

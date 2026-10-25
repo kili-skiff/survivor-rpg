@@ -49,6 +49,7 @@ import { EnemySystem } from '../systems/EnemySystem';
 import { PickupSystem } from '../systems/PickupSystem';
 import { PlayerController } from '../systems/PlayerController';
 import { PotionSystem } from '../systems/PotionSystem';
+import { visionRange } from '../logic/vision';
 import { LanternSystem } from '../systems/LanternSystem';
 import { LightingSystem } from '../systems/LightingSystem';
 import { godModeStats } from '../dev/devLogic'; // DEV:
@@ -182,7 +183,14 @@ export class GameScene extends Phaser.Scene {
     this.player = new PlayerController(this, now);
     this.enemies = new EnemySystem(this, this.player, now, this.numbers, (e) => this.onEnemyKilled(e));
     this.pickups = new PickupSystem(this, this.player, (p) => this.onPickup(p));
-    this.ctx = { scene: this, player: this.player, enemies: this.enemies, now };
+    this.ctx = {
+      scene: this,
+      player: this.player,
+      enemies: this.enemies,
+      now,
+      visionRange: () =>
+        visionRange(this.run.stats.light, lanternLightsAll(this.lanternLevel) || this.devGodMode()), // DEV: god mode
+    };
 
     this.physics.add.overlap(this.player.sprite, this.enemies.group, (_p, e) =>
       this.onPlayerTouched(e as Enemy),

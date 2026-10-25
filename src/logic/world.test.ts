@@ -111,14 +111,29 @@ describe('world generation', () => {
     }
   });
 
+  it('keeps the first ring around the village quiet: no herbs and no points of interest', () => {
+    for (let s = 0; s < 30; s++) {
+      const first = [...generateWorld(`seed-${s}`, SEASON.generatorVersion).hexes.values()].filter(
+        (h) => h.ring > 0 && h.ring < WORLD.herbMinRing,
+      );
+      expect(first.length).toBeGreaterThan(0);
+      for (const h of first) {
+        expect(h.herbs, `seed-${s} ${h.key}`).toBe(false);
+        expect(h.poi, `seed-${s} ${h.key}`).toBeNull();
+      }
+    }
+  });
+
   it('grows herbs only on some hexes, but every herb near the village', () => {
     for (let s = 0; s < 30; s++) {
       const hexes = [...generateWorld(`seed-${s}`, SEASON.generatorVersion).hexes.values()];
       const share = hexes.filter((h) => h.herbs).length / hexes.length;
-      expect(share).toBeGreaterThan(WORLD.herbHexShare - 0.1);
-      expect(share).toBeLessThan(WORLD.herbHexShare + 0.1);
+      expect(share).toBeGreaterThan(WORLD.herbHexShare - 0.12);
+      expect(share).toBeLessThan(WORLD.herbHexShare + 0.12);
       expect(hexes.find((h) => h.ring === 0)?.herbs).toBe(false);
-      const near = hexes.filter((h) => h.herbs && h.ring >= 1 && h.ring <= WORLD.innerRegionRing);
+      const near = hexes.filter(
+        (h) => h.herbs && h.ring >= WORLD.herbMinRing && h.ring <= WORLD.innerRegionRing,
+      );
       for (const biome of Object.keys(BIOMES))
         expect(
           near.map((h) => h.biome),

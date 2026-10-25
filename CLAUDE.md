@@ -20,7 +20,8 @@ Goal: web first, native apps later (Capacitor for Android/iOS, Tauri for desktop
 - Dev mode: on in `npm run dev`, and in any build with `?dev` in the URL (e.g. a PR preview).
   Test helpers: "+herbs +gold" in the village; "reveal" (fog off on screen only) and "jump here" on the
   map; "clear area", "god mode" (no damage, much stronger, whole screen lit) and "spawn elite" in a fight; "reset save" in the
-  village (second tap confirms; device settings stay); "all deeds" in the deeds panel. All dev code lives in `src/dev/`; every call into it is marked
+  village (second tap confirms; device settings stay; shown to everyone while `SHOW_RESET_BUTTON` in
+  `src/config/build.ts` is true, so switch that off for a release); "all deeds" in the deeds panel. All dev code lives in `src/dev/`; every call into it is marked
   `// DEV:`. For a release set `DEV_TOOLS = false` in `src/dev/devMode.ts`, or delete `src/dev/` and
   the marked lines.
 

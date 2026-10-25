@@ -1,5 +1,6 @@
 import * as Phaser from 'phaser';
 import { BALANCE } from '../../config/balance';
+import { shotLifetimeMs } from '../../logic/vision';
 import type { WeaponStats } from '../../config/types';
 import type { Enemy } from '../../entities/Enemy';
 import { Projectile } from '../../entities/Projectile';
@@ -27,7 +28,8 @@ export class BoltWeapon implements Weapon {
     if (this.timer > 0) return;
 
     const { player, enemies } = this.ctx;
-    const targets = enemies.nearest(stats.count, BALANCE.boltRange);
+    const range = this.ctx.visionRange();
+    const targets = enemies.nearest(stats.count, range);
     if (targets.length === 0) {
       this.timer = 0;
       return;
@@ -46,7 +48,7 @@ export class BoltWeapon implements Weapon {
         stats.damage,
         stats.pierce,
         this.ctx.now(),
-        BALANCE.boltLifetimeMs,
+        shotLifetimeMs(range, stats.speed, BALANCE.boltLifetimeMs),
       );
     }
     this.timer = stats.cooldown;

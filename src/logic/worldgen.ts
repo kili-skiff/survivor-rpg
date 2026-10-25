@@ -61,7 +61,7 @@ export function generateWorld(
         best = region;
       }
     }
-    const herbs = ring > 0 && hashFloat(seed, SALT.herbs, hex.q, hex.r) < WORLD.herbHexShare;
+    const herbs = ring >= WORLD.herbMinRing && hashFloat(seed, SALT.herbs, hex.q, hex.r) < WORLD.herbHexShare;
     hexes.set(hexKey(hex), { hex, key: hexKey(hex), ring, biome: best.biome, poi: null, herbs });
   }
 
@@ -119,7 +119,9 @@ function placeRegions(seed: number): Region[] {
 
 /** Every biome has at least one herb hex in the first rings, so each common herb can be found early. */
 function ensureHerbsNearHome(seed: number, hexes: Map<string, WorldHex>): void {
-  const near = [...hexes.values()].filter((h) => h.ring >= 1 && h.ring <= WORLD.innerRegionRing);
+  const near = [...hexes.values()].filter(
+    (h) => h.ring >= WORLD.herbMinRing && h.ring <= WORLD.innerRegionRing,
+  );
   for (const biome of BIOME_IDS) {
     const own = near.filter((h) => h.biome === biome);
     if (own.length === 0 || own.some((h) => h.herbs)) continue;
