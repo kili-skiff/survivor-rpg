@@ -95,3 +95,32 @@ export const LIGHT = {
   /** Enemies in the dark show only their glowing eyes, so you see danger coming */
   eyesColor: 0xff5a3c,
 } as const;
+
+/** The lantern the watchman carries: a small pendulum on a chain, purely visual. */
+export const LANTERN = {
+  /** How far the lantern hangs below the hand when everything is still (px) */
+  drop: 12,
+  /** Spring pulling it back to its resting spot (higher = faster swing) */
+  stiffness: 130,
+  /** Friction of the swing (higher = settles sooner) */
+  damping: 4.2,
+  /** How strongly a push of the hand (acceleration) throws the lantern */
+  inertia: 0.75,
+  /** While running, the lantern trails behind by speed times this (px per px/s) */
+  lean: 0.045,
+  /** ...but never further than this (px) */
+  leanMax: 11,
+  /** The lantern never swings further than this from its hanging spot (px) */
+  maxSwing: 20,
+  /** Longest physics step; longer frames are split (s) */
+  maxStep: 1 / 120,
+  /** The hand holds the lantern this far to the side and below the sprite centre (px) */
+  handX: 10,
+  handY: 4,
+  /** How fast the hand moves to the other side when turning (1/s) */
+  handFollow: 14,
+  /** Light of the flame itself (additive glow on top of the darkness hole) */
+  glowRadius: 52,
+  glowColor: 0xffc27a,
+  glowStrength: 0.45,
+} as const;

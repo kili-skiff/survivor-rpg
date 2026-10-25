@@ -232,6 +232,14 @@ export class BootScene extends Phaser.Scene {
       g.fillStyle(0xea580c).fillTriangle(2, 10, 12, 10, 7, 0);
       g.fillStyle(0xfacc15).fillTriangle(4.5, 10, 9.5, 10, 7, 3);
     });
+    // The watchman's lantern: ring on top, iron frame, glowing flame. Hangs from its top edge.
+    make('lantern', 12, 18, (g) => {
+      g.lineStyle(1.5, 0x3a3128).strokeCircle(6, 2.5, 2);
+      g.fillStyle(0x2b241d).fillRect(2, 5, 8, 2).fillRect(3, 15, 6, 2);
+      g.fillStyle(0xf59e0b).fillRect(3, 7, 6, 8);
+      g.fillStyle(0xfde68a).fillRect(4.5, 8.5, 3, 5);
+      g.fillStyle(0x2b241d).fillRect(2, 7, 1, 8).fillRect(9, 7, 1, 8).fillRect(5.5, 7, 1, 8);
+    });
     // Glowing eyes of an enemy in the dark (white, tinted in the game).
     make('eyes', 14, 6, (g) => {
       g.fillStyle(0xffffff, 0.35).fillCircle(3, 3, 3).fillCircle(11, 3, 3);
