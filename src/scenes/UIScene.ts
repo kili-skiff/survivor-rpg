@@ -52,6 +52,7 @@ export class UIScene extends Phaser.Scene {
   private hpText!: Phaser.GameObjects.Text;
   private killsText!: Phaser.GameObjects.Text;
   private herbText!: Phaser.GameObjects.Text;
+  private goldText!: Phaser.GameObjects.Text;
   private pauseBtn!: Phaser.GameObjects.Text;
   private devClearBtn: Phaser.GameObjects.Text | null = null; // DEV:
   private devGodBtn: Phaser.GameObjects.Text | null = null; // DEV:
@@ -115,6 +116,7 @@ export class UIScene extends Phaser.Scene {
     this.hpText = this.add.text(0, 0, '', textStyle(10)).setOrigin(0.5, 0.5).setDepth(1);
     this.killsText = this.add.text(0, 0, '', textStyle(14)).setOrigin(1, 0);
     this.herbText = this.add.text(0, 0, '', { ...textStyle(13), color: '#bbf7d0' }).setOrigin(1, 0);
+    this.goldText = this.add.text(0, 0, '', { ...textStyle(13), color: '#fde047' }).setOrigin(1, 0);
     this.pauseBtn = this.add
       .text(0, 0, 'II', { ...textStyle(18), backgroundColor: '#00000066', padding: { x: 12, y: 6 } })
       .setOrigin(1, 0)
@@ -432,9 +434,14 @@ export class UIScene extends Phaser.Scene {
       .setColor(isSegmentWarning(run.segment, run.time) ? css(COLORS.accent) : '#ffffff');
     this.segmentText.setText(run.segment.name);
     this.killsText.setText(`☠ ${run.kills}`);
-    this.herbText
-      .setText(run.herbsTotal > 0 ? 'Herbs' : '')
-      .setPosition(this.killsText.x, this.killsText.y + this.killsText.height + 4 * u);
+    // Gold (once there is some) and herbs stack below the kills on the right.
+    let rightY = this.killsText.y + this.killsText.height + 4 * u;
+    this.goldText
+      .setFontSize(Math.round(13 * u))
+      .setText(run.gold > 0 ? `${run.gold} gold` : '')
+      .setPosition(this.killsText.x, rightY);
+    if (run.gold > 0) rightY += this.goldText.height + 2 * u;
+    this.herbText.setText(run.herbsTotal > 0 ? 'Herbs' : '').setPosition(this.killsText.x, rightY);
     this.drawHerbSlots(g);
 
     this.drawHerbArrows(g);
@@ -984,6 +991,7 @@ export class UIScene extends Phaser.Scene {
       `Level  ${info.level}`,
       `Kills  ${info.kills}`,
       ...(info.herbsTotal > 0 ? [`Herbs  ${info.herbsGathered} / ${info.herbsTotal}`] : []),
+      ...(info.gold > 0 ? [`Gold  ${info.gold}`] : []),
     ];
     const block = this.text(W / 2, y, stats.join(wide ? '   ·   ' : '\n'), wide ? 17 : 20, {
       lineSpacing: 10 * u,

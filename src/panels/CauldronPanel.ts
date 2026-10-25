@@ -1,5 +1,6 @@
 import * as Phaser from 'phaser';
 import { HERBS } from '../config/herbs';
+import { RECIPE_PRICES } from '../config/merchant';
 import { POTION_IDS, POTIONS } from '../config/potions';
 import type { HerbId, PotionId } from '../config/types';
 import type { Loot } from '../logic/expedition';
@@ -17,6 +18,8 @@ export interface PanelFrame {
 
 export interface CauldronPanelOptions {
   stash: Loot;
+  /** Recipes the player knows; the others are sold by the merchant */
+  known: readonly PotionId[];
   onBrew(id: PotionId): void;
   onClose(): void;
 }
@@ -82,7 +85,8 @@ export class CauldronPanel {
     const { u } = this.frame;
     const def = POTIONS[id];
     const stash = this.opts.stash;
-    const canBrew = brewableCount(stash, id) > 0;
+    const known = this.opts.known.includes(id);
+    const canBrew = known && brewableCount(stash, id) > 0;
     const g = this.track(this.scene.add.graphics().setDepth(101));
     g.fillStyle(COLORS.panel, 1).fillRoundedRect(x, y, w, h, 12 * u);
     g.lineStyle(2 * u, canBrew ? def.color : COLORS.panelEdge, 1).strokeRoundedRect(x, y, w, h, 12 * u);
@@ -127,6 +131,15 @@ export class CauldronPanel {
     const bh = 40 * u;
     const bx = tall ? x + w / 2 : x + w - pad - bw / 2;
     const by = tall ? y + h - pad - bh / 2 : y + h / 2;
+    if (!known) {
+      // Unknown recipe: the merchant sells it.
+      this.text(bx, by, `Recipe from the\nmerchant · ${RECIPE_PRICES[id]} gold`, 11, {
+        fontStyle: 'bold',
+        color: '#fde047',
+        align: 'center',
+      }).setOrigin(0.5);
+      return;
+    }
     this.brewButton(bx, by, bw, bh, canBrew, () => this.opts.onBrew(id));
   }
 

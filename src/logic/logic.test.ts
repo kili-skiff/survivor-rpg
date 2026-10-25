@@ -205,6 +205,16 @@ describe('save', () => {
       stash: {},
       belt: {},
       quests: emptySave().quests,
+      lanternLevel: 0,
+      recipes: ['healing'],
+    });
+  });
+
+  it('migrates version 8 saves with merchant progress', () => {
+    expect(migrate({ version: 8 }).recipes).toEqual(['healing']);
+    expect(migrate({ version: 9, recipes: ['ward', 'nope'], lanternLevel: 7 })).toMatchObject({
+      recipes: ['healing', 'ward'],
+      lanternLevel: 3,
     });
   });
 

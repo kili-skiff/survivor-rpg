@@ -6,11 +6,12 @@ import { SEASON } from '../config/world';
 import { areNeighbors, hexDistance, hexKey, hexNeighbors, parseHexKey } from '../logic/hex';
 import { generateWorld } from '../logic/worldgen';
 import { BASE_PLAYER_STATS } from '../config/passives';
-import { godModeStats, grantAllHerbs, jumpTo } from './devLogic';
+import { godModeStats, grantTestLoot, jumpTo } from './devLogic';
 
 describe('dev helpers', () => {
-  it('adds every herb to the stash and keeps what is there', () => {
-    const stash = grantAllHerbs({ moonbloom: 2, healing: 1 }, 5);
+  it('adds every herb and some gold to the stash and keeps what is there', () => {
+    const stash = grantTestLoot({ moonbloom: 2, healing: 1 }, 5, 50);
+    expect(stash.gold).toBe(50);
     expect(stash.moonbloom).toBe(7);
     expect(stash.healing).toBe(1);
     for (const id of Object.keys(HERBS)) expect(stash[id]).toBeGreaterThanOrEqual(5);

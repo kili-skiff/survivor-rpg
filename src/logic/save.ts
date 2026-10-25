@@ -4,9 +4,12 @@ import { SEASON } from '../config/world';
 import { parseLoot, type Loot } from './expedition';
 import { parseBelt, type Belt } from './potions';
 import { freshQuests, parseQuests, type QuestProgress } from './quests';
+import { LANTERN_TIERS, STARTING_RECIPES } from '../config/merchant';
+import { POTION_IDS } from '../config/potions';
+import type { PotionId } from '../config/types';
 import { createWorldProgress, parseWorldProgress, type WorldProgress } from './worldProgress';
 
-export const SAVE_VERSION = 8;
+export const SAVE_VERSION = 9;
 const SAVE_KEY = 'survivor-rpg.save';
 
 export interface SaveData {
@@ -25,6 +28,10 @@ export interface SaveData {
   belt: Belt;
   /** Added in version 7: quests from villagers; kept when the map is reset */
   quests: QuestProgress;
+  /** Added in version 9: lantern tiers bought from the merchant (0..3) */
+  lanternLevel: number;
+  /** Added in version 9: potion recipes the player knows */
+  recipes: PotionId[];
 }
 
 export interface RunResult {
@@ -51,6 +58,8 @@ export function emptySave(): SaveData {
     stash: {},
     belt: {},
     quests: freshQuests(),
+    lanternLevel: 0,
+    recipes: [...STARTING_RECIPES],
   };
 }
 
@@ -75,12 +84,14 @@ export function migrate(raw: unknown): SaveData {
   // Older versions: keep known fields, fill in missing ones
   // (version 2 added `segmentsCleared`, version 3 `world`, version 4 `stash`, waypoints and expeditions,
   // version 5 `belt`, version 6 `cleared` hexes of the current expedition, version 7 `quests`,
-  // version 8 `litWatchfires` in the world progress).
+  // version 8 `litWatchfires` in the world progress, version 9 `lanternLevel` and `recipes`).
   const data2 = raw as Partial<SaveData> & {
     world?: unknown;
     stash?: unknown;
     belt?: unknown;
     quests?: unknown;
+    lanternLevel?: unknown;
+    recipes?: unknown;
   };
   return {
     version: SAVE_VERSION,
@@ -93,7 +104,23 @@ export function migrate(raw: unknown): SaveData {
     stash: parseLoot(data2.stash),
     belt: parseBelt(data2.belt),
     quests: parseQuests(data2.quests),
+    lanternLevel: parseLanternLevel(data2.lanternLevel),
+    recipes: parseRecipes(data2.recipes),
   };
+}
+
+function parseLanternLevel(raw: unknown): number {
+  return typeof raw === 'number' && Number.isFinite(raw)
+    ? Math.max(0, Math.min(LANTERN_TIERS.length, Math.floor(raw)))
+    : 0;
+}
+
+/** Known recipes: valid potion ids, always including the starting recipes. */
+function parseRecipes(raw: unknown): PotionId[] {
+  const known = new Set<PotionId>(STARTING_RECIPES);
+  if (Array.isArray(raw))
+    for (const id of raw) if (POTION_IDS.includes(id as PotionId)) known.add(id as PotionId);
+  return POTION_IDS.filter((id) => known.has(id));
 }
 
 export function loadSave(storage: KeyValueStorage | undefined): SaveData {

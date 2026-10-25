@@ -115,6 +115,12 @@ export class BootScene extends Phaser.Scene {
       g.fillStyle(0xf3e8ff).fillTriangle(8, 3, 4, 11, 8, 11);
     });
     make('heart', 20, 18, (g) => drawHeart(g, 10, 9, 9, COLORS.heal));
+    make('coin', 16, 16, (g) => {
+      g.fillStyle(0x92400e).fillCircle(8, 8.6, 7);
+      g.fillStyle(0xfbbf24).fillCircle(8, 8, 7);
+      g.fillStyle(0xfde68a).fillCircle(8, 8, 4.5);
+      g.fillStyle(0xf59e0b).fillRect(7, 5, 2, 6);
+    });
     // White herb sprite, tinted per herb type.
     make('herb', 22, 24, (g) => {
       g.fillStyle(0x000000, 0.3).fillEllipse(11, 21, 14, 5);
