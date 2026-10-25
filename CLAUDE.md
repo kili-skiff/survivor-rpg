@@ -31,7 +31,8 @@ Goal: web first, native apps later (Capacitor for Android/iOS, Tauri for desktop
 
 ```
 src/
-  config/    Game data: weapons, items, skills, enemies, herbs, potions, segments, world/season, balancing (NO Phaser)
+  config/    Game data: weapons, items, skills, enemies, herbs, potions, segments, world/season, map tiles,
+             balancing (NO Phaser)
   logic/     Pure game logic (NO Phaser, tested): stats, XP, upgrades, spawning, segments, save data,
              hex math, seeded RNG, world generation, world progress, expeditions and journeys,
              potions (brewing, belt, buffs), device settings
@@ -44,7 +45,8 @@ src/
   panels/    Village panels (e.g. CauldronPanel): drawn on top of any scene, logic lives in logic/
   scenes/    Boot (placeholder graphics), WorldMap (hex map, travel), Village (stash, belt, panels),
              Game (one fight, owns run state, wires systems), UI (HUD, touch, menus during a fight)
-  ui/        Display helpers (pixel density, safe area), colors
+  ui/        Display helpers (pixel density, safe area), colors, dev mode
+public/assets/  Art files served as they are (e.g. tiles/hex-tiles.png for the world map)
 ```
 
 ## Rules
@@ -71,6 +73,8 @@ src/
     (`Co-Authored-By`), but commit messages and PR descriptions never contain session links.
 12. **Village features are panels:** garden, brewing, merchant and so on each get their own panel
     on top of logic in `logic/`, so the menu village can later become a walkable one (see vision).
+13. **Assets by others:** Only use art, sounds or fonts whose licence allows a public repo and website.
+    Record each one in `CREDITS.md` (author, source, licence) when it is added.
 
 ## Workflow
 

@@ -1,4 +1,5 @@
 import * as Phaser from 'phaser';
+import { TILESET } from '../config/tiles';
 import { COLORS } from '../ui/theme';
 
 type G = Phaser.GameObjects.Graphics;
@@ -12,7 +13,20 @@ export class BootScene extends Phaser.Scene {
     super('Boot');
   }
 
+  preload(): void {
+    // Tile art for the world map. If it is missing (e.g. in the single-file build), the map
+    // falls back to plain coloured hexes.
+    this.load.spritesheet(TILESET.key, TILESET.path, {
+      frameWidth: TILESET.frameWidth,
+      frameHeight: TILESET.frameHeight,
+    });
+    this.load.on(Phaser.Loader.Events.FILE_LOAD_ERROR, () => undefined);
+  }
+
   create(): void {
+    if (this.textures.exists(TILESET.key)) {
+      this.textures.get(TILESET.key).setFilter(Phaser.Textures.FilterMode.NEAREST);
+    }
     const g = this.add.graphics();
     const make = (key: string, w: number, h: number, draw: (g: G) => void) => {
       g.clear();
