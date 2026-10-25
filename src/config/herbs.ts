@@ -27,8 +27,8 @@ export const HERB_RULES = {
   bloomFrom: 0.04,
   bloomUntil: 0.8,
   /** A herb blooms this far beyond the edge of the screen around the player (px) */
-  bloomMinBeyondScreen: 40,
-  bloomMaxBeyondScreen: 240,
+  bloomMinBeyondScreen: 150,
+  bloomMaxBeyondScreen: 380,
   /** Minimum distance between two herbs (px) */
   minSpacing: 170,
   /** Stand within this distance to gather (px) */
@@ -41,5 +41,5 @@ export const HERB_RULES = {
    * Edge arrows only point to herbs at most this far beyond the edge of the screen (px).
    * Measured from the screen edge, so it works the same in portrait and landscape.
    */
-  revealBeyondScreen: 320,
+  revealBeyondScreen: 420,
 } as const;
