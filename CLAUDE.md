@@ -18,7 +18,8 @@ Goal: web first, native apps later (Capacitor for Android/iOS, Tauri for desktop
 - `npm run check` – typecheck, lint, tests and build. **Run before every commit.**
 - `npm run build:single` – everything in one HTML file (dist-single/) for quick sharing
 - Dev mode (`ui/dev.ts`): on in `npm run dev`, and in any build with `?dev` in the URL
-  (e.g. a PR preview). It shows test helpers such as "+5 herbs" in the village.
+  (e.g. a PR preview). It shows test helpers: "+5 herbs" in the village, "reveal" on the map
+  (lifts the fog only on screen, nothing is saved).
 
 ## Deployment
 
