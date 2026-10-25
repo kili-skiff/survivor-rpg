@@ -205,6 +205,7 @@ export class GameScene extends Phaser.Scene {
       this,
       this.player,
       () => this.herbs.lights(),
+      () => this.enemies.group.getChildren() as Enemy[],
       Math.floor(Math.random() * 2 ** 31),
     );
     this.lighting.setEnabled(loadSettings(safeStorage()).lighting);

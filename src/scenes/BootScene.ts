@@ -142,6 +142,11 @@ export class BootScene extends Phaser.Scene {
       g.fillStyle(0xea580c).fillTriangle(2, 10, 12, 10, 7, 0);
       g.fillStyle(0xfacc15).fillTriangle(4.5, 10, 9.5, 10, 7, 3);
     });
+    // Glowing eyes of an enemy in the dark (white, tinted in the game).
+    make('eyes', 14, 6, (g) => {
+      g.fillStyle(0xffffff, 0.35).fillCircle(3, 3, 3).fillCircle(11, 3, 3);
+      g.fillStyle(0xffffff, 1).fillCircle(3, 3, 1.6).fillCircle(11, 3, 1.6);
+    });
     make('herb-glow', 64, 64, (g) => {
       for (let i = 0; i < 10; i++) g.fillStyle(0xffffff, 0.04 + i * 0.012).fillCircle(32, 32, 32 - i * 3);
     });

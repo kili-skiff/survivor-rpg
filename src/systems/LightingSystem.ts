@@ -15,9 +15,15 @@ interface Target {
   readonly y: number;
 }
 
+/** Something that can lurk in the dark, e.g. an enemy */
+interface Lurker extends Target {
+  readonly active: boolean;
+}
+
 /** Pool sizes: torches near the player, and glows for torches and herbs */
 const MAX_TORCHES = 24;
 const MAX_GLOWS = 40;
+const MAX_EYES = 120;
 const TORCH_SALT = 91;
 const WARM = 0xffb060;
 const DARKNESS_KEY = 'darkness';
@@ -37,6 +43,7 @@ export class LightingSystem {
   private darknessSize = 0;
   private readonly torches: Phaser.GameObjects.Image[] = [];
   private readonly glows: Phaser.GameObjects.Image[] = [];
+  private readonly eyes: Phaser.GameObjects.Image[] = [];
   private readonly seed: number;
   private viewW = 1;
   private viewH = 1;
@@ -47,6 +54,8 @@ export class LightingSystem {
     private readonly player: Target,
     /** Extra lights each frame, e.g. bloomed herbs */
     private readonly extraLights: () => LightSource[],
+    /** Enemies: in the dark only their eyes show */
+    private readonly lurkers: () => readonly Lurker[],
     seed: number,
   ) {
     this.seed = seed >>> 0;
@@ -59,6 +68,11 @@ export class LightingSystem {
     for (let i = 0; i < MAX_TORCHES; i++) {
       this.torches.push(scene.add.image(0, 0, 'torch').setOrigin(0.5, 0.9).setDepth(1.5).setVisible(false));
     }
+    for (let i = 0; i < MAX_EYES; i++) {
+      this.eyes.push(
+        scene.add.image(0, 0, 'eyes').setDepth(8.2).setScale(1.4).setTint(LIGHT.eyesColor).setVisible(false),
+      );
+    }
     for (let i = 0; i < MAX_GLOWS; i++) {
       this.glows.push(
         scene.add.image(0, 0, 'light').setDepth(8.1).setBlendMode(Phaser.BlendModes.ADD).setVisible(false),
@@ -70,7 +84,7 @@ export class LightingSystem {
   setEnabled(on: boolean): void {
     this.enabled = on;
     this.darkness.setVisible(on);
-    if (!on) for (const g of this.glows) g.setVisible(false);
+    if (!on) for (const g of [...this.glows, ...this.eyes]) g.setVisible(false);
   }
 
   /** The visible world area changed (screen size or zoom). */
@@ -132,6 +146,34 @@ export class LightingSystem {
       used += 1;
     }
     for (let i = used; i < MAX_GLOWS; i++) this.glows[i].setVisible(false);
+    this.placeEyes(x, y, time);
+  }
+
+  /** Enemies beyond the light show glowing eyes above the darkness, brighter the deeper in the dark. */
+  private placeEyes(px: number, py: number, time: number): void {
+    const inner = LIGHT.radius * 0.8;
+    const outer = LIGHT.radius * 1.15;
+    const halfW = this.viewW / 2 + 40;
+    const halfH = this.viewH / 2 + 40;
+    let used = 0;
+    for (const e of this.lurkers()) {
+      if (used >= MAX_EYES) break;
+      if (!e.active) continue;
+      const dx = e.x - px;
+      const dy = e.y - py;
+      if (Math.abs(dx) > halfW || Math.abs(dy) > halfH) continue;
+      const d = Math.hypot(dx, dy);
+      if (d < inner) continue;
+      const depth = Math.min(1, (d - inner) / (outer - inner));
+      // A slow, slightly uneven shimmer, so the eyes feel alive.
+      const shimmer = 0.75 + Math.sin(time * 0.004 + e.x * 0.05) * 0.25;
+      this.eyes[used]
+        .setPosition(e.x, e.y - 4)
+        .setAlpha(depth * shimmer)
+        .setVisible(true);
+      used += 1;
+    }
+    for (let i = used; i < MAX_EYES; i++) this.eyes[i].setVisible(false);
   }
 
   /** Shows the torches of the grid cells in view, reusing a small pool of images. */

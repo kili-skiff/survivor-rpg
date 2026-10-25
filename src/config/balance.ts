@@ -25,7 +25,7 @@ export const LIGHT = {
   /** Radius of the player's light (px, world units). Small at first, so a better lantern matters. */
   radius: 190,
   /** How dark it is outside any light (0..1) */
-  darkness: 0.86,
+  darkness: 0.93,
   /** Strength of torch and herb glows (additive, 0..1) */
   glowStrength: 0.35,
   /** Darkness colour: a cold night blue */
@@ -40,4 +40,6 @@ export const LIGHT = {
   /** Bloomed herbs give off a faint light so they are easier to spot in the dark */
   herbRadius: 70,
   rareHerbRadius: 100,
+  /** Enemies in the dark show only their glowing eyes, so you see danger coming */
+  eyesColor: 0xff5a3c,
 } as const;
