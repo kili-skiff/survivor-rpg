@@ -75,13 +75,14 @@ describe('expeditions', () => {
     expect(save.world.expedition?.build?.hp).toBe(computePlayerStats(createStartLoadout('bolt')).maxHp);
   });
 
-  it('ends the expedition on death, back home with half the loot', () => {
+  it('ends the expedition on death, back home without the loot', () => {
     const out = finishFight(emptySave(), world, { q: 1, r: 0 }, 'cleared', build(), { herb: 3 }).save;
     const { save, report } = finishFight(out, world, { q: 2, r: 0 }, 'fallen', build(), { herb: 2 });
     expect(save.world.position).toBe('0,0');
     expect(save.world.expedition).toBeNull();
-    expect(save.stash).toEqual({ herb: 2 });
-    expect(report.lootLost).toEqual({ herb: 3 });
+    expect(save.stash).toEqual({});
+    expect(report.lootKept).toEqual({});
+    expect(report.lootLost).toEqual({ herb: 5 });
   });
 
   it('banks all loot when walking home', () => {

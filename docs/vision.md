@@ -16,7 +16,7 @@ stronger: with a better class build, a growing herb garden and potions for the n
 3. **Fight through hexes:** each hex is a short survivor segment (about 3–5 minutes).
 4. **Rest at points of interest** between hexes: trade, explore a dungeon, or decide whether
    to push further or turn back.
-5. **Return or die:** bring your loot home, or lose part of it and wake up at the last waypoint.
+5. **Return or die:** bring your loot home, or lose all of it and wake up in the village.
 6. **Grow stronger** and reach further next time.
 
 ## The world
@@ -47,7 +47,8 @@ stronger: with a better class build, a growing herb garden and potions for the n
 - **Risk vs. reward:** after every cleared hex you choose to continue or go home with all your loot.
   Later, going home could cost something (e.g. portal scrolls), except from camps or next to the village.
 - **Health carries over** between hexes; camps heal you fully.
-- **Death or giving up:** the expedition ends, you wake up in the village and keep half of the loot.
+- **Death or giving up:** the expedition ends, you wake up in the village and lose everything you
+  carried. Potions in the belt stay, and later the equipment you wear.
 
 ## Combat
 
@@ -120,8 +121,8 @@ up one by one.
   - a crypt of fallen guardians in the graveyard: a boss and the first equipment
   - a trading post or second village far out: a better merchant, selling loot, a far waypoint
 - **Gold** (built): rare and slow, the long-term currency. Dropped rarely in fights (later mostly by
-  elites and chests); herbs, ores and items can be sold for it. Part of the expedition loot (half lost
-  on death).
+  elites and chests); herbs, ores and items can be sold for it. Part of the expedition loot (lost on
+  death).
 - **Merchant** (built, village): four lantern tiers (light +30%, +70%, +130%, for good; the
   Sunstone Lantern lights up the whole screen and could later come from a special place instead), potion recipes
   (start with the healing potion, buy the others), buys herbs. Later maybe seeds or maps; merchant

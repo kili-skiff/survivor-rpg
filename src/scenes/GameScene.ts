@@ -231,6 +231,7 @@ export class GameScene extends Phaser.Scene {
         ...this.pickups.chests().map((c) => ({ ...c, radius: LIGHT.chestRadius, color: LIGHT.chestColor })),
       ],
       () => this.enemies.group.getChildren() as Enemy[],
+      () => this.pickups.gems(),
       Math.floor(Math.random() * 2 ** 31),
     );
     this.lighting.setEnabled(loadSettings(safeStorage()).lighting);
