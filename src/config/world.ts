@@ -6,17 +6,25 @@ import type { BiomeDef, BiomeId, PoiDef, PoiId } from './types';
  * mid-season would change existing players' worlds.
  */
 export const SEASON = {
-  id: 1,
-  name: 'Season 1',
-  seed: 'nightwatch-season-1',
-  generatorVersion: 1,
+  id: 2,
+  name: 'Season 2',
+  seed: 'nightwatch-season-2',
+  generatorVersion: 2,
 } as const;
 
 export const WORLD = {
   /** Number of rings around the village */
-  radius: 6,
-  /** Number of biome regions spread over the map */
-  biomeRegions: 9,
+  radius: 8,
+  /**
+   * Inner biome regions: one per biome, spread evenly around the village with their centre in
+   * this ring, so every biome (and its herb) can be reached early.
+   */
+  innerRegionRing: 3,
+  /** Outer biome regions beyond the inner ones; every biome gets at least one of them */
+  outerRegions: 7,
+  /** Ring range for the centres of the outer regions */
+  outerRegionRingMin: 6,
+  outerRegionRingMax: 8,
   /** Segment duration in ring 1 (seconds) */
   baseDurationSec: 90,
   /** Extra seconds per ring further out */

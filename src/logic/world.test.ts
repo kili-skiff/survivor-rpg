@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { POIS, SEASON, WORLD } from '../config/world';
+import { BIOMES, POIS, SEASON, WORLD } from '../config/world';
 import {
   areNeighbors,
   hexDistance,
@@ -82,6 +82,32 @@ describe('world generation', () => {
       const earlyCamp = [...world.hexes.values()].some((h) => h.poi === 'camp' && h.ring <= 2);
       expect(earlyCamp).toBe(true);
     }
+  });
+
+  it('grows every biome close to the village and again further out', () => {
+    for (let s = 0; s < 30; s++) {
+      const hexes = [...generateWorld(`seed-${s}`, SEASON.generatorVersion).hexes.values()];
+      const near = new Set(
+        hexes.filter((h) => h.ring >= 1 && h.ring <= WORLD.innerRegionRing).map((h) => h.biome),
+      );
+      const far = new Set(hexes.filter((h) => h.ring > WORLD.innerRegionRing + 1).map((h) => h.biome));
+      for (const biome of Object.keys(BIOMES)) {
+        expect(near, `seed-${s} near`).toContain(biome);
+        expect(far, `seed-${s} far`).toContain(biome);
+      }
+    }
+  });
+
+  it('forms biome regions of several connected hexes', () => {
+    const world = generateWorld(SEASON.seed, SEASON.generatorVersion);
+    let lonely = 0;
+    for (const h of world.hexes.values()) {
+      if (h.ring === 0) continue;
+      const same = hexNeighbors(h.hex).some((n) => world.hexes.get(hexKey(n))?.biome === h.biome);
+      if (!same) lonely += 1;
+    }
+    // Jittered borders may leave a stray hex now and then, but biomes are areas, not noise.
+    expect(lonely).toBeLessThanOrEqual(3);
   });
 
   it('makes outer segments longer and harder', () => {
