@@ -22,10 +22,10 @@ export const BALANCE = {
  * it are dimmed but still visible. A better lantern could raise `radius` later.
  */
 export const LIGHT = {
-  /** Radius of the player's light (px, world units) */
-  radius: 290,
+  /** Radius of the player's light (px, world units). Small at first, so a better lantern matters. */
+  radius: 190,
   /** How dark it is outside any light (0..1) */
-  darkness: 0.78,
+  darkness: 0.86,
   /** Strength of torch and herb glows (additive, 0..1) */
   glowStrength: 0.35,
   /** Darkness colour: a cold night blue */
@@ -33,9 +33,9 @@ export const LIGHT = {
   /** Light radius flickers by this share */
   flicker: 0.035,
   /** Torches stand on a grid of cells this big; each cell may hold one */
-  torchCell: 520,
+  torchCell: 640,
   /** Share of cells with a torch */
-  torchChance: 0.3,
+  torchChance: 0.12,
   torchRadius: 125,
   /** Bloomed herbs give off a faint light so they are easier to spot in the dark */
   herbRadius: 70,

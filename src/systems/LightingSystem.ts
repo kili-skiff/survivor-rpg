@@ -95,11 +95,11 @@ export class LightingSystem {
     const stop = (at: number, alpha: number) =>
       grad.addColorStop(Math.min(1, at), `rgba(255,255,255,${alpha})`);
     stop(0, 0);
-    stop(hole * 0.7, 0);
-    stop(hole * 0.95, a * 0.5);
-    stop(hole * 1.2, a * 0.9);
-    stop(hole * 1.4, a);
-    if (hole * 1.4 < 1) stop(1, a);
+    stop(hole * 0.6, 0);
+    stop(hole * 0.88, a * 0.55);
+    stop(hole * 1.08, a * 0.92);
+    stop(hole * 1.22, a);
+    if (hole * 1.22 < 1) stop(1, a);
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, n, n);
     // The corners stay fully dark (the gradient only reaches the inscribed circle).
