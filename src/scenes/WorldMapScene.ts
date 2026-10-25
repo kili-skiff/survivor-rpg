@@ -1,9 +1,12 @@
 import * as Phaser from 'phaser';
 import { BIOMES, POIS, SEASON } from '../config/world';
-import { hexEquals, hexKey, hexNeighbors, hexToPixel, parseHexKey, pixelToHex, type Hex } from '../logic/hex';
+import { hexEquals, hexKey, hexToPixel, parseHexKey, pixelToHex, type Hex } from '../logic/hex';
 import { formatTime } from '../logic/progression';
 import { loadSave, safeStorage, writeSave, type SaveData } from '../logic/save';
-import { isCleared, isDiscovered, travelKind, walkTo, type TravelKind } from '../logic/worldProgress';
+import { lootCount } from '../logic/expedition';
+import { teleport, walkHome } from '../logic/journey';
+import { computePlayerStats } from '../logic/stats';
+import { isAtHome, isCleared, isDiscovered, travelKind, type TravelKind } from '../logic/worldProgress';
 import { seasonWorld, segmentForHex, type World, type WorldHex } from '../logic/worldgen';
 import { safeArea, viewportSize, type SafeArea } from '../ui/display';
 import { COLORS, css, FONT } from '../ui/theme';
@@ -140,11 +143,10 @@ export class WorldMapScene extends Phaser.Scene {
     const g = this.map;
     const u = this.u;
     const progress = this.save.world;
-    const position = parseHexKey(progress.position);
     const targets = new Set(
-      hexNeighbors(position)
-        .filter((n) => travelKind(this.world, progress, n) !== 'blocked')
-        .map(hexKey),
+      [...this.world.hexes.values()]
+        .filter((h) => isDiscovered(progress, h.key) && travelKind(this.world, progress, h.hex) !== 'blocked')
+        .map((h) => h.key),
     );
     const pulse = 0.55 + Math.sin(this.time0 * 4) * 0.35;
     g.clear();
@@ -174,7 +176,10 @@ export class WorldMapScene extends Phaser.Scene {
       g.strokePath();
     }
 
-    for (const { hex, text } of this.poiLabels) text.setVisible(isDiscovered(progress, hex.key));
+    for (const { hex, text } of this.poiLabels) {
+      text.setVisible(isDiscovered(progress, hex.key));
+      text.setColor(progress.waypoints.includes(hex.key) ? css(COLORS.accent) : '#ffffff');
+    }
   }
 
   private hexPath(x: number, y: number, size: number): void {
@@ -232,7 +237,7 @@ export class WorldMapScene extends Phaser.Scene {
       fontStyle: 'bold',
       color: css(COLORS.accent),
     });
-    this.text(left, this.sa.top + 38 * u, `${SEASON.name} · ${this.save.segmentsCleared} areas cleared`, 12, {
+    this.text(left, this.sa.top + 38 * u, this.statusLine(), 12, {
       color: '#a1a1aa',
     });
 
@@ -257,6 +262,20 @@ export class WorldMapScene extends Phaser.Scene {
     }
   }
 
+  /** Header line: the expedition while out, otherwise the season summary. */
+  private statusLine(): string {
+    const exp = this.save.world.expedition;
+    if (exp) {
+      const b = exp.build;
+      const hp = b
+        ? `HP ${Math.ceil(b.hp)}/${computePlayerStats(b.loadout).maxHp} · Level ${b.level}`
+        : 'Fresh start';
+      const loot = lootCount(exp.loot);
+      return `Expedition · ${hp} · ${exp.areasCleared} areas${loot > 0 ? ` · ${loot} loot` : ''}`;
+    }
+    return `${SEASON.name} · ${this.save.segmentsCleared} areas cleared · ${this.save.world.waypoints.length} waypoints`;
+  }
+
   private describeSelection(): {
     title: string;
     detail: string;
@@ -266,7 +285,9 @@ export class WorldMapScene extends Phaser.Scene {
     if (!this.selected) {
       return {
         title: 'Choose your path',
-        detail: 'Tap a glowing hex next to you to travel there. Drag to look around.',
+        detail: isAtHome(progress)
+          ? 'Tap a glowing hex to set out. Camps you reach become waypoints you can travel to from here.'
+          : 'Tap a glowing hex next to you to move on. Drag to look around.',
       };
     }
     const key = hexKey(this.selected);
@@ -277,10 +298,34 @@ export class WorldMapScene extends Phaser.Scene {
     const kind: TravelKind = travelKind(this.world, progress, this.selected);
     const here = hexEquals(this.selected, parseHexKey(progress.position));
     if (h.poi === 'village') {
+      const homeAction =
+        kind === 'walk'
+          ? { label: 'Go home', run: () => this.walkHome(h.hex) }
+          : kind === 'teleport'
+            ? { label: 'Return to village', run: () => this.teleport(h.hex) }
+            : undefined;
       return {
         title: 'Village',
-        detail: here ? 'You are home. Safe from the night.' : 'Your home. No monsters here.',
-        action: kind === 'walk' ? { label: 'Go home', run: () => this.walk(h.hex) } : undefined,
+        detail: here
+          ? 'You are home. Safe from the night.'
+          : homeAction
+            ? 'Going home ends the expedition. You keep all your loot.'
+            : 'Your home. No monsters here.',
+        action: homeAction,
+      };
+    }
+    if (kind === 'teleport') {
+      return {
+        title: `${BIOMES[h.biome].name} · Camp`,
+        detail: `Waypoint · Ring ${h.ring}. Travel here to start a new expedition from this camp.`,
+        action: { label: 'Travel here', run: () => this.teleport(h.hex) },
+      };
+    }
+    if (here && h.poi === 'camp' && progress.waypoints.includes(key)) {
+      return {
+        title: `${BIOMES[h.biome].name} · Camp`,
+        detail: 'A safe camp. Move on, or go home and keep your loot.',
+        action: { label: 'Return to village', run: () => this.teleport({ q: 0, r: 0 }) },
       };
     }
     const seg = segmentForHex(h);
@@ -353,7 +398,8 @@ export class WorldMapScene extends Phaser.Scene {
       if (!this.selected) return;
       const kind = travelKind(this.world, this.save.world, this.selected);
       if (kind === 'fight') this.fight(this.selected);
-      else if (kind === 'walk') this.walk(this.selected);
+      else if (kind === 'walk') this.walkHome(this.selected);
+      else if (kind === 'teleport') this.teleport(this.selected);
     });
   }
 
@@ -362,8 +408,17 @@ export class WorldMapScene extends Phaser.Scene {
     this.scene.start('Game', data);
   }
 
-  private walk(hex: Hex): void {
-    this.save = { ...this.save, world: walkTo(this.save.world, hex) };
+  private walkHome(hex: Hex): void {
+    this.commit(walkHome(this.save, hex));
+  }
+
+  private teleport(hex: Hex): void {
+    this.commit(teleport(this.save, hex));
+    this.centerOn(hex);
+  }
+
+  private commit(next: SaveData): void {
+    this.save = next;
     writeSave(safeStorage(), this.save);
     this.selected = null;
     this.buildHud();

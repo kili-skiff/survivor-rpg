@@ -40,7 +40,8 @@ stronger: with a better class build, a growing herb garden and potions for the n
   - _Per segment:_ enemies, timer, segment goal.
 - Your in-run build keeps growing across segments, like one long Vampire Survivors run with breaks.
 - **Risk vs. reward:** at every point of interest you choose to continue or go home.
-- **Death:** back to the village or the last waypoint, losing part of the loot (exact share is open).
+- **Health carries over** between hexes; camps heal you fully.
+- **Death or giving up:** the expedition ends, you wake up in the village and keep half of the loot.
 
 ## Combat
 
@@ -83,7 +84,6 @@ stronger: with a better class build, a growing herb garden and potions for the n
 
 ## Open questions
 
-- How large is the share of loot you lose on death?
 - Do hexes reset after every run, or over time?
 - How long should a full expedition take?
 - What exactly survives a new season?

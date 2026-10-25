@@ -11,6 +11,8 @@ export const BALANCE = {
   healAmount: 25,
   /** Maximum number of XP gems at once */
   maxGems: 450,
+  /** Share of the expedition loot you keep when you die (0..1) */
+  lootKeptOnDeath: 0.5,
   /** Hard cap on simultaneous enemies (performance) */
   maxEnemiesHardCap: 320,
 } as const;
