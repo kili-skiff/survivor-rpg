@@ -3,10 +3,12 @@ import { HERBS } from '../config/herbs';
 import { POTION_IDS, POTION_RULES, POTIONS } from '../config/potions';
 import type { HerbDef, PotionId } from '../config/types';
 import { SEASON } from '../config/world';
+import { grantAllHerbs } from '../logic/dev';
 import { lootCount, type Loot } from '../logic/expedition';
 import { beltCount, brew, packPotion, unpackPotion } from '../logic/potions';
 import { loadSave, safeStorage, writeSave, type SaveData } from '../logic/save';
 import { CauldronPanel } from '../panels/CauldronPanel';
+import { isDevMode } from '../ui/dev';
 import { safeArea, viewportSize, type SafeArea } from '../ui/display';
 import { COLORS, css, FONT } from '../ui/theme';
 
@@ -125,6 +127,7 @@ export class VillageScene extends Phaser.Scene {
 
     let y = this.sa.top + 18 * u;
     this.text(left, y, 'VILLAGE', 26, { fontStyle: 'bold', color: css(COLORS.accent) });
+    if (isDevMode()) this.devButton(right, y + 4 * u);
     y += 34 * u;
     this.text(left, y, `${SEASON.name} · ${plural(this.save.segmentsCleared, 'area')} cleared`, 12, {
       color: '#a1a1aa',
@@ -333,6 +336,20 @@ export class VillageScene extends Phaser.Scene {
     if (h >= 56 * u) {
       this.text(x0 + 12 * u, y + 30 * u, 'Plant herbs to grow more of them.', 12, { color: '#a1a1aa' });
     }
+  }
+
+  /** Dev mode only: a small button that adds 5 of every herb to the stash. */
+  private devButton(x: number, y: number): void {
+    const u = this.u;
+    const t = this.text(x, y, 'DEV  +5 herbs', 12, {
+      fontStyle: 'bold',
+      color: '#f0abfc',
+      backgroundColor: '#3b0764',
+      padding: { x: Math.round(10 * u), y: Math.round(7 * u) },
+    }).setOrigin(1, 0);
+    t.setInteractive({ useHandCursor: true }).on('pointerup', () =>
+      this.commit({ ...this.save, stash: grantAllHerbs(this.save.stash, 5) }),
+    );
   }
 
   private flask(x: number, y: number, h: number, color: number, alpha: number): void {
