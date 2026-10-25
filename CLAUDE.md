@@ -117,6 +117,7 @@ A small but complete piece of the game from `docs/vision.md`. Each step is its o
 - [x] Ring difficulty and elite enemies (golden ring, often leave a chest)
 - [x] Treasure chests (rare from anyone, likely from elites) with a slot-machine roll (gold, upgrades; equipment later)
 - [x] Deeds: exploration milestones (new rings, camps, watchfires, the tower) with small bonuses for good
+- [ ] Varied fight goals (kill N enemies, find the light or the dungeon, ... see `docs/vision.md`)
 - [ ] Herb garden: plant herbs and harvest more of them, growing in real time
 - [ ] One class with a small skill tree
 - [ ] A boss guarding a dungeon or the outer ring

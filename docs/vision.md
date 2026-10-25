@@ -57,6 +57,22 @@ stronger: with a better class build, a growing herb garden and potions for the n
 - Level-ups during a run offer a choice of weapons, items and skill upgrades.
 - Bosses guard dungeons and important places.
 
+## Varied fight goals
+
+Today every hex fight has the same goal: survive N minutes. That should become more varied, so
+that not every fight feels the same. Wanted (the exact plan is still open):
+
+- **Survive** a time (what we have now).
+- **Kill** a number of enemies, or a special target.
+- **Find the light:** locate a watchfire, lantern or beacon in the dark and light it.
+- **Find the dungeon** entrance (or another place) in the area.
+- Perhaps: protect something, gather herbs, defeat an elite or a boss.
+
+Ideas to keep in mind: goals are chosen per hex by the world generator (seeded, so the map stays
+deterministic), shown on the map before you go in, and have different rewards. A goal is a small
+rule set in `config/` plus its check in `logic/`; the fight only reports progress. The first quest
+(light a watchfire) already points in this direction.
+
 ## Herbs
 
 - Herbs **grow in some hexes** (about a third), the map shows which; the others are empty, so
