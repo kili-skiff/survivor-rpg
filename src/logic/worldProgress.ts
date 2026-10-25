@@ -71,7 +71,8 @@ export function isAtHome(progress: WorldProgress): boolean {
 export function travelKind(world: World, progress: WorldProgress, target: Hex): TravelKind {
   const key = hexKey(target);
   const info = world.hexes.get(key);
-  if (!info || key === progress.position) return 'blocked';
+  // The tower's gate is sealed for now: it can be seen and reached, but not entered.
+  if (!info || key === progress.position || info.poi === 'tower') return 'blocked';
   const from = parseHexKey(progress.position);
   // The village and hexes already cleared on this expedition are walked into without a fight.
   if (areNeighbors(from, target)) return info.poi === 'village' || isUsedUp(progress, key) ? 'walk' : 'fight';

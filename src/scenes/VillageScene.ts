@@ -1,12 +1,15 @@
 import * as Phaser from 'phaser';
 import { HERBS } from '../config/herbs';
 import { POTION_IDS, POTION_RULES, POTIONS } from '../config/potions';
+import { TOWER_QUEST, VILLAGERS, type VillagerId } from '../config/quests';
 import type { HerbDef, PotionId } from '../config/types';
 import { grantAllHerbs } from '../logic/dev';
 import { lootCount, type Loot } from '../logic/expedition';
 import { beltCount, brew, packPotion, unpackPotion } from '../logic/potions';
+import { acceptTowerQuest, questsOnArrival, scoutAvailable, talkToScout } from '../logic/quests';
 import { loadSave, safeStorage, writeSave, type SaveData } from '../logic/save';
 import { CauldronPanel } from '../panels/CauldronPanel';
+import { DialoguePanel, type DialoguePanelOptions } from '../panels/DialoguePanel';
 import { isDevMode } from '../ui/dev';
 import { safeArea, viewportSize, type SafeArea } from '../ui/display';
 import { COLORS, css, FONT } from '../ui/theme';
@@ -28,9 +31,9 @@ const HERB_LIST: HerbDef[] = Object.values(HERBS);
 
 /** Heights of the fixed blocks in portrait (before UI scaling) */
 const POTIONS_BLOCK_H = 162;
-const STATIONS_BLOCK_H = 128;
+const STATIONS_BLOCK_H = 186;
 
-type PanelId = 'cauldron';
+type PanelId = 'cauldron' | VillagerId;
 
 /**
  * The village: shows the stash of everything brought home, the potion belt for the next
@@ -43,7 +46,7 @@ export class VillageScene extends Phaser.Scene {
   private sa: SafeArea = { top: 0, right: 0, bottom: 0, left: 0 };
   private objects: Phaser.GameObjects.GameObject[] = [];
   private openPanel: PanelId | null = null;
-  private panel: CauldronPanel | null = null;
+  private panel: CauldronPanel | DialoguePanel | null = null;
 
   constructor() {
     super('Village');
@@ -55,6 +58,14 @@ export class VillageScene extends Phaser.Scene {
 
   create(): void {
     this.save = loadSave(safeStorage());
+    // Coming home (also after falling) is when the elder first has something to say.
+    if (this.data0.arrival) {
+      const quests = questsOnArrival(this.save.quests);
+      if (quests !== this.save.quests) {
+        this.save = { ...this.save, quests };
+        writeSave(safeStorage(), this.save);
+      }
+    }
     this.objects = [];
     this.openPanel = null;
     this.panel = null;
@@ -92,6 +103,49 @@ export class VillageScene extends Phaser.Scene {
   private pack(id: PotionId): void {
     const r = packPotion(this.save.stash, this.save.belt, id);
     if (r) this.commit({ ...this.save, ...r });
+  }
+
+  private acceptQuest(): void {
+    this.commit({ ...this.save, quests: acceptTowerQuest(this.save.quests) });
+  }
+
+  private hearScout(): void {
+    this.commit({ ...this.save, quests: talkToScout(this.save.quests) });
+  }
+
+  /** What a villager says right now, and the buttons below it. */
+  private dialogue(id: VillagerId): DialoguePanelOptions {
+    const v = VILLAGERS[id];
+    const q = this.save.quests;
+    const close = { label: 'Close', onClick: () => this.showPanel(null) };
+    const base = { name: v.name, role: v.role, color: v.color };
+    if (id === 'elder') {
+      if (q.tower === 'offered') {
+        return {
+          ...base,
+          text: TOWER_QUEST.elder.offered,
+          buttons: [
+            { label: 'Not now', onClick: () => this.showPanel(null) },
+            { label: 'I will find it', primary: true, onClick: () => this.acceptQuest() },
+          ],
+        };
+      }
+      return { ...base, text: TOWER_QUEST.elder[q.tower], buttons: [close] };
+    }
+    if (!q.scoutTalked) {
+      return {
+        ...base,
+        text: TOWER_QUEST.scout.first,
+        buttons: [{ label: 'Thanks', primary: true, onClick: () => this.hearScout() }],
+      };
+    }
+    return { ...base, text: TOWER_QUEST.scout.after, buttons: [close] };
+  }
+
+  /** A villager has something new to say. */
+  private hasNews(id: VillagerId): boolean {
+    const q = this.save.quests;
+    return id === 'elder' ? q.tower === 'offered' : scoutAvailable(q) && !q.scoutTalked;
   }
 
   private unpack(id: PotionId): void {
@@ -135,7 +189,9 @@ export class VillageScene extends Phaser.Scene {
 
     const arrival = this.data0.arrival;
     if (arrival) {
-      const t = this.text(left, y, this.describeArrival(arrival), 14, {
+      const news =
+        this.save.quests.tower === 'offered' ? ` ${VILLAGERS.elder.name} wants to speak with you.` : '';
+      const t = this.text(left, y, this.describeArrival(arrival) + news, 14, {
         color: arrival.reason === 'fallen' ? '#fda4af' : '#bbf7d0',
         wordWrap: { width: right - left },
       });
@@ -168,6 +224,12 @@ export class VillageScene extends Phaser.Scene {
         this,
         { width: W, height: H, u, sa: this.sa },
         { stash: this.save.stash, onBrew: (id) => this.brew(id), onClose: () => this.showPanel(null) },
+      );
+    } else if (this.openPanel) {
+      this.panel = new DialoguePanel(
+        this,
+        { width: W, height: H, u, sa: this.sa },
+        this.dialogue(this.openPanel),
       );
     }
   }
@@ -310,7 +372,8 @@ export class VillageScene extends Phaser.Scene {
   private drawStations(x0: number, y0: number, x1: number, maxY: number): void {
     const u = this.u;
     const gap = 10 * u;
-    const h = Phaser.Math.Clamp((maxY - y0 - gap) / 2, 44 * u, 64 * u);
+    const villagersH = 46 * u;
+    const h = Phaser.Math.Clamp((maxY - y0 - gap * 2 - villagersH) / 2, 44 * u, 64 * u);
     const g = this.track(this.add.graphics());
 
     // Cauldron
@@ -335,6 +398,40 @@ export class VillageScene extends Phaser.Scene {
     if (h >= 56 * u) {
       this.text(x0 + 12 * u, y + 30 * u, 'Plant herbs to grow more of them.', 12, { color: '#a1a1aa' });
     }
+
+    // Villagers: tap to talk; a "!" means they have something new to say.
+    y += h + gap;
+    const villagers: VillagerId[] = scoutAvailable(this.save.quests) ? ['elder', 'scout'] : ['elder'];
+    const vw = (x1 - x0 - gap) / 2;
+    villagers.forEach((id, i) => {
+      const v = VILLAGERS[id];
+      const vx = x0 + i * (vw + gap);
+      const news = this.hasNews(id);
+      g.fillStyle(COLORS.panel, 0.95).fillRoundedRect(vx, y, vw, villagersH, 10 * u);
+      g.lineStyle(1.5 * u, news ? v.color : COLORS.panelEdge, 1).strokeRoundedRect(
+        vx,
+        y,
+        vw,
+        villagersH,
+        10 * u,
+      );
+      g.fillStyle(v.color, 0.3).fillCircle(vx + 22 * u, y + villagersH / 2, 12 * u);
+      this.text(vx + 22 * u, y + villagersH / 2, v.name.split(' ').pop()![0], 13, {
+        fontStyle: 'bold',
+        color: css(v.color),
+      }).setOrigin(0.5);
+      this.text(vx + 42 * u, y + villagersH / 2, v.name.split(' ').pop()!, 13, {
+        fontStyle: 'bold',
+      }).setOrigin(0, 0.5);
+      if (news) {
+        g.fillStyle(COLORS.accent, 1).fillCircle(vx + vw - 16 * u, y + villagersH / 2, 10 * u);
+        this.text(vx + vw - 16 * u, y + villagersH / 2, '!', 14, {
+          fontStyle: 'bold',
+          color: '#1c1917',
+        }).setOrigin(0.5);
+      }
+      this.tapZone(vx, y, vw, villagersH, () => this.showPanel(id));
+    });
   }
 
   /** Dev mode only: a small button that adds 5 of every herb to the stash. */

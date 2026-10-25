@@ -70,6 +70,16 @@ stronger: with a better class build, a growing herb garden and potions for the n
 - Later: **professions** (e.g. herbalist) with skills such as faster or uninterruptible gathering.
   The edge arrows could become a herbalist skill too; for now they are on for everyone.
 
+## Endgame: the old tower
+
+- After your first return home, the village elder asks you to find an **old tower** at the edge of
+  the map. Accepting reveals and marks it; a scout points out a **camp close to the village** in the
+  tower's direction as a first stop. Further camps on the way you find yourself.
+- The way there is the incentive to travel far. Standing next to the tower completes the quest;
+  its gate is **sealed for now**.
+- What happens inside is still open: for example ever harder floors as an endless endgame, with
+  bosses, rare rewards, and the highest floor as a measure of progress (fits seasons later).
+
 ## Village
 
 - **Herb garden:** plant herbs found on expeditions to grow more of them.

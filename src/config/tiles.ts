@@ -29,4 +29,5 @@ export const POI_TILES: Partial<Record<PoiId, number>> = {
   village: frame(1, 0),
   merchant: frame(1, 1),
   dungeon: frame(1, 2),
+  tower: frame(4, 7),
 };

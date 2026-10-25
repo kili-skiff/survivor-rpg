@@ -8,7 +8,7 @@ import type { BiomeDef, BiomeId, PoiDef, PoiId } from './types';
 export const SEASON = {
   id: 2,
   seed: 'nightwatch-season-2',
-  generatorVersion: 3,
+  generatorVersion: 4,
 } as const;
 
 export const WORLD = {
@@ -52,4 +52,6 @@ export const POIS: Record<PoiId, PoiDef> = {
   camp: { id: 'camp', name: 'Camp', glyph: 'C', minRing: 1, chance: 0.07, minSpacing: 3 },
   merchant: { id: 'merchant', name: 'Merchant', glyph: 'M', minRing: 2, chance: 0.025, minSpacing: 5 },
   dungeon: { id: 'dungeon', name: 'Dungeon', glyph: 'D', minRing: 3, chance: 0.03, minSpacing: 4 },
+  // Exactly one, in the outermost ring: the goal of the first quest. Its gate is sealed for now.
+  tower: { id: 'tower', name: 'Old Tower', glyph: 'T', minRing: 0, chance: 0, minSpacing: 0 },
 };
