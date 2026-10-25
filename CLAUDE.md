@@ -73,6 +73,8 @@ public/assets/  Art files served as they are (e.g. tiles/hex-tiles.png for the w
     (`Co-Authored-By`), but commit messages and PR descriptions never contain session links.
 12. **Village features are panels:** garden, brewing, merchant and so on each get their own panel
     on top of logic in `logic/`, so the menu village can later become a walkable one (see vision).
+13. **Assets by others:** Only use art, sounds or fonts whose licence allows a public repo and website.
+    Record each one in `CREDITS.md` (author, source, licence) when it is added.
 
 ## Workflow
 

@@ -30,3 +30,8 @@ Then open it in your browser. On a phone in the same Wi-Fi, open the "Network" a
 Where the game is heading: [docs/vision.md](docs/vision.md)
 
 Architecture and conventions: [CLAUDE.md](CLAUDE.md)
+
+## Credits
+
+World map tiles: [Fantasy Hex Tiles](https://cuddlyclover.itch.io/fantasy-hex-tiles) by The Clover Patch,
+licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). See [CREDITS.md](CREDITS.md).

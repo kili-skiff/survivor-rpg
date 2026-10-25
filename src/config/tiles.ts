@@ -1,6 +1,6 @@
 import type { BiomeId, PoiId } from './types';
 
-// Hex tile art for the world map (flat-top hexes, pixel art).
+// Hex tile art for the world map (flat-top hexes, pixel art). Source and licence: see CREDITS.md.
 // The sheet is a grid of 8 columns; frame = row * 8 + column.
 export const TILESET = {
   key: 'hex-tiles',
