@@ -3,12 +3,15 @@ import { HERBS } from '../config/herbs';
 import { POTION_IDS, POTION_RULES, POTIONS } from '../config/potions';
 import { TOWER_QUEST, VILLAGERS, type VillagerId } from '../config/quests';
 import type { HerbDef, PotionId } from '../config/types';
-import { grantAllHerbs } from '../dev/devLogic'; // DEV:
+import { grantTestLoot } from '../dev/devLogic'; // DEV:
 import { lootCount, type Loot } from '../logic/expedition';
 import { beltCount, brew, packPotion, unpackPotion } from '../logic/potions';
 import { acceptTowerQuest, questsOnArrival, scoutAvailable, talkToScout } from '../logic/quests';
 import { emptySave, loadSave, safeStorage, writeSave, type SaveData } from '../logic/save';
 import { CauldronPanel } from '../panels/CauldronPanel';
+import { MerchantPanel } from '../panels/MerchantPanel';
+import { buyLantern, buyRecipe, goldOf, sellHerb } from '../logic/merchant';
+import { GOLD_KEY } from '../config/merchant';
 import { DialoguePanel, type DialoguePanelOptions } from '../panels/DialoguePanel';
 import { devButtonStyle, isDevMode } from '../dev/devMode'; // DEV:
 import { safeArea, viewportSize, type SafeArea } from '../ui/display';
@@ -33,7 +36,7 @@ const HERB_LIST: HerbDef[] = Object.values(HERBS);
 const POTIONS_BLOCK_H = 162;
 const STATIONS_BLOCK_H = 186;
 
-type PanelId = 'cauldron' | VillagerId;
+type PanelId = 'cauldron' | 'merchant' | VillagerId;
 
 /**
  * The village: shows the stash of everything brought home, the potion belt for the next
@@ -46,7 +49,7 @@ export class VillageScene extends Phaser.Scene {
   private sa: SafeArea = { top: 0, right: 0, bottom: 0, left: 0 };
   private objects: Phaser.GameObjects.GameObject[] = [];
   private openPanel: PanelId | null = null;
-  private panel: CauldronPanel | DialoguePanel | null = null;
+  private panel: CauldronPanel | MerchantPanel | DialoguePanel | null = null;
 
   constructor() {
     super('Village');
@@ -96,6 +99,7 @@ export class VillageScene extends Phaser.Scene {
   }
 
   private brew(id: PotionId): void {
+    if (!this.save.recipes.includes(id)) return;
     const stash = brew(this.save.stash, id);
     if (stash) this.commit({ ...this.save, stash });
   }
@@ -187,8 +191,12 @@ export class VillageScene extends Phaser.Scene {
       else this.devResetButton(right, y + 40 * u);
     }
     y += 34 * u;
-    this.text(left, y, `${plural(this.save.segmentsCleared, 'area')} cleared`, 12, {
+    const sub = this.text(left, y, `${plural(this.save.segmentsCleared, 'area')} cleared · `, 12, {
       color: '#a1a1aa',
+    });
+    this.text(left + sub.width, y, `${goldOf(this.save.stash)} gold`, 12, {
+      color: '#fde047',
+      fontStyle: 'bold',
     });
     y += 28 * u;
 
@@ -228,7 +236,35 @@ export class VillageScene extends Phaser.Scene {
       this.panel = new CauldronPanel(
         this,
         { width: W, height: H, u, sa: this.sa },
-        { stash: this.save.stash, onBrew: (id) => this.brew(id), onClose: () => this.showPanel(null) },
+        {
+          stash: this.save.stash,
+          known: this.save.recipes,
+          onBrew: (id) => this.brew(id),
+          onClose: () => this.showPanel(null),
+        },
+      );
+    } else if (this.openPanel === 'merchant') {
+      this.panel = new MerchantPanel(
+        this,
+        { width: W, height: H, u, sa: this.sa },
+        {
+          stash: this.save.stash,
+          lanternLevel: this.save.lanternLevel,
+          recipes: this.save.recipes,
+          onBuyLantern: () => {
+            const r = buyLantern(this.save.stash, this.save.lanternLevel);
+            if (r) this.commit({ ...this.save, stash: r.stash, lanternLevel: r.level });
+          },
+          onBuyRecipe: (id) => {
+            const r = buyRecipe(this.save.stash, this.save.recipes, id);
+            if (r) this.commit({ ...this.save, stash: r.stash, recipes: r.recipes });
+          },
+          onSellHerb: (id) => {
+            const stash = sellHerb(this.save.stash, id);
+            if (stash) this.commit({ ...this.save, stash });
+          },
+          onClose: () => this.showPanel(null),
+        },
       );
     } else if (this.openPanel) {
       this.panel = new DialoguePanel(
@@ -242,7 +278,9 @@ export class VillageScene extends Phaser.Scene {
   private describeArrival(a: NonNullable<VillageSceneData['arrival']>): string {
     const list = (loot: Loot) =>
       Object.entries(loot)
-        .map(([id, n]) => `${n} ${HERBS[id as keyof typeof HERBS]?.name ?? id}`)
+        .map(([id, n]) =>
+          id === GOLD_KEY ? `${n} gold` : `${n} ${HERBS[id as keyof typeof HERBS]?.name ?? id}`,
+        )
         .join(', ');
     if (a.reason === 'fallen') {
       const kept = lootCount(a.kept) > 0 ? `You saved ${list(a.kept)}.` : 'You saved nothing.';
@@ -381,19 +419,27 @@ export class VillageScene extends Phaser.Scene {
     const h = Phaser.Math.Clamp((maxY - y0 - gap * 2 - villagersH) / 2, 44 * u, 64 * u);
     const g = this.track(this.add.graphics());
 
-    // Cauldron
+    // Cauldron and merchant side by side
     let y = y0;
-    g.fillStyle(COLORS.panel, 0.95).fillRoundedRect(x0, y, x1 - x0, h, 10 * u);
-    g.lineStyle(1.5 * u, COLORS.accent, 0.9).strokeRoundedRect(x0, y, x1 - x0, h, 10 * u);
-    this.text(x0 + 12 * u, y + 10 * u, 'Cauldron', 14, { fontStyle: 'bold' });
-    this.text(x1 - 12 * u, y + 10 * u, 'Open ›', 12, {
-      fontStyle: 'bold',
-      color: css(COLORS.accent),
-    }).setOrigin(1, 0);
-    if (h >= 56 * u) {
-      this.text(x0 + 12 * u, y + 30 * u, 'Brew potions from your herbs.', 12, { color: '#a1a1aa' });
-    }
-    this.tapZone(x0, y, x1 - x0, h, () => this.showPanel('cauldron'));
+    const half = (x1 - x0 - gap) / 2;
+    const station = (sx: number, title: string, text: string, panel: PanelId) => {
+      g.fillStyle(COLORS.panel, 0.95).fillRoundedRect(sx, y, half, h, 10 * u);
+      g.lineStyle(1.5 * u, COLORS.accent, 0.9).strokeRoundedRect(sx, y, half, h, 10 * u);
+      this.text(sx + 12 * u, y + 10 * u, title, 14, { fontStyle: 'bold' });
+      this.text(sx + half - 12 * u, y + 10 * u, '›', 16, {
+        fontStyle: 'bold',
+        color: css(COLORS.accent),
+      }).setOrigin(1, 0);
+      if (h >= 56 * u) {
+        this.text(sx + 12 * u, y + 30 * u, text, 11, {
+          color: '#a1a1aa',
+          wordWrap: { width: half - 24 * u },
+        });
+      }
+      this.tapZone(sx, y, half, h, () => this.showPanel(panel));
+    };
+    station(x0, 'Cauldron', 'Brew potions.', 'cauldron');
+    station(x0 + half + gap, 'Merchant', 'Lanterns, recipes, gold.', 'merchant');
 
     // Herb garden: next step
     y += h + gap;
@@ -462,11 +508,11 @@ export class VillageScene extends Phaser.Scene {
     });
   }
 
-  // DEV: a small button that adds 5 of every herb to the stash.
+  // DEV: a small button that adds 5 of every herb and 50 gold to the stash.
   private devButton(x: number, y: number): Phaser.GameObjects.Text {
-    const t = this.text(x, y, 'DEV  +5 herbs', 12, devButtonStyle(this.u)).setOrigin(1, 0);
+    const t = this.text(x, y, 'DEV  +herbs +gold', 12, devButtonStyle(this.u)).setOrigin(1, 0);
     t.setInteractive({ useHandCursor: true }).on('pointerup', () =>
-      this.commit({ ...this.save, stash: grantAllHerbs(this.save.stash, 5) }),
+      this.commit({ ...this.save, stash: grantTestLoot(this.save.stash, 5, 50) }),
     );
     return t;
   }

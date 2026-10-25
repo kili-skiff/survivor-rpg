@@ -16,7 +16,9 @@ import type { Enemy } from '../entities/Enemy';
 import type { Pickup } from '../entities/Pickup';
 import { InputState } from '../input/InputState';
 import { addXp } from '../logic/progression';
-import { lootGained } from '../logic/expedition';
+import { addLoot, lootGained } from '../logic/expedition';
+import { GOLD, GOLD_KEY } from '../config/merchant';
+import { goldPerDrop, lanternMultiplier } from '../logic/merchant';
 import type { ExpeditionBuild } from '../logic/expedition';
 import { parseHexKey } from '../logic/hex';
 import { planHerbBlooms } from '../logic/herbs';
@@ -69,6 +71,8 @@ export interface RunState {
   level: number;
   xp: number;
   kills: number;
+  /** Gold picked up in this fight */
+  gold: number;
   /** Herbs gathered in this fight */
   herbsGathered: number;
   herbsTotal: number;
@@ -83,6 +87,7 @@ export interface RunEndInfo {
   time: number;
   level: number;
   kills: number;
+  gold: number;
   herbsGathered: number;
   herbsTotal: number;
   save: SaveData;
@@ -109,6 +114,10 @@ export class GameScene extends Phaser.Scene {
   private numbers!: DamageNumbers;
   private herbs!: HerbSystem;
   private potions!: PotionSystem;
+  /** Ring of this fight's hex (1 for fights outside the map) */
+  private ring = 1;
+  /** Lantern tiers bought from the merchant: a bigger light, for good */
+  private lanternLevel = 0;
   private lighting!: LightingSystem;
   private ground!: Phaser.GameObjects.TileSprite;
 
@@ -168,11 +177,13 @@ export class GameScene extends Phaser.Scene {
 
     const hexInfo = this.hexKey ? seasonWorld().hexes.get(this.hexKey) : undefined;
     const segment = hexInfo ? segmentForHex(hexInfo) : DEFAULT_SEGMENT;
+    this.ring = hexInfo?.ring ?? 1;
     this.ground.setTint(segment.groundTint);
 
     // On an expedition the character keeps its build from the previous hex.
     const saved = loadSave(safeStorage());
     const build = this.hexKey ? currentBuild(saved) : null;
+    this.lanternLevel = saved.lanternLevel;
     this.potions = new PotionSystem(saved.belt, now);
     const loadout = build?.loadout ?? createStartLoadout(START_WEAPON);
     const stats = computePlayerStats(loadout);
@@ -186,6 +197,7 @@ export class GameScene extends Phaser.Scene {
       level: build?.level ?? 1,
       xp: build?.xp ?? 0,
       kills: 0,
+      gold: 0,
       herbsGathered: 0,
       herbsTotal: 0,
       loadout,
@@ -387,6 +399,7 @@ export class GameScene extends Phaser.Scene {
   private refreshStats(): void {
     const prevMax = this.run.stats.maxHp;
     this.run.stats = applyBuffs(computePlayerStats(this.run.loadout), this.potions.active);
+    this.run.stats.light *= lanternMultiplier(this.lanternLevel);
     if (this.devGodMode()) this.run.stats = godModeStats(this.run.stats); // DEV:
     this.lighting?.setRadiusScale(this.run.stats.light);
     if (this.run.stats.maxHp > prevMax) this.run.hp += this.run.stats.maxHp - prevMax;
@@ -477,9 +490,15 @@ export class GameScene extends Phaser.Scene {
     this.run.kills += 1;
     if (Math.random() < BALANCE.healDropChance) this.pickups.drop(e.x, e.y, 'heal', BALANCE.healAmount);
     else this.pickups.drop(e.x, e.y, 'xp', e.def.xp);
+    if (Math.random() < GOLD.dropChance) this.pickups.drop(e.x + 8, e.y - 6, 'gold', goldPerDrop(this.ring));
   }
 
   private onPickup(p: Pickup): void {
+    if (p.kind === 'gold') {
+      this.run.gold += p.value;
+      this.numbers.show(this.player.x, this.player.y - 26, `+${p.value} gold`, '#fde047', true);
+      return;
+    }
     if (p.kind === 'heal') {
       this.heal(p.value);
       this.numbers.show(this.player.x, this.player.y - 24, `+${p.value}`, '#4ade80', true);
@@ -533,7 +552,7 @@ export class GameScene extends Phaser.Scene {
         parseHexKey(this.hexKey),
         outcome,
         build,
-        this.herbs.loot,
+        this.run.gold > 0 ? addLoot(this.herbs.loot, { [GOLD_KEY]: this.run.gold }) : this.herbs.loot,
       );
       finalSave = result.save;
       report = result.report;
@@ -549,6 +568,7 @@ export class GameScene extends Phaser.Scene {
       time,
       level: this.run.level,
       kills: this.run.kills,
+      gold: this.run.gold,
       herbsGathered: this.herbs.gatheredCount,
       herbsTotal: this.herbs.totalCount,
       save: finalSave,

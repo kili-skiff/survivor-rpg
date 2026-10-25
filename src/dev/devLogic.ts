@@ -1,6 +1,7 @@
 // Dev-only game logic (no Phaser, tested). See devMode.ts for how to remove dev tools.
 
 import { HERBS } from '../config/herbs';
+import { GOLD_KEY } from '../config/merchant';
 import type { PlayerStats } from '../config/types';
 import { addLoot, type Loot } from '../logic/expedition';
 import { hexDistance, hexKey, hexNeighbors, ORIGIN, type Hex } from '../logic/hex';
@@ -8,9 +9,9 @@ import type { SaveData } from '../logic/save';
 import type { World } from '../logic/worldgen';
 import { isLit, walkTo } from '../logic/worldProgress';
 
-/** Adds `amount` of every herb to the stash. */
-export function grantAllHerbs(stash: Loot, amount: number): Loot {
-  const gift: Loot = {};
+/** Adds `amount` of every herb and `gold` gold to the stash. */
+export function grantTestLoot(stash: Loot, amount: number, gold: number): Loot {
+  const gift: Loot = { [GOLD_KEY]: gold };
   for (const id of Object.keys(HERBS)) gift[id] = amount;
   return addLoot(stash, gift);
 }

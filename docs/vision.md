@@ -119,10 +119,14 @@ up one by one.
   - a herb witch's hut in the mire: rare potion recipes
   - a crypt of fallen guardians in the graveyard: a boss and the first equipment
   - a trading post or second village far out: a better merchant, selling loot, a far waypoint
-- **Gold:** rare and slow, the long-term currency. Dropped rarely in fights; herbs, ores and items
-  can be sold for it. Part of the expedition loot (half lost on death).
-- **Merchant:** sells lantern upgrades, potion recipes (start with one recipe, buy the others),
-  later seeds or maps. Merchant points of interest on the map sell rarer goods.
+- **Gold** (built): rare and slow, the long-term currency. Dropped rarely in fights (later mostly by
+  elites and chests); herbs, ores and items can be sold for it. Part of the expedition loot (half lost
+  on death).
+- **Merchant** (built, village): three lantern tiers (+20% light each, for good), potion recipes
+  (start with the healing potion, buy the others), buys herbs. Later maybe seeds or maps; merchant
+  points of interest on the map could sell rarer goods.
+- **Treasure chest** (next): elites drop a chest that rolls its rewards like a slot machine: gold
+  and upgrades, later also equipment you keep (e.g. armour).
 - **Lantern and light radius:** a better lantern means a bigger light radius in fights. For now
   light is only visual (see Look and feel); later it could matter for gameplay.
 - **Mining and blacksmith:** ore veins in some hexes by biome, gathered like herbs; the smith turns
