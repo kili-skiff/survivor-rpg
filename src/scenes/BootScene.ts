@@ -110,10 +110,12 @@ export class BootScene extends Phaser.Scene {
 
     // Enemies
     make('enemy-bat', 30, 22, (g) => {
-      // Until bats have a sprite: dark wings and red eyes, to fit the night.
-      g.fillStyle(0x2a2430).fillTriangle(15, 11, 1, 3, 6, 17).fillTriangle(15, 11, 29, 3, 24, 17);
-      g.fillStyle(0x3d3444).fillCircle(15, 11, 7);
-      g.fillStyle(0xef4444).fillCircle(12.5, 10, 1.6).fillCircle(17.5, 10, 1.6);
+      // Until bats have a sprite: purple wings with a light rim, so they stand out on dark ground.
+      g.fillStyle(0x6b5683).fillTriangle(15, 11, 1, 3, 6, 17).fillTriangle(15, 11, 29, 3, 24, 17);
+      g.lineStyle(1.5, 0xc4b0dc).strokeTriangle(15, 11, 1, 3, 6, 17).strokeTriangle(15, 11, 29, 3, 24, 17);
+      g.fillStyle(0x8a72a6).fillCircle(15, 11, 7);
+      g.lineStyle(1.5, 0xc4b0dc).strokeCircle(15, 11, 7);
+      g.fillStyle(0xef4444).fillCircle(12.5, 10, 1.8).fillCircle(17.5, 10, 1.8);
     });
     make('enemy-zombie', 30, 30, (g) => {
       g.fillStyle(0x4d7c0f).fillCircle(15, 15, 13);
