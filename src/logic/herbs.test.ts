@@ -7,6 +7,7 @@ import {
   bloomPosition,
   commonHerbFor,
   herbCountForRing,
+  herbForecast,
   planHerbBlooms,
   progressAfterHit,
 } from './herbs';
@@ -81,5 +82,17 @@ describe('herbs', () => {
     expect(advanceGather(p, false, 0.1)).toBe(0);
     expect(advanceGather(p, true, HERB_RULES.gatherSec)).toBe(1);
     expect(progressAfterHit(0.8)).toBeCloseTo(0.8 * HERB_RULES.progressKeptOnHit);
+  });
+});
+
+describe('herb forecast', () => {
+  it('names the biome herb, the count and rare herbs from the rare ring on', () => {
+    const near = herbForecast('graveyard', 1);
+    expect(near.common.id).toBe('gravemoss');
+    expect(near.count).toBe(herbCountForRing(1));
+    expect(near.rare).toEqual([]);
+    const far = herbForecast('meadow', HERB_RULES.rareMinRing);
+    expect(far.common.id).toBe('moonbloom');
+    expect(far.rare.map((h) => h.id)).toContain('starlily');
   });
 });

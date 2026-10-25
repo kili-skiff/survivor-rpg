@@ -1,5 +1,6 @@
 import * as Phaser from 'phaser';
 import { BIOMES, POIS, SEASON } from '../config/world';
+import { herbForecast } from '../logic/herbs';
 import { hexEquals, hexKey, hexToPixel, parseHexKey, pixelToHex, type Hex } from '../logic/hex';
 import { formatTime } from '../logic/progression';
 import { loadSave, safeStorage, writeSave, type SaveData } from '../logic/save';
@@ -41,6 +42,8 @@ export class WorldMapScene extends Phaser.Scene {
   private selected: Hex | null = null;
   private map!: Phaser.GameObjects.Graphics;
   private poiLabels: { hex: WorldHex; text: Phaser.GameObjects.Text }[] = [];
+  /** A small herb in each hex that shows which herb grows there */
+  private herbIcons: { hex: WorldHex; icon: Phaser.GameObjects.Image }[] = [];
   private marker!: Phaser.GameObjects.Image;
   private hud: Phaser.GameObjects.GameObject[] = [];
   private drag: DragState | null = null;
@@ -61,6 +64,7 @@ export class WorldMapScene extends Phaser.Scene {
     this.save = loadSave(safeStorage());
     this.selected = null;
     this.poiLabels = [];
+    this.herbIcons = [];
     this.hud = [];
     this.drag = null;
 
@@ -79,6 +83,14 @@ export class WorldMapScene extends Phaser.Scene {
         .setOrigin(0.5)
         .setDepth(2);
       this.poiLabels.push({ hex: h, text });
+    }
+    for (const h of this.world.hexes.values()) {
+      if (h.poi === 'village') continue;
+      const icon = this.add
+        .image(0, 0, 'herb')
+        .setTint(herbForecast(h.biome, h.ring).common.color)
+        .setDepth(1);
+      this.herbIcons.push({ hex: h, icon });
     }
     this.marker = this.add.image(0, 0, 'player').setDepth(3);
 
@@ -121,11 +133,16 @@ export class WorldMapScene extends Phaser.Scene {
     this.hexSize = 30 * this.u;
     this.headerH = this.sa.top + 64 * this.u;
     // In landscape the button sits beside the text, so the panel can be much shorter.
-    this.panelH = this.sa.bottom + (this.isWide() ? 96 : 150) * this.u;
+    this.panelH = this.sa.bottom + (this.isWide() ? 112 : 172) * this.u;
 
     for (const { hex, text } of this.poiLabels) {
       const p = hexToPixel(hex.hex, this.hexSize);
       text.setPosition(p.x, p.y).setFontSize(Math.round(15 * this.u));
+    }
+    for (const { hex, icon } of this.herbIcons) {
+      const p = hexToPixel(hex.hex, this.hexSize);
+      // Bottom of the hex, so it does not cover point-of-interest glyphs or the player.
+      icon.setPosition(p.x, p.y + this.hexSize * 0.5).setDisplaySize(11 * this.u, 12 * this.u);
     }
     this.marker.setScale(1.1 * this.u);
     this.buildHud();
@@ -180,6 +197,7 @@ export class WorldMapScene extends Phaser.Scene {
       g.strokePath();
     }
 
+    for (const { hex, icon } of this.herbIcons) icon.setVisible(isDiscovered(progress, hex.key));
     for (const { hex, text } of this.poiLabels) {
       text.setVisible(this.isVisible(hex.key));
       text.setColor(progress.waypoints.includes(hex.key) ? css(COLORS.accent) : '#ffffff');
@@ -261,17 +279,25 @@ export class WorldMapScene extends Phaser.Scene {
     panel.lineStyle(2 * u, COLORS.panelEdge, 1).lineBetween(0, panelY, W, panelY);
 
     const info = this.describeSelection();
+    const textW = this.isWide() ? W - left - 280 * u : W - left * 2;
     this.text(left, panelY + 16 * u, info.title, 18, { fontStyle: 'bold' });
-    this.text(left, panelY + 44 * u, info.detail, 13, {
+    const detail = this.text(left, panelY + 44 * u, info.detail, 13, {
       color: '#c4c0cf',
-      wordWrap: { width: this.isWide() ? W - left - 280 * u : W - left * 2 },
+      wordWrap: { width: textW },
     });
+    if (info.herbs) {
+      this.text(left, detail.y + detail.height + 6 * u, info.herbs.text, 13, {
+        fontStyle: 'bold',
+        color: css(info.herbs.color),
+        wordWrap: { width: textW },
+      });
+    }
     if (info.action) {
       if (this.isWide()) {
         const right = W - this.sa.right - 16 * u;
-        this.button(right - 110 * u, panelY + 48 * u, info.action.label, info.action.run);
+        this.button(right - 110 * u, panelY + 52 * u, info.action.label, info.action.run);
       } else {
-        this.button(W / 2, panelY + 104 * u, info.action.label, info.action.run);
+        this.button(W / 2, panelY + 126 * u, info.action.label, info.action.run);
       }
     }
   }
@@ -309,6 +335,8 @@ export class WorldMapScene extends Phaser.Scene {
   private describeSelection(): {
     title: string;
     detail: string;
+    /** Which herbs grow in the selected hex */
+    herbs?: { text: string; color: number };
     action?: { label: string; run: () => void };
   } {
     const progress = this.save.world;
@@ -332,6 +360,13 @@ export class WorldMapScene extends Phaser.Scene {
     if (!h || !this.isVisible(key)) {
       return { title: 'Unknown land', detail: 'Explore further to reveal what lies here.' };
     }
+    const forecast = herbForecast(h.biome, h.ring);
+    const herbs = {
+      text:
+        `Herbs: ${forecast.count} ${forecast.common.name}` +
+        (forecast.rare.length > 0 ? ` · rare ${forecast.rare.map((r) => r.name).join(', ')} possible` : ''),
+      color: forecast.common.color,
+    };
     const kind: TravelKind = travelKind(this.world, progress, this.selected);
     const here = hexEquals(this.selected, parseHexKey(progress.position));
     if (h.poi === 'village') {
@@ -355,6 +390,7 @@ export class WorldMapScene extends Phaser.Scene {
       return {
         title: `${BIOMES[h.biome].name} · Camp`,
         detail: `Waypoint · Ring ${h.ring}. Travel here to start a new expedition from this camp.`,
+        herbs,
         action: { label: 'Travel here', run: () => this.teleport(h.hex) },
       };
     }
@@ -362,6 +398,7 @@ export class WorldMapScene extends Phaser.Scene {
       return {
         title: `${BIOMES[h.biome].name} · Camp`,
         detail: 'A safe camp. Move on, or go home and keep your loot.',
+        herbs,
         action: { label: 'Return to village', run: () => this.teleport({ q: 0, r: 0 }) },
       };
     }
@@ -376,6 +413,7 @@ export class WorldMapScene extends Phaser.Scene {
       title: `${BIOMES[h.biome].name}${poi}`,
       detail:
         `Ring ${h.ring} · Survive ${formatTime(seg.durationSec)}${isCleared(progress, key) ? ' · cleared before' : ''}\n${status}`.trim(),
+      herbs,
       action: kind === 'fight' ? { label: 'Enter area', run: () => this.fight(h.hex) } : undefined,
     };
   }

@@ -86,3 +86,19 @@ export function advanceGather(progress: number, inRange: boolean, dt: number): n
 export function progressAfterHit(progress: number): number {
   return progress * HERB_RULES.progressKeptOnHit;
 }
+
+/** What can be found in a hex, for the world map: the common herb, how many bloom, and rare herbs. */
+export interface HerbForecast {
+  common: HerbDef;
+  count: number;
+  /** Rare herbs that may bloom instead of a common one (empty before `rareMinRing`) */
+  rare: HerbDef[];
+}
+
+export function herbForecast(biome: BiomeId, ring: number): HerbForecast {
+  return {
+    common: commonHerbFor(biome),
+    count: herbCountForRing(ring),
+    rare: ring >= HERB_RULES.rareMinRing ? RARE_HERBS : [],
+  };
+}
