@@ -25,11 +25,13 @@ export const WORLD = {
   /** Ring range for the centres of the outer regions */
   outerRegionRingMin: 6,
   outerRegionRingMax: 8,
-  /** Segment duration in ring 1 (seconds) */
-  baseDurationSec: 90,
+  /** Segment duration in ring 1 (seconds). Short, so travelling near home is quick. */
+  baseDurationSec: 45,
   /** Extra seconds per ring further out */
-  durationPerRingSec: 20,
-  maxDurationSec: 210,
+  durationPerRingSec: 15,
+  maxDurationSec: 150,
+  /** The countdown turns into a warning colour for the last N seconds */
+  warningSec: 10,
   /** How many seconds "later" the enemy mix starts per ring (harder enemies appear sooner) */
   difficultyOffsetPerRingSec: 30,
 } as const;
