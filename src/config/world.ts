@@ -15,6 +15,10 @@ export const SEASON = {
 export const WORLD = {
   /** Number of rings around the village */
   radius: 8,
+  /** Share of hexes where herbs grow; the others are empty, so finding herbs stays rewarding */
+  herbHexShare: 0.3,
+  /** Points of interest never stand next to each other: minimum distance between any two */
+  poiMinGap: 2,
   /**
    * Inner biome regions: one per biome, spread evenly around the village with their centre in
    * this ring, so every biome (and its herb) can be reached early.
@@ -25,10 +29,6 @@ export const WORLD = {
   /** Ring range for the centres of the outer regions */
   outerRegionRingMin: 6,
   outerRegionRingMax: 8,
-  /** Share of hexes where herbs grow; the others are empty, so finding herbs stays rewarding */
-  herbHexShare: 0.3,
-  /** Points of interest never stand next to each other: minimum distance between any two */
-  poiMinGap: 2,
   /** Segment duration in ring 1 (seconds) */
   baseDurationSec: 90,
   /** Extra seconds per ring further out */
