@@ -107,6 +107,7 @@ A small but complete piece of the game from `docs/vision.md`. Each step is its o
 ### Later
 
 - [ ] Inside the tower: endgame mechanics still open (e.g. ever harder floors)
+- [ ] Bigger map with exciting places in every direction, not only on the way to the tower
 - [ ] Richer expedition panel on the map: health bar and the collected weapons, items and skills
 - [ ] Professions (e.g. herbalist) with skills such as faster gathering
 - [ ] Walkable village: house, garden, cauldron, merchant, blacksmith as places to walk to

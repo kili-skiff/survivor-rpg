@@ -31,10 +31,22 @@ const FOG_EDGE = 0x2b2638;
 const VILLAGE_FILL = 0x8a6a2a;
 /** Pointer movement (in CSS px) after which a touch counts as dragging the map */
 const DRAG_THRESHOLD = 8;
+/** Map zoom limits (1 = default size) */
+const MIN_ZOOM = 0.5;
+const MAX_ZOOM = 2.5;
 /** Darkens hexes cleared on this expedition */
 const USED_TINT = 0x4d4d57;
 /** Ring and pin colour for quest goals on the map */
 const QUEST_COLOR = 0xc084fc;
+
+/** Two fingers on the map: zoom by their distance, pan by their midpoint. */
+interface PinchState {
+  startDistance: number;
+  startZoom: number;
+  /** World point that stays under the fingers' midpoint */
+  worldX: number;
+  worldY: number;
+}
 
 interface DragState {
   id: number;
@@ -70,6 +82,11 @@ export class WorldMapScene extends Phaser.Scene {
   private marker!: Phaser.GameObjects.Image;
   private hud: Phaser.GameObjects.GameObject[] = [];
   private drag: DragState | null = null;
+  /** Touch points on the map by pointer id, for two-finger zoom */
+  private touches = new Map<number, { x: number; y: number }>();
+  private pinch: PinchState | null = null;
+  /** Draws the header, panel and edge arrows, which must not zoom with the map */
+  private hudCam!: Phaser.Cameras.Scene2D.Camera;
   private u = 1;
   private rs = 1;
   private sa: SafeArea = { top: 0, right: 0, bottom: 0, left: 0 };
@@ -91,11 +108,15 @@ export class WorldMapScene extends Phaser.Scene {
     this.tiles = [];
     this.hud = [];
     this.drag = null;
+    this.touches = new Map();
+    this.pinch = null;
 
     this.cameras.main.setBackgroundColor(COLORS.bg);
     this.map = this.add.graphics().setDepth(-1);
     this.outlines = this.add.graphics().setDepth(0.5);
+    this.hudCam = this.cameras.add(0, 0, this.scale.width, this.scale.height);
     this.questArrows = this.add.graphics().setDepth(9).setScrollFactor(0);
+    this.cameras.main.ignore(this.questArrows);
     if (this.textures.exists(TILESET.key)) {
       // Back to front, so trees and mountains overlap the hexes behind them.
       const byRow = [...this.world.hexes.values()].sort(
@@ -132,6 +153,18 @@ export class WorldMapScene extends Phaser.Scene {
       this.herbIcons.push({ hex: h, icon });
     }
     this.marker = this.add.image(0, 0, 'player').setDepth(3);
+    // Everything so far belongs to the map; the HUD camera only draws the HUD.
+    this.hudCam.ignore([
+      this.map,
+      this.outlines,
+      this.marker,
+      ...this.tiles.map((t) => t.image),
+      ...this.poiLabels.map((l) => l.text),
+      ...this.herbIcons.map((h) => h.icon),
+    ]);
+    this.cameras.main.setZoom(
+      Phaser.Math.Clamp((this.registry.get('mapZoom') as number) ?? 1, MIN_ZOOM, MAX_ZOOM),
+    );
 
     this.setupInput();
     this.layout();
@@ -161,6 +194,7 @@ export class WorldMapScene extends Phaser.Scene {
   private layout(): void {
     const { width: W, height: H } = this.scale;
     this.cameras.main.setSize(W, H);
+    this.hudCam.setSize(W, H);
     const cssSize = viewportSize();
     this.rs = W / cssSize.width;
     this.u = this.rs * Phaser.Math.Clamp(Math.min(cssSize.width, cssSize.height) / 400, 0.85, 1.25);
@@ -206,7 +240,42 @@ export class WorldMapScene extends Phaser.Scene {
   /** Centres the camera on a hex, inside the area between header and panel. */
   private centerOn(hex: Hex): void {
     const p = hexToPixelFlat(hex, this.hexSize);
-    this.cameras.main.centerOn(p.x, p.y + (this.panelH - this.headerH) / 2);
+    const cam = this.cameras.main;
+    cam.centerOn(p.x, p.y + (this.panelH - this.headerH) / 2 / cam.zoom);
+  }
+
+  /** The world point under a screen point (independent of when the camera matrix updates). */
+  private screenToWorld(sx: number, sy: number): { x: number; y: number } {
+    const cam = this.cameras.main;
+    return {
+      x: cam.scrollX + cam.width / 2 + (sx - cam.width / 2) / cam.zoom,
+      y: cam.scrollY + cam.height / 2 + (sy - cam.height / 2) / cam.zoom,
+    };
+  }
+
+  private worldToScreen(wx: number, wy: number): { x: number; y: number } {
+    const cam = this.cameras.main;
+    return {
+      x: (wx - cam.scrollX - cam.width / 2) * cam.zoom + cam.width / 2,
+      y: (wy - cam.scrollY - cam.height / 2) * cam.zoom + cam.height / 2,
+    };
+  }
+
+  /** Zooms so that the world point (wx, wy) ends up under the screen point (sx, sy). */
+  private zoomTo(zoom: number, wx: number, wy: number, sx: number, sy: number): void {
+    const cam = this.cameras.main;
+    const z = Phaser.Math.Clamp(zoom, MIN_ZOOM, MAX_ZOOM);
+    cam.setZoom(z);
+    cam.setScroll(
+      wx - cam.width / 2 - (sx - cam.width / 2) / z,
+      wy - cam.height / 2 - (sy - cam.height / 2) / z,
+    );
+    this.registry.set('mapZoom', z);
+  }
+
+  /** Whether a screen point is on the map (not on the header or the bottom panel). */
+  private onMapArea(y: number): boolean {
+    return y >= this.headerH && y <= this.scale.height - this.panelH;
   }
 
   // ---------------------------------------------------------------- drawing
@@ -290,7 +359,6 @@ export class WorldMapScene extends Phaser.Scene {
     const g = this.questArrows;
     g.clear();
     const u = this.u;
-    const cam = this.cameras.main;
     const { width: W, height: H } = this.scale;
     const inset = 26 * u;
     const left = this.sa.left + inset;
@@ -301,8 +369,7 @@ export class WorldMapScene extends Phaser.Scene {
     const cy = (top + bottom) / 2;
     for (const key of questMarked(this.save.quests, this.world, this.save.world)) {
       const p = hexToPixelFlat(parseHexKey(key), this.hexSize);
-      const sx = p.x - cam.scrollX;
-      const sy = p.y - cam.scrollY;
+      const { x: sx, y: sy } = this.worldToScreen(p.x, p.y);
       if (sx >= left && sx <= right && sy >= top && sy <= bottom) continue;
       const angle = Math.atan2(sy - cy, sx - cx);
       const dx = Math.cos(angle);
@@ -369,6 +436,7 @@ export class WorldMapScene extends Phaser.Scene {
     o: T,
   ): T {
     o.setScrollFactor(0);
+    this.cameras.main.ignore(o);
     this.hud.push(o);
     return o;
   }
@@ -627,7 +695,12 @@ export class WorldMapScene extends Phaser.Scene {
 
   private setupInput(): void {
     this.input.on('pointerdown', (p: Phaser.Input.Pointer, over: Phaser.GameObjects.GameObject[]) => {
-      if (over.length > 0 || this.drag) return;
+      if (over.length > 0) return;
+      if (p.wasTouch && this.onMapArea(p.y)) {
+        this.touches.set(p.id, { x: p.x, y: p.y });
+        if (this.touches.size === 2) this.startPinch();
+      }
+      if (this.drag || this.pinch) return;
       const cam = this.cameras.main;
       this.drag = {
         id: p.id,
@@ -639,12 +712,37 @@ export class WorldMapScene extends Phaser.Scene {
       };
     });
     this.input.on('pointermove', (p: Phaser.Input.Pointer) => {
+      if (this.touches.has(p.id)) {
+        this.touches.set(p.id, { x: p.x, y: p.y });
+        if (this.pinch) {
+          this.updatePinch();
+          return;
+        }
+      }
       const d = this.drag;
       if (!d || p.id !== d.id) return;
       if (!d.moved && Math.hypot(p.x - d.startX, p.y - d.startY) > DRAG_THRESHOLD * this.rs) d.moved = true;
-      if (d.moved) this.cameras.main.setScroll(d.scrollX - (p.x - d.startX), d.scrollY - (p.y - d.startY));
+      const zoom = this.cameras.main.zoom;
+      if (d.moved) {
+        this.cameras.main.setScroll(d.scrollX - (p.x - d.startX) / zoom, d.scrollY - (p.y - d.startY) / zoom);
+      }
+    });
+    // Mouse wheel and touchpad: zoom around the pointer. A touchpad pinch arrives as a wheel
+    // event with the ctrl key held and small steps, so it gets a stronger factor.
+    this.input.on('wheel', (p: Phaser.Input.Pointer, _over: unknown, _dx: number, dy: number) => {
+      if (!this.onMapArea(p.y)) return;
+      const pinchGesture = (p.event as WheelEvent | undefined)?.ctrlKey ?? false;
+      const factor = Math.exp(-dy * (pinchGesture ? 0.01 : 0.0015));
+      const w = this.screenToWorld(p.x, p.y);
+      this.zoomTo(this.cameras.main.zoom * factor, w.x, w.y, p.x, p.y);
     });
     const release = (p: Phaser.Input.Pointer) => {
+      this.touches.delete(p.id);
+      if (this.pinch) {
+        // Lifting a finger ends the pinch; nothing is selected until all fingers are up.
+        if (this.touches.size < 2) this.pinch = null;
+        return;
+      }
       const d = this.drag;
       if (!d || p.id !== d.id) return;
       this.drag = null;
@@ -664,6 +762,28 @@ export class WorldMapScene extends Phaser.Scene {
       else if (kind === 'walk') this.walk(this.selected);
       else if (kind === 'teleport') this.teleport(this.selected);
     });
+  }
+
+  private startPinch(): void {
+    const [a, b] = [...this.touches.values()];
+    const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+    const w = this.screenToWorld(mid.x, mid.y);
+    this.pinch = {
+      startDistance: Math.max(1, Math.hypot(a.x - b.x, a.y - b.y)),
+      startZoom: this.cameras.main.zoom,
+      worldX: w.x,
+      worldY: w.y,
+    };
+    this.drag = null;
+  }
+
+  private updatePinch(): void {
+    const pinch = this.pinch;
+    if (!pinch || this.touches.size < 2) return;
+    const [a, b] = [...this.touches.values()];
+    const distance = Math.hypot(a.x - b.x, a.y - b.y);
+    const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+    this.zoomTo((pinch.startZoom * distance) / pinch.startDistance, pinch.worldX, pinch.worldY, mid.x, mid.y);
   }
 
   private fight(hex: Hex): void {
