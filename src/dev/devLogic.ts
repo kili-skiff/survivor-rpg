@@ -1,6 +1,7 @@
 // Dev-only game logic (no Phaser, tested). See devMode.ts for how to remove dev tools.
 
 import { HERBS } from '../config/herbs';
+import type { PlayerStats } from '../config/types';
 import { addLoot, type Loot } from '../logic/expedition';
 import { hexDistance, hexKey, hexNeighbors, ORIGIN, type Hex } from '../logic/hex';
 import type { SaveData } from '../logic/save';
@@ -12,6 +13,17 @@ export function grantAllHerbs(stash: Loot, amount: number): Loot {
   const gift: Loot = {};
   for (const id of Object.keys(HERBS)) gift[id] = amount;
   return addLoot(stash, gift);
+}
+
+/** God mode: much stronger and faster, so fights are quick to clear (damage is blocked elsewhere). */
+export function godModeStats(stats: PlayerStats): PlayerStats {
+  return {
+    ...stats,
+    might: stats.might * 10,
+    haste: Math.max(0.2, stats.haste * 0.5),
+    moveSpeed: stats.moveSpeed * 1.3,
+    magnet: stats.magnet * 3,
+  };
 }
 
 /**

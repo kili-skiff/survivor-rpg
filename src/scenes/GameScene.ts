@@ -44,6 +44,8 @@ import { PickupSystem } from '../systems/PickupSystem';
 import { PlayerController } from '../systems/PlayerController';
 import { PotionSystem } from '../systems/PotionSystem';
 import { LightingSystem } from '../systems/LightingSystem';
+import { godModeStats } from '../dev/devLogic'; // DEV:
+import { isDevMode } from '../dev/devMode'; // DEV:
 import { castFrostNova } from '../systems/skills/frostNova';
 import { createWeapon, type Weapon } from '../systems/weapons';
 import { viewportSize } from '../ui/display';
@@ -291,6 +293,18 @@ export class GameScene extends Phaser.Scene {
   }
 
   /** Giving up counts like falling: the expedition ends. */
+  // DEV: god mode (no damage, much stronger), kept for the session in the registry.
+  devGodMode(): boolean {
+    return isDevMode() && this.registry.get('devGod') === true;
+  }
+
+  // DEV: switches god mode and applies it right away.
+  devToggleGodMode(): void {
+    this.registry.set('devGod', !this.devGodMode());
+    this.refreshStats();
+    this.run.hp = this.run.stats.maxHp;
+  }
+
   // DEV: wins the fight at once (the segment timer runs out on the next frame).
   devClearArea(): void {
     if (this.run.alive) this.run.time = this.run.segment.durationSec;
@@ -372,6 +386,7 @@ export class GameScene extends Phaser.Scene {
   private refreshStats(): void {
     const prevMax = this.run.stats.maxHp;
     this.run.stats = applyBuffs(computePlayerStats(this.run.loadout), this.potions.active);
+    if (this.devGodMode()) this.run.stats = godModeStats(this.run.stats); // DEV:
     if (this.run.stats.maxHp > prevMax) this.run.hp += this.run.stats.maxHp - prevMax;
 
     this.weaponStats = {};
@@ -443,7 +458,7 @@ export class GameScene extends Phaser.Scene {
   // ---------------------------------------------------------------- Events from the systems
 
   private onPlayerTouched(e: Enemy): void {
-    if (!e.active || !this.run.alive || !this.player.tryTakeHit()) return;
+    if (!e.active || !this.run.alive || this.devGodMode() || !this.player.tryTakeHit()) return; // DEV: god mode
     this.herbs.interrupt();
     const dmg =
       damageAfterArmor(e.def.damage, this.run.stats.armor) * damageTakenMultiplier(this.potions.active);

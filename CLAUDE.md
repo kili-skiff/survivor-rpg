@@ -19,7 +19,8 @@ Goal: web first, native apps later (Capacitor for Android/iOS, Tauri for desktop
 - `npm run build:single` – everything in one HTML file (dist-single/) for quick sharing
 - Dev mode: on in `npm run dev`, and in any build with `?dev` in the URL (e.g. a PR preview).
   Test helpers: "+5 herbs" in the village; "reveal" (fog off on screen only) and "jump here" on the
-  map; "clear area" in a fight. All dev code lives in `src/dev/`; every call into it is marked
+  map; "clear area" and "god mode" (no damage, much stronger) in a fight; "reset save" in the
+  village (second tap confirms; device settings stay). All dev code lives in `src/dev/`; every call into it is marked
   `// DEV:`. For a release set `DEV_TOOLS = false` in `src/dev/devMode.ts`, or delete `src/dev/` and
   the marked lines.
 
