@@ -2,7 +2,8 @@ name: PR preview
 
 # Builds every pull request and publishes it to
 # https://kili-skiff.github.io/survivor-rpg/pr-preview/pr-<number>/
-# The link is posted as a comment on the PR and removed again when the PR is closed.
+# The link (plus a dev mode link with `?dev`) is posted as a comment on the PR; the preview is
+# removed again when the PR is closed.
 
 on:
   pull_request:
@@ -29,8 +30,31 @@ jobs:
       - run: npm ci && npm run build
         if: github.event.action != 'closed'
       - uses: rossjrw/pr-preview-action@v1
+        id: preview
         with:
           source-dir: ./dist
           preview-branch: gh-pages
           umbrella-dir: pr-preview
           action: auto
+          # We post our own comment below, with an extra link that opens the preview in dev mode.
+          comment: false
+      # Same header as the action's own sticky comment, so it replaces older comments.
+      - uses: marocchino/sticky-pull-request-comment@v2
+        if: steps.preview.outputs.deployment-action == 'deploy'
+        with:
+          header: pr-preview
+          message: |
+            <img src="https://qr.rossjrw.com/?color.dark=0d1117&url=${{ steps.preview.outputs.preview-url }}?dev" height="100" align="right" alt="QR code for the dev mode link">
+
+            :rocket: **Preview:** ${{ steps.preview.outputs.preview-url }}
+            :hammer_and_wrench: **Dev mode** (test helpers such as free herbs and map reveal): ${{ steps.preview.outputs.preview-url }}?dev
+
+            <sub>Built from ${{ github.event.pull_request.head.sha }}. The preview is ready when the
+            [GitHub Pages deployment](https://github.com/${{ github.repository }}/deployments) is complete.
+            The QR code opens the dev mode link.</sub>
+      - uses: marocchino/sticky-pull-request-comment@v2
+        if: steps.preview.outputs.deployment-action == 'remove'
+        with:
+          header: pr-preview
+          message: |
+            Preview removed because the pull request was closed.
