@@ -70,6 +70,15 @@ stronger: with a better class build, a growing herb garden and potions for the n
   (e.g. more health, faster cooldowns, poison resistance).
 - **Class and skill tree:** permanent progression of your character.
 - Farming must feel like a reward, never like a chore you have to do before playing.
+- **Today** the village is a menu screen: the stash, what came home, and a button to set out.
+- **Later** it becomes a place you walk around in with your character: your house (stash),
+  the herb garden, the brewing cauldron, a merchant, a blacksmith and so on. Walking up to a
+  building opens its panel.
+- To make that switch cheap, every village feature is built as its own panel on top of pure
+  logic in `logic/`. The menu opens a panel with a button; the walkable village opens the same
+  panel at a door. Only the way to get there changes.
+- On phones walking is slower than tapping, so the walkable village probably needs shortcuts
+  (e.g. a button that takes you straight to a building).
 
 ## Seasons
 
@@ -102,5 +111,6 @@ stronger: with a better class build, a growing herb garden and potions for the n
 - What exactly survives a new season?
 - Do herbs grow in real time, per expedition, or per in-game day?
 - Perspective: isometric or 3/4 top-down (see Look and feel).
+- Walkable village: when to build it (ideally with real art), and how shortcuts work on phones.
 - Art source: asset packs, 3D models rendered to sprites, or commissioned pixel art.
 - Online features (leaderboards, maybe co-op) and when they make sense.
