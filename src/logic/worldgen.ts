@@ -10,6 +10,8 @@ export interface WorldHex {
   ring: number;
   biome: BiomeId;
   poi: PoiId | null;
+  /** Herbs grow here (only on some hexes) */
+  herbs: boolean;
 }
 
 export interface World {
@@ -20,7 +22,7 @@ export interface World {
 
 const BIOME_IDS = Object.keys(BIOMES) as BiomeId[];
 /** Salts keep different random decisions independent of each other. */
-const SALT = { regions: 1, jitter: 3, poi: 4, campFallback: 5 } as const;
+const SALT = { regions: 1, jitter: 3, poi: 4, herbs: 6, herbFallback: 7 } as const;
 
 interface Region {
   center: Hex;
@@ -55,10 +57,12 @@ export function generateWorld(
         best = region;
       }
     }
-    hexes.set(hexKey(hex), { hex, key: hexKey(hex), ring, biome: best.biome, poi: rollPoi(seed, hex, ring) });
+    const herbs = ring > 0 && hashFloat(seed, SALT.herbs, hex.q, hex.r) < WORLD.herbHexShare;
+    hexes.set(hexKey(hex), { hex, key: hexKey(hex), ring, biome: best.biome, poi: null, herbs });
   }
 
-  ensureEarlyCamp(seed, hexes);
+  ensureHerbsNearHome(seed, hexes);
+  placePois(seed, hexes);
   return { seed, radius, hexes };
 }
 
@@ -109,25 +113,51 @@ function placeRegions(seed: number): Region[] {
   return regions;
 }
 
-function rollPoi(seed: number, hex: Hex, ring: number): PoiId | null {
-  if (ring === 0) return 'village';
-  let roll = hashFloat(seed, SALT.poi, hex.q, hex.r);
-  for (const id of ['dungeon', 'merchant', 'camp'] as const) {
-    const def = POIS[id];
-    if (ring < def.minRing) continue;
-    if (roll < def.chance) return id;
-    roll -= def.chance;
+/** Every biome has at least one herb hex in the first rings, so each common herb can be found early. */
+function ensureHerbsNearHome(seed: number, hexes: Map<string, WorldHex>): void {
+  const near = [...hexes.values()].filter((h) => h.ring >= 1 && h.ring <= WORLD.innerRegionRing);
+  for (const biome of BIOME_IDS) {
+    const own = near.filter((h) => h.biome === biome);
+    if (own.length === 0 || own.some((h) => h.herbs)) continue;
+    own[hash32(seed, SALT.herbFallback, BIOME_IDS.indexOf(biome)) % own.length].herbs = true;
   }
-  return null;
 }
 
-/** Makes sure there is a camp within two steps of the village, so the first expedition has a goal. */
-function ensureEarlyCamp(seed: number, hexes: Map<string, WorldHex>): void {
-  const early = [...hexes.values()].filter((h) => h.ring >= 1 && h.ring <= 2);
-  if (early.some((h) => h.poi === 'camp')) return;
-  const candidates = early.filter((h) => h.ring === 2 && h.poi === null);
-  const pick = candidates[hash32(seed, SALT.campFallback) % candidates.length];
-  if (pick) pick.poi = 'camp';
+/** Distance rules: never next to another point of interest, and spread out from their own kind. */
+function fitsPoi(h: WorldHex, id: PoiId, placed: WorldHex[]): boolean {
+  return placed.every((p) => {
+    const d = hexDistance(h.hex, p.hex);
+    return d >= WORLD.poiMinGap && (p.poi !== id || d >= POIS[id].minSpacing);
+  });
+}
+
+/**
+ * Points of interest: the village in the centre, a camp within two steps of it so the first
+ * expedition has a goal, then rare camps, merchants and dungeons spread out over the map.
+ */
+function placePois(seed: number, hexes: Map<string, WorldHex>): void {
+  const rng = createRng(hash32(seed, SALT.poi));
+  const village = hexes.get(hexKey(ORIGIN))!;
+  village.poi = 'village';
+  const placed: WorldHex[] = [village];
+  const order = shuffled(
+    [...hexes.values()].filter((h) => h.ring > 0),
+    rng,
+  );
+
+  const earlyCamp = order.find((h) => h.ring === 2 && fitsPoi(h, 'camp', placed));
+  if (earlyCamp) {
+    earlyCamp.poi = 'camp';
+    placed.push(earlyCamp);
+  }
+  for (const id of ['dungeon', 'merchant', 'camp'] as const) {
+    const def = POIS[id];
+    for (const h of order) {
+      if (h.poi || h.ring < def.minRing || rng() >= def.chance || !fitsPoi(h, id, placed)) continue;
+      h.poi = id;
+      placed.push(h);
+    }
+  }
 }
 
 /** The fight you get when entering a hex. Further rings last longer and start harder. */
@@ -141,7 +171,7 @@ export function segmentForHex(h: WorldHex): SegmentDef {
     warningSec: 15,
     difficultyOffsetSec: steps * WORLD.difficultyOffsetPerRingSec,
     groundTint: biome.groundTint,
-    herbs: { biome: h.biome, ring: h.ring },
+    herbs: h.herbs ? { biome: h.biome, ring: h.ring } : null,
   };
 }
 

@@ -6,10 +6,10 @@ import type { BiomeDef, BiomeId, PoiDef, PoiId } from './types';
  * mid-season would change existing players' worlds.
  */
 export const SEASON = {
-  id: 2,
-  name: 'Season 2',
-  seed: 'nightwatch-season-2',
-  generatorVersion: 2,
+  id: 3,
+  name: 'Season 3',
+  seed: 'nightwatch-season-3',
+  generatorVersion: 3,
 } as const;
 
 export const WORLD = {
@@ -25,6 +25,10 @@ export const WORLD = {
   /** Ring range for the centres of the outer regions */
   outerRegionRingMin: 6,
   outerRegionRingMax: 8,
+  /** Share of hexes where herbs grow; the others are empty, so finding herbs stays rewarding */
+  herbHexShare: 0.3,
+  /** Points of interest never stand next to each other: minimum distance between any two */
+  poiMinGap: 2,
   /** Segment duration in ring 1 (seconds) */
   baseDurationSec: 90,
   /** Extra seconds per ring further out */
@@ -43,8 +47,8 @@ export const BIOMES: Record<BiomeId, BiomeDef> = {
 };
 
 export const POIS: Record<PoiId, PoiDef> = {
-  village: { id: 'village', name: 'Village', glyph: 'V', minRing: 0, chance: 0 },
-  camp: { id: 'camp', name: 'Camp', glyph: 'C', minRing: 1, chance: 0.12 },
-  merchant: { id: 'merchant', name: 'Merchant', glyph: 'M', minRing: 2, chance: 0.05 },
-  dungeon: { id: 'dungeon', name: 'Dungeon', glyph: 'D', minRing: 3, chance: 0.05 },
+  village: { id: 'village', name: 'Village', glyph: 'V', minRing: 0, chance: 0, minSpacing: 0 },
+  camp: { id: 'camp', name: 'Camp', glyph: 'C', minRing: 1, chance: 0.07, minSpacing: 3 },
+  merchant: { id: 'merchant', name: 'Merchant', glyph: 'M', minRing: 2, chance: 0.025, minSpacing: 5 },
+  dungeon: { id: 'dungeon', name: 'Dungeon', glyph: 'D', minRing: 3, chance: 0.03, minSpacing: 4 },
 };
