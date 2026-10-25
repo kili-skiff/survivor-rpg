@@ -236,7 +236,7 @@ export class GameScene extends Phaser.Scene {
     );
     this.run.herbsTotal = this.herbs.totalCount;
     // Night: darkness with the player's light, torches around and faintly glowing herbs.
-    this.lantern = new LanternSystem(this, this.player);
+    this.lantern = new LanternSystem(this, this.player, this.lanternLevel);
     this.lighting = new LightingSystem(
       this,
       this.lantern,

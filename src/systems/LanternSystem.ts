@@ -1,5 +1,6 @@
 import * as Phaser from 'phaser';
 import { LANTERN } from '../config/balance';
+import { LANTERN_LOOKS, lanternLook, type LanternLook } from '../config/merchant';
 import { handFor, restingLantern, stepLantern, type LanternState } from '../logic/lantern';
 import type { LightSource } from './LightingSystem';
 import type { PlayerController } from './PlayerController';
@@ -25,11 +26,17 @@ export class LanternSystem {
   x = 0;
   y = 0;
 
+  private readonly look: LanternLook;
+
   constructor(
     scene: Phaser.Scene,
     private readonly player: PlayerController,
+    /** The lantern bought in the village (0 = the old one) */
+    level: number,
   ) {
-    this.lantern = scene.add.image(0, 0, 'lantern').setOrigin(0.5, 0.1).setDepth(3.1);
+    this.look = lanternLook(level);
+    const key = `lantern-${Math.max(0, Math.min(level, LANTERN_LOOKS.length - 1))}`;
+    this.lantern = scene.add.image(0, 0, key).setOrigin(0.5, 0.1).setScale(this.look.scale).setDepth(3.1);
     this.chain = scene.add.graphics().setDepth(3.1);
     this.x = player.x;
     this.y = player.y + LANTERN.handY + LANTERN.drop;
@@ -49,8 +56,8 @@ export class LanternSystem {
     return {
       x: this.x,
       y: this.y,
-      radius: LANTERN.glowRadius * flicker,
-      color: LANTERN.glowColor,
+      radius: LANTERN.glowRadius * this.look.scale * flicker,
+      color: this.look.glow,
       strength: LANTERN.glowStrength,
     };
   }

@@ -19,6 +19,32 @@ export const LANTERN_TIERS: readonly LanternTier[] = [
   { name: 'Sunstone Lantern', price: 400, light: 2.3, lightsAll: true },
 ];
 
+/** How a lantern looks in the watchman's hand. Index 0 is the old one you start with, then one per tier. */
+export interface LanternLook {
+  /** Metal of the frame and the ring */
+  frame: number;
+  /** Flame colour: outer, and the bright core */
+  flame: number;
+  core: number;
+  /** Warm glow around the flame */
+  glow: number;
+  /** Size of the sprite and of its glow */
+  scale: number;
+}
+
+export const LANTERN_LOOKS: readonly LanternLook[] = [
+  { frame: 0x2b241d, flame: 0xf59e0b, core: 0xfde68a, glow: 0xffc27a, scale: 1 },
+  { frame: 0x9a7424, flame: 0xf59e0b, core: 0xfde68a, glow: 0xffc27a, scale: 1.05 },
+  { frame: 0xb9c2cf, flame: 0xfcd34d, core: 0xfffbeb, glow: 0xffe0a8, scale: 1.1 },
+  { frame: 0x7a8fc4, flame: 0x93c5fd, core: 0xf0f9ff, glow: 0xa8d4ff, scale: 1.15 },
+  { frame: 0xe0a91c, flame: 0xfde047, core: 0xffffff, glow: 0xffe27a, scale: 1.3 },
+];
+
+/** The look for a lantern level (0 = the old one). */
+export function lanternLook(level: number): LanternLook {
+  return LANTERN_LOOKS[Math.max(0, Math.min(level, LANTERN_LOOKS.length - 1))];
+}
+
 /** Recipes you know from the start; the others are bought */
 export const STARTING_RECIPES: readonly PotionId[] = ['healing'];
 

@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { GOLD_KEY, HERB_PRICES, LANTERN_TIERS, RECIPE_PRICES } from '../config/merchant';
+import {
+  GOLD_KEY,
+  HERB_PRICES,
+  LANTERN_LOOKS,
+  LANTERN_TIERS,
+  lanternLook,
+  RECIPE_PRICES,
+} from '../config/merchant';
 import {
   buyLantern,
   buyRecipe,
@@ -51,5 +58,24 @@ describe('merchant', () => {
     expect(s).toEqual({ starlily: 1, [GOLD_KEY]: HERB_PRICES.starlily });
     expect(sellHerb({}, 'moonbloom')).toBeNull();
     expect(sellHerb({ moonbloom: 1 }, 'moonbloom')).toEqual({ [GOLD_KEY]: 1 });
+  });
+});
+
+describe('lantern looks', () => {
+  it('has a look for the old lantern and one per tier, each different', () => {
+    expect(LANTERN_LOOKS).toHaveLength(LANTERN_TIERS.length + 1);
+    const frames = new Set(LANTERN_LOOKS.map((l) => l.frame));
+    expect(frames.size).toBe(LANTERN_LOOKS.length);
+  });
+
+  it('never goes out of range', () => {
+    expect(lanternLook(-3)).toBe(LANTERN_LOOKS[0]);
+    expect(lanternLook(99)).toBe(LANTERN_LOOKS[LANTERN_LOOKS.length - 1]);
+  });
+
+  it('gets bigger with every tier', () => {
+    for (let i = 1; i < LANTERN_LOOKS.length; i++) {
+      expect(LANTERN_LOOKS[i].scale).toBeGreaterThan(LANTERN_LOOKS[i - 1].scale);
+    }
   });
 });

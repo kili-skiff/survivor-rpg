@@ -103,7 +103,7 @@ export const LANTERN = {
   /** Spring pulling it back to its resting spot (higher = faster swing) */
   stiffness: 130,
   /** Friction of the swing (higher = settles sooner) */
-  damping: 4.2,
+  damping: 6.5,
   /** How strongly a push of the hand (acceleration) throws the lantern */
   inertia: 0.75,
   /** While running, the lantern trails behind by speed times this (px per px/s) */
@@ -121,6 +121,5 @@ export const LANTERN = {
   handFollow: 14,
   /** Light of the flame itself (additive glow on top of the darkness hole) */
   glowRadius: 52,
-  glowColor: 0xffc27a,
   glowStrength: 0.45,
 } as const;
