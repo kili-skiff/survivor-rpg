@@ -11,6 +11,7 @@ import { safeStorage } from '../logic/save';
 import { isSegmentWarning, segmentRemaining } from '../logic/segment';
 import { loadSettings, otherSide, writeSettings, type Settings } from '../logic/settings';
 import { describeUpgrade, type UpgradeOption } from '../logic/upgrades';
+import { devButtonStyle, isDevMode } from '../dev/devMode'; // DEV:
 import { safeArea, viewportSize, type SafeArea } from '../ui/display';
 import { COLORS, css, FONT } from '../ui/theme';
 import type { GameScene, RunEndInfo } from './GameScene';
@@ -52,6 +53,7 @@ export class UIScene extends Phaser.Scene {
   private killsText!: Phaser.GameObjects.Text;
   private herbText!: Phaser.GameObjects.Text;
   private pauseBtn!: Phaser.GameObjects.Text;
+  private devClearBtn: Phaser.GameObjects.Text | null = null; // DEV:
   private skillButtons: SkillButton[] = [];
   private potionButtons: PotionButton[] = [];
   private loadoutIcons: Phaser.GameObjects.GameObject[] = [];
@@ -117,6 +119,13 @@ export class UIScene extends Phaser.Scene {
       .setOrigin(1, 0)
       .setInteractive({ useHandCursor: true });
     this.pauseBtn.on('pointerdown', () => this.togglePause());
+    // DEV: win the fight at once.
+    this.devClearBtn = isDevMode()
+      ? this.add
+          .text(0, 0, 'DEV  clear area', devButtonStyle(this.u))
+          .setInteractive({ useHandCursor: true })
+          .on('pointerdown', () => this.overlayKind === 'none' && this.gs.devClearArea())
+      : null;
 
     this.createSkillButton('dash', this.isTouch ? 'Dash' : 'Dash · Space');
     this.createSkillButton('nova', this.isTouch ? 'Nova' : 'Nova · E');
@@ -322,6 +331,11 @@ export class UIScene extends Phaser.Scene {
       .setFontSize(Math.round(16 * u))
       .setPadding(Math.round(12 * u), Math.round(6 * u))
       .setPosition(right, top);
+    // DEV: below the weapon icons on the left.
+    this.devClearBtn
+      ?.setStyle(devButtonStyle(u))
+      .setFontSize(Math.round(12 * u))
+      .setPosition(left, top + 84 * u);
     this.killsText
       .setFontSize(Math.round(14 * u))
       .setPosition(right - this.pauseBtn.width - 10 * u, top + 6 * u);

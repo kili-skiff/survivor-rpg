@@ -21,7 +21,8 @@ import {
   type TravelKind,
 } from '../logic/worldProgress';
 import { seasonWorld, segmentForHex, type World, type WorldHex } from '../logic/worldgen';
-import { isDevMode } from '../ui/dev';
+import { jumpTo } from '../dev/devLogic'; // DEV:
+import { devButtonStyle, isDevMode } from '../dev/devMode'; // DEV:
 import { safeArea, viewportSize, type SafeArea } from '../ui/display';
 import { COLORS, css, FONT } from '../ui/theme';
 import type { GameSceneData } from './GameScene';
@@ -457,12 +458,13 @@ export class WorldMapScene extends Phaser.Scene {
   /** Whether a hex is shown. Dev mode can lift the fog for testing; travel rules stay the same. */
   private isVisible(key: string): boolean {
     return (
-      this.devReveal() ||
+      this.devReveal() || // DEV:
       isDiscovered(this.save.world, key) ||
       questRevealed(this.save.quests, this.world).includes(key)
     );
   }
 
+  // DEV: the map reveal toggle.
   private devReveal(): boolean {
     return isDevMode() && this.registry.get('devReveal') === true;
   }
@@ -531,7 +533,7 @@ export class WorldMapScene extends Phaser.Scene {
       fontStyle: 'bold',
       color: css(COLORS.accent),
     });
-    if (isDevMode()) this.devRevealButton(W - this.sa.right - 16 * u, this.sa.top + 14 * u);
+    if (isDevMode()) this.devRevealButton(W - this.sa.right - 16 * u, this.sa.top + 14 * u); // DEV:
     if (questGoals(this.save.quests, this.world, this.save.world).length > 0) {
       this.trackingButton(W - this.sa.right - 16 * u, this.headerH + 10 * u);
     }
@@ -546,6 +548,11 @@ export class WorldMapScene extends Phaser.Scene {
 
     const info = this.describeSelection();
     const textW = this.isWide() ? W - left - 280 * u : W - left * 2;
+    // DEV: jump to the selected hex without a fight.
+    if (isDevMode() && this.selected && hexKey(this.selected) !== this.save.world.position) {
+      const right = W - this.sa.right - 16 * u;
+      this.devJumpButton(this.isWide() ? right - 240 * u : right, panelY + 12 * u, this.selected);
+    }
     this.text(left, panelY + 16 * u, info.title, 18, { fontStyle: 'bold' });
     const detail = this.text(left, panelY + 44 * u, info.detail, 13, {
       color: '#c4c0cf',
@@ -568,6 +575,15 @@ export class WorldMapScene extends Phaser.Scene {
     }
   }
 
+  // DEV: moves the player to any hex; the expedition and its loot stay.
+  private devJumpButton(x: number, y: number, hex: Hex): void {
+    const t = this.text(x, y, 'DEV  jump here', 12, devButtonStyle(this.u)).setOrigin(1, 0);
+    t.setInteractive({ useHandCursor: true }).on('pointerup', () => {
+      this.commit(jumpTo(this.save, hex));
+      this.centerOn(hex);
+    });
+  }
+
   /** Switches the quest marks (ring, pin, edge arrow) on the map on and off. */
   private trackingButton(x: number, y: number): void {
     const u = this.u;
@@ -586,15 +602,13 @@ export class WorldMapScene extends Phaser.Scene {
   }
 
   /** Dev mode only: shows the whole map without saving anything as discovered. */
+  // DEV: lifts the fog on screen only; nothing is saved as discovered.
   private devRevealButton(x: number, y: number): void {
-    const u = this.u;
     const on = this.devReveal();
-    const t = this.text(x, y, on ? 'DEV  fog off' : 'DEV  reveal', 12, {
-      fontStyle: 'bold',
-      color: '#f0abfc',
-      backgroundColor: on ? '#6b21a8' : '#3b0764',
-      padding: { x: Math.round(10 * u), y: Math.round(7 * u) },
-    }).setOrigin(1, 0);
+    const t = this.text(x, y, on ? 'DEV  fog off' : 'DEV  reveal', 12, devButtonStyle(this.u, on)).setOrigin(
+      1,
+      0,
+    );
     t.setInteractive({ useHandCursor: true }).on('pointerup', () => {
       this.registry.set('devReveal', !on);
       this.buildHud();

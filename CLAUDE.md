@@ -17,9 +17,11 @@ Goal: web first, native apps later (Capacitor for Android/iOS, Tauri for desktop
 - `npm run dev` – dev server, also reachable on the local network (phone: http://<PC-IP>:5173)
 - `npm run check` – typecheck, lint, tests and build. **Run before every commit.**
 - `npm run build:single` – everything in one HTML file (dist-single/) for quick sharing
-- Dev mode (`ui/dev.ts`): on in `npm run dev`, and in any build with `?dev` in the URL
-  (e.g. a PR preview). It shows test helpers: "+5 herbs" in the village, "reveal" on the map
-  (lifts the fog only on screen, nothing is saved).
+- Dev mode: on in `npm run dev`, and in any build with `?dev` in the URL (e.g. a PR preview).
+  Test helpers: "+5 herbs" in the village; "reveal" (fog off on screen only) and "jump here" on the
+  map; "clear area" in a fight. All dev code lives in `src/dev/`; every call into it is marked
+  `// DEV:`. For a release set `DEV_TOOLS = false` in `src/dev/devMode.ts`, or delete `src/dev/` and
+  the marked lines.
 
 ## Deployment
 
@@ -47,7 +49,8 @@ src/
              logic lives in logic/
   scenes/    Boot (placeholder graphics), WorldMap (hex map, travel), Village (stash, belt, panels),
              Game (one fight, owns run state, wires systems), UI (HUD, touch, menus during a fight)
-  ui/        Display helpers (pixel density, safe area), colors, dev mode
+  ui/        Display helpers (pixel density, safe area), colors
+  dev/       Dev-only test helpers behind one switch (DEV_TOOLS); calls are marked `// DEV:`
 public/assets/  Art files served as they are (e.g. tiles/hex-tiles.png for the world map)
 ```
 

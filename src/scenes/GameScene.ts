@@ -290,6 +290,11 @@ export class GameScene extends Phaser.Scene {
   }
 
   /** Giving up counts like falling: the expedition ends. */
+  // DEV: wins the fight at once (the segment timer runs out on the next frame).
+  devClearArea(): void {
+    if (this.run.alive) this.run.time = this.run.segment.durationSec;
+  }
+
   giveUp(): void {
     if (!this.run.alive) return;
     this.scene.resume();
