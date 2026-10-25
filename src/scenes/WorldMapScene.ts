@@ -1,5 +1,5 @@
 import * as Phaser from 'phaser';
-import { BIOMES, POIS, SEASON } from '../config/world';
+import { BIOMES, POIS } from '../config/world';
 import { herbForecast } from '../logic/herbs';
 import { BIOME_TILES, POI_TILES, TILESET } from '../config/tiles';
 import { hexEquals, hexKey, hexToPixelFlat, parseHexKey, pixelToHexFlat, type Hex } from '../logic/hex';
@@ -382,7 +382,7 @@ export class WorldMapScene extends Phaser.Scene {
       const loot = lootCount(exp.loot);
       return `Expedition · ${hp} · ${exp.areasCleared} areas${loot > 0 ? ` · ${loot} loot` : ''}`;
     }
-    return `${SEASON.name} · ${plural(this.save.segmentsCleared, 'area')} cleared · ${plural(this.save.world.waypoints.length, 'waypoint')}`;
+    return `${plural(this.save.segmentsCleared, 'area')} cleared · ${plural(this.save.world.waypoints.length, 'waypoint')}`;
   }
 
   private describeSelection(): {

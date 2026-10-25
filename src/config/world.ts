@@ -1,14 +1,13 @@
 import type { BiomeDef, BiomeId, PoiDef, PoiId } from './types';
 
 /**
- * The current season. Everyone playing the same season gets the same map.
- * Bump `generatorVersion` only together with a new season: changing how the map is generated
- * mid-season would change existing players' worlds.
+ * The map everyone plays: generated from this seed and generator version.
+ * Seasons with a new shared map each come later (see docs/vision.md). Until then, bump
+ * `generatorVersion` whenever world generation changes: map progress resets, the stash stays.
  */
 export const SEASON = {
-  id: 3,
-  name: 'Season 3',
-  seed: 'nightwatch-season-3',
+  id: 2,
+  seed: 'nightwatch-season-2',
   generatorVersion: 3,
 } as const;
 

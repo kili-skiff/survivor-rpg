@@ -2,7 +2,6 @@ import * as Phaser from 'phaser';
 import { HERBS } from '../config/herbs';
 import { POTION_IDS, POTION_RULES, POTIONS } from '../config/potions';
 import type { HerbDef, PotionId } from '../config/types';
-import { SEASON } from '../config/world';
 import { grantAllHerbs } from '../logic/dev';
 import { lootCount, type Loot } from '../logic/expedition';
 import { beltCount, brew, packPotion, unpackPotion } from '../logic/potions';
@@ -129,7 +128,7 @@ export class VillageScene extends Phaser.Scene {
     this.text(left, y, 'VILLAGE', 26, { fontStyle: 'bold', color: css(COLORS.accent) });
     if (isDevMode()) this.devButton(right, y + 4 * u);
     y += 34 * u;
-    this.text(left, y, `${SEASON.name} · ${plural(this.save.segmentsCleared, 'area')} cleared`, 12, {
+    this.text(left, y, `${plural(this.save.segmentsCleared, 'area')} cleared`, 12, {
       color: '#a1a1aa',
     });
     y += 28 * u;
