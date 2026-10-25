@@ -63,6 +63,12 @@ describe('stats', () => {
     expect(b).toEqual(a);
   });
 
+  it('Lantern Oil raises the light radius for the run', () => {
+    expect(computePlayerStats(createStartLoadout('bolt')).light).toBe(1);
+    const lit = computePlayerStats({ ...createStartLoadout('bolt'), passives: { lantern: 2 } });
+    expect(lit.light).toBeCloseTo(1.3);
+  });
+
   it('passives modify player stats and weapon output', () => {
     const loadout: Loadout = { ...createStartLoadout('bolt'), passives: { might: 2, haste: 1 } };
     const stats = computePlayerStats(loadout);

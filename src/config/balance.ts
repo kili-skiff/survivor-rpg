@@ -36,7 +36,10 @@ export const LIGHT = {
   torchCell: 640,
   /** Share of cells with a torch */
   torchChance: 0.12,
-  torchRadius: 125,
+  torchRadius: 95,
+  /** Torch glows are kept soft so they do not draw too much attention */
+  torchGlow: 0.17,
+  torchColor: 0xffc896,
   /** Bloomed herbs give off a faint light so they are easier to spot in the dark */
   herbRadius: 70,
   rareHerbRadius: 100,

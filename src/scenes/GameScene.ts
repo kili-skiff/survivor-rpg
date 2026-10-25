@@ -211,6 +211,7 @@ export class GameScene extends Phaser.Scene {
       Math.floor(Math.random() * 2 ** 31),
     );
     this.lighting.setEnabled(loadSettings(safeStorage()).lighting);
+    this.lighting.setRadiusScale(this.run.stats.light);
 
     this.cameras.main.startFollow(this.player.sprite, false, 1, 1);
     this.onResize();
@@ -387,6 +388,7 @@ export class GameScene extends Phaser.Scene {
     const prevMax = this.run.stats.maxHp;
     this.run.stats = applyBuffs(computePlayerStats(this.run.loadout), this.potions.active);
     if (this.devGodMode()) this.run.stats = godModeStats(this.run.stats); // DEV:
+    this.lighting?.setRadiusScale(this.run.stats.light);
     if (this.run.stats.maxHp > prevMax) this.run.hp += this.run.stats.maxHp - prevMax;
 
     this.weaponStats = {};
