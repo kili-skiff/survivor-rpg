@@ -124,6 +124,6 @@ export const LANTERN = {
   /** How fast the hand moves to the other side when turning (1/s) */
   handFollow: 14,
   /** Light of the flame itself (additive glow on top of the darkness hole) */
-  glowRadius: 52,
-  glowStrength: 0.45,
+  glowRadius: 44,
+  glowStrength: 0.26,
 } as const;
