@@ -235,7 +235,7 @@ export class GameScene extends Phaser.Scene {
     );
     this.lighting.setEnabled(loadSettings(safeStorage()).lighting);
     this.lighting.setRadiusScale(this.run.stats.light);
-    this.lighting.setLightsAll(lanternLightsAll(this.lanternLevel));
+    this.lighting.setLightsAll(lanternLightsAll(this.lanternLevel) || this.devGodMode()); // DEV: god mode
 
     this.cameras.main.startFollow(this.player.sprite, false, 1, 1);
     this.onResize();
@@ -457,6 +457,7 @@ export class GameScene extends Phaser.Scene {
     this.run.stats.light *= lanternMultiplier(this.lanternLevel);
     if (this.devGodMode()) this.run.stats = godModeStats(this.run.stats); // DEV:
     this.lighting?.setRadiusScale(this.run.stats.light);
+    this.lighting?.setLightsAll(lanternLightsAll(this.lanternLevel) || this.devGodMode()); // DEV: god mode
     if (this.run.stats.maxHp > prevMax) this.run.hp += this.run.stats.maxHp - prevMax;
 
     this.weaponStats = {};
