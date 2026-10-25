@@ -1,9 +1,17 @@
 import * as Phaser from 'phaser';
 import { BIOMES, POIS } from '../config/world';
 import { CHARACTER_SPRITES, SHEET } from '../config/sprites';
-import { TOWER_QUEST } from '../config/quests';
+import { FIRE_QUEST, TOWER_QUEST, VILLAGERS } from '../config/quests';
+import { DialoguePanel } from '../panels/DialoguePanel';
 import { herbForecast } from '../logic/herbs';
-import { questGoals, questMarked, questRevealed, questsAfterMove, toggleTracking } from '../logic/quests';
+import {
+  acceptFireQuest,
+  questGoals,
+  questMarked,
+  questRevealed,
+  questsAfterMove,
+  toggleTracking,
+} from '../logic/quests';
 import { BIOME_TILES, POI_TILES, TILESET } from '../config/tiles';
 import { hexEquals, hexKey, hexToPixelFlat, parseHexKey, pixelToHexFlat, type Hex } from '../logic/hex';
 import { hash32 } from '../logic/rng';
@@ -100,6 +108,8 @@ export class WorldMapScene extends Phaser.Scene {
   private headerH = 0;
   private panelH = 0;
   private time0 = 0;
+  /** The elder handing over the lantern at the very first start */
+  private introPanel: DialoguePanel | null = null;
   /** Short notice about newly earned deeds, fading out by itself */
   private deedToast: Phaser.GameObjects.Text | null = null;
 
@@ -189,9 +199,15 @@ export class WorldMapScene extends Phaser.Scene {
     this.centerOn(parseHexKey(this.save.world.position));
     // Coming back from a fight next to the tower completes the quest.
     this.commit(this.save);
+    this.introPanel = null;
+    this.showIntro();
 
     this.scale.on('resize', this.onResize, this);
-    this.events.once('shutdown', () => this.scale.off('resize', this.onResize, this));
+    this.events.once('shutdown', () => {
+      this.scale.off('resize', this.onResize, this);
+      this.introPanel?.destroy();
+      this.introPanel = null;
+    });
   }
 
   override update(_t: number, deltaMs: number): void {
@@ -201,11 +217,49 @@ export class WorldMapScene extends Phaser.Scene {
     this.marker.setPosition(pos.x, pos.y - Math.abs(Math.sin(this.time0 * 3)) * 3 * this.u);
   }
 
+  // ---------------------------------------------------------------- first quest
+
+  /** The very first start: the elder hands over the lantern and sends you to the watchfires. */
+  private showIntro(): void {
+    this.introPanel?.destroy();
+    this.introPanel = null;
+    if (this.save.quests.fire !== 'offered') return;
+    const elder = VILLAGERS.elder;
+    const { width: W, height: H } = this.scale;
+    const panel = new DialoguePanel(
+      this,
+      { width: W, height: H, u: this.u, sa: this.sa },
+      {
+        name: elder.name,
+        role: elder.role,
+        color: elder.color,
+        text: FIRE_QUEST.elder.offered,
+        opaque: true,
+        buttons: [
+          { label: 'Take the lantern', icon: 'lantern-0', primary: true, onClick: () => this.acceptFire() },
+        ],
+      },
+    );
+    // The map camera zooms and scrolls; the panel belongs to the HUD camera only.
+    this.cameras.main.ignore([...panel.getObjects()]);
+    this.introPanel = panel;
+  }
+
+  private acceptFire(): void {
+    this.introPanel?.destroy();
+    this.introPanel = null;
+    this.commit({ ...this.save, quests: acceptFireQuest(this.save.quests) });
+    // The map opens from the dark.
+    this.cameras.main.fadeIn(600, 12, 10, 18);
+    this.hudCam.fadeIn(600, 12, 10, 18);
+  }
+
   // ---------------------------------------------------------------- layout
 
   private onResize(): void {
     const pos = parseHexKey(this.save.world.position);
     this.layout();
+    this.showIntro();
     this.centerOn(this.selected ?? pos);
   }
 
@@ -475,7 +529,7 @@ export class WorldMapScene extends Phaser.Scene {
     return (
       this.devReveal() || // DEV:
       isDiscovered(this.save.world, key) ||
-      questRevealed(this.save.quests, this.world).includes(key)
+      questRevealed(this.save.quests, this.world, this.save.world).includes(key)
     );
   }
 

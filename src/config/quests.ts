@@ -16,6 +16,26 @@ export const VILLAGERS: Record<VillagerId, VillagerDef> = {
   scout: { id: 'scout', name: 'Scout Ilka', role: 'Scout', color: 0x7dd3fc },
 };
 
+/** The first quest: the elder gives you a lantern and sends you to light the watchfires. */
+export const FIRE_QUEST = {
+  name: 'Light the Watchfires',
+  /** Gold for lighting the first watchfire (enough for the first better lantern) */
+  rewardGold: 30,
+  elder: {
+    offered:
+      'The darkness has broken in, wanderer. The old watchfires went cold, and with them the safe roads.\n\n' +
+      'Take this lantern. Its light is small, but it shows you what hunts you.\n\n' +
+      'Light the watchfires out there; every flame pushes the night back. I marked the nearest one on your ' +
+      'map. Win the fight there and its fire will catch. There will be a reward.',
+    active:
+      'The nearest watchfire is marked on your map. Fight your way there and light it. ' +
+      'Keep your lantern close.',
+    done:
+      'The first fire burns again! I can see its glow from here.\n\n' +
+      'There are more watchfires out there, in every direction. Each one makes the night a little smaller.',
+  },
+} as const;
+
 export const TOWER_QUEST = {
   name: 'The Old Tower',
   elder: {

@@ -6,6 +6,8 @@ export interface DialogueButton {
   label: string;
   onClick(): void;
   primary?: boolean;
+  /** Texture shown left of the label, e.g. the item you receive */
+  icon?: string;
 }
 
 export interface DialoguePanelOptions {
@@ -15,6 +17,8 @@ export interface DialoguePanelOptions {
   color: number;
   text: string;
   buttons: DialogueButton[];
+  /** Hide everything behind the card (the very first screen), instead of dimming it */
+  opaque?: boolean;
 }
 
 /**
@@ -32,6 +36,11 @@ export class DialoguePanel {
     this.build();
   }
 
+  /** The panel's game objects, e.g. to hide them from another camera */
+  getObjects(): readonly Phaser.GameObjects.GameObject[] {
+    return this.objects;
+  }
+
   destroy(): void {
     for (const o of this.objects) o.destroy();
     this.objects = [];
@@ -39,7 +48,9 @@ export class DialoguePanel {
 
   private build(): void {
     const { width: W, height: H, u, sa } = this.frame;
-    const shade = this.track(this.scene.add.rectangle(0, 0, W, H, 0x0c0a12, 0.85).setOrigin(0, 0));
+    const shade = this.track(
+      this.scene.add.rectangle(0, 0, W, H, 0x0c0a12, this.opts.opaque ? 1 : 0.85).setOrigin(0, 0),
+    );
     shade.setDepth(100).setInteractive();
 
     const w = Math.min(W - sa.left - sa.right - 32 * u, 440 * u);
@@ -98,9 +109,23 @@ export class DialoguePanel {
         g.lineStyle(1.5 * u, COLORS.panelEdge, 1).strokeRoundedRect(x - w / 2, y - h / 2, w, h, 10 * u);
     };
     draw(false);
-    this.text(x, y, b.label, 15, { fontStyle: 'bold', color: primary ? '#1c1917' : '#ffffff' }).setOrigin(
-      0.5,
-    );
+    const label = this.text(x, y, b.label, 15, {
+      fontStyle: 'bold',
+      color: primary ? '#1c1917' : '#ffffff',
+    }).setOrigin(0.5);
+    if (b.icon) {
+      // The item you get sits left of the label; both are centred together.
+      const icon = this.track(
+        this.scene.add
+          .image(0, y, b.icon)
+          .setDepth(102)
+          .setScale(2 * u),
+      );
+      const gap = 8 * u;
+      const total = icon.displayWidth + gap + label.width;
+      icon.setPosition(x - total / 2 + icon.displayWidth / 2, y + 1 * u);
+      label.setX(x + total / 2 - label.width / 2);
+    }
     const zone = this.track(
       this.scene.add.zone(x, y, w, h).setDepth(103).setInteractive({ useHandCursor: true }),
     );

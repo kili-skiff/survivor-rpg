@@ -1,7 +1,7 @@
 import * as Phaser from 'phaser';
 import { HERBS } from '../config/herbs';
 import { POTION_IDS, POTION_RULES, POTIONS } from '../config/potions';
-import { TOWER_QUEST, VILLAGERS, type VillagerId } from '../config/quests';
+import { FIRE_QUEST, TOWER_QUEST, VILLAGERS, type VillagerId } from '../config/quests';
 import type { HerbDef, PotionId } from '../config/types';
 import { grantTestLoot, toggleAllDeeds } from '../dev/devLogic'; // DEV:
 import { lootCount, type Loot } from '../logic/expedition';
@@ -136,6 +136,10 @@ export class VillageScene extends Phaser.Scene {
             { label: 'I will find it', primary: true, onClick: () => this.acceptQuest() },
           ],
         };
+      }
+      // Before the tower quest comes up, the elder talks about the watchfires.
+      if (q.tower === 'none' && q.fire !== 'offered') {
+        return { ...base, text: FIRE_QUEST.elder[q.fire === 'done' ? 'done' : 'active'], buttons: [close] };
       }
       return { ...base, text: TOWER_QUEST.elder[q.tower], buttons: [close] };
     }

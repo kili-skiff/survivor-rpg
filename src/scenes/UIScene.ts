@@ -1363,6 +1363,22 @@ export class UIScene extends Phaser.Scene {
       }).setOrigin(0.5, 0);
       y += t.height + 8 * u;
     }
+    const questGold = info.report?.questGold ?? 0;
+    if (questGold > 0) {
+      const t = this.text(
+        W / 2,
+        y - 6 * u,
+        `Quest complete: Light the Watchfires. Reward: ${questGold} gold`,
+        14,
+        {
+          fontStyle: 'bold',
+          color: '#fde047',
+          align: 'center',
+          wordWrap: { width: W - 48 * u },
+        },
+      ).setOrigin(0.5, 0);
+      y += t.height + 8 * u;
+    }
     const stats = [
       `Time  ${formatTime(info.time)} / ${formatTime(info.segment.durationSec)}`,
       `Level  ${info.level}`,
