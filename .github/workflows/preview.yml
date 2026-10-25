@@ -47,7 +47,7 @@ jobs:
             <img src="https://qr.rossjrw.com/?color.dark=0d1117&url=${{ steps.preview.outputs.preview-url }}?dev" height="100" align="right" alt="QR code for the dev mode link">
 
             :rocket: **Preview:** ${{ steps.preview.outputs.preview-url }}
-            :hammer_and_wrench: **Dev mode** (test helpers such as free herbs and map reveal): ${{ steps.preview.outputs.preview-url }}?dev
+            :hammer_and_wrench: **Dev mode:** ${{ steps.preview.outputs.preview-url }}?dev
 
             <sub>Built from ${{ github.event.pull_request.head.sha }}. The preview is ready when the
             [GitHub Pages deployment](https://github.com/${{ github.repository }}/deployments) is complete.
