@@ -95,6 +95,13 @@ export class BootScene extends Phaser.Scene {
         .fillCircle(11, 2, 3);
       g.fillStyle(0xe5e7eb).fillCircle(11, 6, 2);
     });
+    // White potion flask, tinted per potion type.
+    make('potion', 26, 30, (g) => {
+      g.fillStyle(0xd1d5db).fillRect(9, 1, 8, 3);
+      g.fillStyle(0xe5e7eb).fillRect(10, 4, 6, 7);
+      g.fillStyle(0xffffff).fillCircle(13, 19, 10);
+      g.fillStyle(0xffffff, 0.55).fillCircle(9, 16, 3);
+    });
     make('herb-glow', 64, 64, (g) => {
       for (let i = 0; i < 10; i++) g.fillStyle(0xffffff, 0.04 + i * 0.012).fillCircle(32, 32, 32 - i * 3);
     });

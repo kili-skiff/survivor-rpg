@@ -70,8 +70,13 @@ stronger: with a better class build, a growing herb garden and potions for the n
 ## Village
 
 - **Herb garden:** plant herbs found on expeditions to grow more of them.
-- **Brewing:** turn herbs into potions that make the next expedition easier
-  (e.g. more health, faster cooldowns, poison resistance).
+- **Brewing:** turn herbs into potions at the cauldron. A potion uses up a few herbs.
+- **Potions are drunk with a button during a fight**, not passive buffs: healing, haste and warding
+  for now. You pack them into a small belt (3 slots) in the village; what you do not drink stays in
+  the belt, also when you fall. Refilling is only possible at home.
+- Passive buffs for a whole expedition are left for later ideas, e.g. a cooking profession with buff
+  food, or items with passive effects.
+- **Herbs in the garden grow in real time**, also while the game is closed.
 - **Class and skill tree:** permanent progression of your character.
 - Farming must feel like a reward, never like a chore you have to do before playing.
 - **Today** the village is a menu screen: the stash, what came home, and a button to set out.
@@ -113,7 +118,6 @@ stronger: with a better class build, a growing herb garden and potions for the n
 - Do hexes reset after every run, or over time?
 - How long should a full expedition take?
 - What exactly survives a new season?
-- Do herbs grow in real time, per expedition, or per in-game day?
 - Perspective: isometric or 3/4 top-down (see Look and feel).
 - Walkable village: when to build it (ideally with real art), and how shortcuts work on phones.
 - Art source: asset packs, 3D models rendered to sprites, or commissioned pixel art.

@@ -1,8 +1,9 @@
 import * as Phaser from 'phaser';
 import { PASSIVES } from '../config/passives';
 import { HERBS } from '../config/herbs';
+import { POTION_IDS, POTIONS } from '../config/potions';
 import { SKILLS } from '../config/skills';
-import type { HerbId, PassiveId, SkillId, WeaponId } from '../config/types';
+import type { HerbId, PassiveId, PotionId, SkillId, WeaponId } from '../config/types';
 import { WEAPONS } from '../config/weapons';
 import type { InputState } from '../input/InputState';
 import { formatTime, xpToNext } from '../logic/progression';
@@ -13,6 +14,16 @@ import { describeUpgrade, type UpgradeOption } from '../logic/upgrades';
 import { safeArea, viewportSize, type SafeArea } from '../ui/display';
 import { COLORS, css, FONT } from '../ui/theme';
 import type { GameScene, RunEndInfo } from './GameScene';
+
+interface PotionButton {
+  id: PotionId;
+  icon: Phaser.GameObjects.Image;
+  label: Phaser.GameObjects.Text;
+  count: Phaser.GameObjects.Text;
+  x: number;
+  y: number;
+  r: number;
+}
 
 type OverlayKind = 'none' | 'levelup' | 'pause' | 'runend';
 
@@ -42,6 +53,7 @@ export class UIScene extends Phaser.Scene {
   private herbText!: Phaser.GameObjects.Text;
   private pauseBtn!: Phaser.GameObjects.Text;
   private skillButtons: SkillButton[] = [];
+  private potionButtons: PotionButton[] = [];
   private loadoutIcons: Phaser.GameObjects.GameObject[] = [];
   private loadoutSignature = '';
 
@@ -75,6 +87,7 @@ export class UIScene extends Phaser.Scene {
     this.isTouch = this.sys.game.device.input.touch;
     this.settings = loadSettings(safeStorage());
     this.skillButtons = [];
+    this.potionButtons = [];
     this.loadoutIcons = [];
     this.loadoutSignature = '';
     this.overlay = [];
@@ -107,6 +120,10 @@ export class UIScene extends Phaser.Scene {
 
     this.createSkillButton('dash', this.isTouch ? 'Dash' : 'Dash · Space');
     this.createSkillButton('nova', this.isTouch ? 'Nova' : 'Nova · E');
+    // One button per kind of potion packed in the belt.
+    POTION_IDS.filter((id) => this.gs.potionCount(id) > 0).forEach((id, i) =>
+      this.createPotionButton(id, this.isTouch ? POTIONS[id].short : `${POTIONS[id].short} · ${i + 1}`),
+    );
 
     this.setupKeyboard();
     this.setupJoystick();
@@ -145,9 +162,9 @@ export class UIScene extends Phaser.Scene {
     kb.on('keydown-ENTER', () => this.onConfirmKey(null));
     kb.on('keydown-P', () => this.togglePause());
     kb.on('keydown-ESC', () => this.togglePause());
-    kb.on('keydown-ONE', () => this.pickCardByKey(0));
-    kb.on('keydown-TWO', () => this.pickCardByKey(1));
-    kb.on('keydown-THREE', () => this.pickCardByKey(2));
+    kb.on('keydown-ONE', () => this.onNumberKey(0));
+    kb.on('keydown-TWO', () => this.onNumberKey(1));
+    kb.on('keydown-THREE', () => this.onNumberKey(2));
   }
 
   private onConfirmKey(action: 'dash' | null): void {
@@ -208,6 +225,43 @@ export class UIScene extends Phaser.Scene {
     const x = (k.D.isDown || k.RIGHT.isDown ? 1 : 0) - (k.A.isDown || k.LEFT.isDown ? 1 : 0);
     const y = (k.S.isDown || k.DOWN.isDown ? 1 : 0) - (k.W.isDown || k.UP.isDown ? 1 : 0);
     this.controls.setMove(x, y);
+  }
+
+  private createPotionButton(id: PotionId, label: string): void {
+    const icon = this.add.image(0, 0, 'potion').setTint(POTIONS[id].color);
+    // A generous round hit area: the flask itself is small.
+    icon.setInteractive({
+      hitArea: new Phaser.Geom.Circle(13, 15, 22),
+      hitAreaCallback: Phaser.Geom.Circle.Contains,
+      useHandCursor: true,
+    });
+    icon.on('pointerdown', () => this.drinkPotion(id));
+    const style = {
+      fontFamily: FONT,
+      fontStyle: 'bold',
+      color: '#ffffff',
+      stroke: '#000000',
+      strokeThickness: 3,
+    };
+    const labelText = this.add.text(0, 0, label, { ...style, fontSize: '11px' }).setOrigin(0.5, 0);
+    const count = this.add
+      .text(0, 0, '', { ...style, fontSize: '12px' })
+      .setOrigin(0.5)
+      .setDepth(2);
+    this.potionButtons.push({ id, icon, label: labelText, count, x: 0, y: 0, r: 24 });
+  }
+
+  private drinkPotion(id: PotionId): void {
+    if (this.overlayKind === 'none') this.controls.press(`drink:${id}`);
+  }
+
+  /** Number keys pick a level-up card in the menu and drink potions during the fight. */
+  private onNumberKey(index: number): void {
+    if (this.overlayKind === 'levelup') this.chooseCard(index);
+    else {
+      const button = this.potionButtons[index];
+      if (button) this.drinkPotion(button.id);
+    }
   }
 
   private createSkillButton(id: SkillId, label: string): void {
@@ -290,6 +344,20 @@ export class UIScene extends Phaser.Scene {
       b.label.setFontSize(Math.round(11 * u)).setPosition(b.x, b.y + b.r + 4 * u);
       b.cd.setFontSize(Math.round(18 * u)).setPosition(b.x, b.y);
     }
+
+    // Potions stand in a second, smaller column just inside the skills, lowest first.
+    const potionR = 24 * u;
+    const inward = this.settings.skillSide === 'left' ? 1 : -1;
+    const potionX = columnX + inward * (dash.r + 16 * u + potionR);
+    const potionLabel = 18 * u;
+    this.potionButtons.forEach((p, i) => {
+      p.r = potionR;
+      p.x = potionX;
+      p.y = bottom - potionLabel - potionR - i * (potionR * 2 + potionLabel + 8 * u);
+      p.icon.setPosition(p.x, p.y).setDisplaySize(potionR * 1.1, potionR * 1.27);
+      p.label.setFontSize(Math.round(11 * u)).setPosition(p.x, p.y + potionR + 3 * u);
+      p.count.setFontSize(Math.round(13 * u)).setPosition(p.x + potionR * 0.85, p.y - potionR * 0.85);
+    });
     this.loadoutSignature = '';
   }
 
@@ -350,6 +418,24 @@ export class UIScene extends Phaser.Scene {
         b.cd.setText('');
         b.icon.setAlpha(1);
       }
+    }
+
+    // Potion buttons: a ring in the potion colour shows how long its buff still runs.
+    for (const p of this.potionButtons) {
+      const count = this.gs.potionCount(p.id);
+      const color = POTIONS[p.id].color;
+      g.fillStyle(0x000000, 0.45).fillCircle(p.x, p.y, p.r);
+      g.lineStyle(2 * u, color, count > 0 ? 0.8 : 0.3).strokeCircle(p.x, p.y, p.r);
+      const buff = this.gs.potionBuffFraction(p.id);
+      if (buff > 0) {
+        g.lineStyle(4 * u, color, 1);
+        g.beginPath();
+        g.arc(p.x, p.y, p.r + 4 * u, -Math.PI / 2, -Math.PI / 2 + buff * Math.PI * 2, false);
+        g.strokePath();
+      }
+      p.icon.setAlpha(count > 0 ? 1 : 0.3);
+      p.label.setAlpha(count > 0 ? 1 : 0.5);
+      p.count.setText(`×${count}`).setColor(count > 0 ? '#ffffff' : '#71717a');
     }
 
     // Joystick
@@ -733,10 +819,6 @@ export class UIScene extends Phaser.Scene {
       if (this.pressedCard === index) this.chooseCard(index);
     });
     this.overlay.push(zone);
-  }
-
-  private pickCardByKey(index: number): void {
-    if (this.overlayKind === 'levelup') this.chooseCard(index);
   }
 
   private chooseCard(index: number): void {
