@@ -104,6 +104,10 @@ export const LANTERN = {
   stiffness: 130,
   /** Friction of the swing (higher = settles sooner) */
   damping: 6.5,
+  /** Up and down the view is foreshortened: the lantern swings less and settles faster that way */
+  verticalInertia: 0.4,
+  verticalDamping: 11,
+  verticalLean: 0.5,
   /** How strongly a push of the hand (acceleration) throws the lantern */
   inertia: 0.75,
   /** While running, the lantern trails behind by speed times this (px per px/s) */

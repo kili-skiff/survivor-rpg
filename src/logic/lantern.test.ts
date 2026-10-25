@@ -46,6 +46,29 @@ describe('lantern physics', () => {
     expect(s.y).toBeCloseTo(LANTERN.drop, 1);
   });
 
+  it('swings less and settles sooner up and down than sideways', () => {
+    const peak = (axis: 'x' | 'y') => {
+      let s = stepLantern(
+        restingLantern(),
+        { vx: 0, vy: 0, ax: axis === 'x' ? 12000 : 0, ay: axis === 'y' ? 12000 : 0 },
+        1 / 60,
+      );
+      let max = 0;
+      let crossings = 0;
+      let last = 0;
+      for (let i = 0; i < 180; i++) {
+        s = stepLantern(s, still, 1 / 60);
+        const d = axis === 'x' ? s.x : s.y - LANTERN.drop;
+        max = Math.max(max, Math.abs(d));
+        if (last * d < 0) crossings++;
+        if (d !== 0) last = d;
+      }
+      return { max, crossings };
+    };
+    expect(peak('y').max).toBeLessThan(peak('x').max);
+    expect(peak('y').crossings).toBeLessThan(peak('x').crossings);
+  });
+
   it('never leaves the reach of its chain', () => {
     let s = restingLantern();
     for (let i = 0; i < 300; i++) {

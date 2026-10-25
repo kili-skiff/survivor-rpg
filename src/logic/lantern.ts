@@ -23,7 +23,17 @@ export interface HandMotion {
 
 export type LanternParams = Pick<
   typeof LANTERN,
-  'drop' | 'stiffness' | 'damping' | 'inertia' | 'lean' | 'leanMax' | 'maxSwing' | 'maxStep'
+  | 'drop'
+  | 'stiffness'
+  | 'damping'
+  | 'inertia'
+  | 'verticalInertia'
+  | 'verticalDamping'
+  | 'verticalLean'
+  | 'lean'
+  | 'leanMax'
+  | 'maxSwing'
+  | 'maxStep'
 >;
 
 /** The lantern hanging still. */
@@ -41,7 +51,7 @@ export function stepLantern(
   if (dt <= 0) return state;
   // Running drags the lantern back; the pull is limited so a dash does not throw it far off.
   let leanX = motion.vx * p.lean;
-  let leanY = motion.vy * p.lean;
+  let leanY = motion.vy * p.lean * p.verticalLean;
   const lean = Math.hypot(leanX, leanY);
   if (lean > p.leanMax) {
     leanX *= p.leanMax / lean;
@@ -56,7 +66,7 @@ export function stepLantern(
   for (let i = 0; i < steps; i++) {
     // A hand that speeds up leaves the lantern behind: the push works against the hand's acceleration.
     vx += (-p.stiffness * (x - restX) - p.damping * vx - p.inertia * motion.ax) * h;
-    vy += (-p.stiffness * (y - restY) - p.damping * vy - p.inertia * motion.ay) * h;
+    vy += (-p.stiffness * (y - restY) - p.verticalDamping * vy - p.verticalInertia * motion.ay) * h;
     x += vx * h;
     y += vy * h;
     // The chain is only so long: stay within reach of the hanging spot and lose the outward speed.
