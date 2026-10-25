@@ -6,7 +6,9 @@ import type { HerbId, PassiveId, SkillId, WeaponId } from '../config/types';
 import { WEAPONS } from '../config/weapons';
 import type { InputState } from '../input/InputState';
 import { formatTime, xpToNext } from '../logic/progression';
+import { safeStorage } from '../logic/save';
 import { isSegmentWarning, segmentRemaining } from '../logic/segment';
+import { loadSettings, otherSide, writeSettings, type Settings } from '../logic/settings';
 import { describeUpgrade, type UpgradeOption } from '../logic/upgrades';
 import { safeArea, viewportSize, type SafeArea } from '../ui/display';
 import { COLORS, css, FONT } from '../ui/theme';
@@ -45,6 +47,7 @@ export class UIScene extends Phaser.Scene {
 
   private keys!: Record<string, Phaser.Input.Keyboard.Key>;
   private isTouch = false;
+  private settings!: Settings;
 
   private stickPointerId: number | null = null;
   private stickOrigin = new Phaser.Math.Vector2();
@@ -70,6 +73,7 @@ export class UIScene extends Phaser.Scene {
     this.gs = this.scene.get('Game') as GameScene;
     this.controls = this.registry.get('input') as InputState;
     this.isTouch = this.sys.game.device.input.touch;
+    this.settings = loadSettings(safeStorage());
     this.skillButtons = [];
     this.loadoutIcons = [];
     this.loadoutSignature = '';
@@ -268,15 +272,19 @@ export class UIScene extends Phaser.Scene {
       .setFontSize(Math.round(14 * u))
       .setPosition(right - this.pauseBtn.width - 10 * u, top + 6 * u);
 
+    // Skill buttons stand in a column at the screen edge the player chose, so the thumb
+    // reaches all of them without stretching across the screen. Dash, used most, sits lowest.
     const bottom = H - this.sa.bottom - m;
     const dash = this.skillButtons[0];
     const nova = this.skillButtons[1];
     dash.r = 38 * u;
-    dash.x = right - dash.r - 4 * u;
-    dash.y = bottom - dash.r - 18 * u;
     nova.r = 32 * u;
-    nova.x = dash.x - dash.r - nova.r - 22 * u;
-    nova.y = dash.y + 6 * u;
+    const columnX = this.settings.skillSide === 'left' ? left + dash.r + 4 * u : right - dash.r - 4 * u;
+    const labelSpace = 22 * u;
+    dash.x = columnX;
+    dash.y = bottom - dash.r - labelSpace;
+    nova.x = columnX;
+    nova.y = dash.y - dash.r - labelSpace - 6 * u - nova.r;
     for (const b of this.skillButtons) {
       b.icon.setPosition(b.x, b.y).setDisplaySize(b.r * 2, b.r * 2);
       b.label.setFontSize(Math.round(11 * u)).setPosition(b.x, b.y + b.r + 4 * u);
@@ -757,12 +765,23 @@ export class UIScene extends Phaser.Scene {
     this.beginOverlay('pause', 0.6);
     const { width: W, height: H } = this.scale;
     const u = this.u;
-    this.text(W / 2, H * 0.3, 'Paused', 34, { fontStyle: 'bold' });
-    this.button(W / 2, H * 0.5, 'Resume', () => this.togglePause());
-    this.button(W / 2, H * 0.5 + 64 * u, 'Give up', () => this.gs.giveUp(), false);
-    this.text(W / 2, H * 0.5 + 106 * u, 'Giving up ends the expedition, like falling.', 12, {
+    const y = Math.max(H * 0.42, this.sa.top + 120 * u);
+    this.text(W / 2, y - 76 * u, 'Paused', 34, { fontStyle: 'bold' });
+    this.button(W / 2, y, 'Resume', () => this.togglePause());
+    const side = this.settings.skillSide === 'left' ? 'left' : 'right';
+    this.button(W / 2, y + 64 * u, `Skills: ${side} side`, () => this.toggleSkillSide(), false);
+    this.button(W / 2, y + 128 * u, 'Give up', () => this.gs.giveUp(), false);
+    this.text(W / 2, y + 170 * u, 'Giving up ends the expedition, like falling.', 12, {
       color: '#a1a1aa',
     });
+  }
+
+  /** Moves the skill buttons to the other screen edge and remembers the choice on this device. */
+  private toggleSkillSide(): void {
+    this.settings = { ...this.settings, skillSide: otherSide(this.settings.skillSide) };
+    writeSettings(safeStorage(), this.settings);
+    this.layout();
+    this.showPause();
   }
 
   private onRunEnd(info: RunEndInfo): void {
