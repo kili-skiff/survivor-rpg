@@ -3,7 +3,7 @@ import { BIOMES, POIS, SEASON } from '../config/world';
 import { hexEquals, hexKey, hexToPixel, parseHexKey, pixelToHex, type Hex } from '../logic/hex';
 import { formatTime } from '../logic/progression';
 import { loadSave, safeStorage, writeSave, type SaveData } from '../logic/save';
-import { lootCount } from '../logic/expedition';
+import { lootCount, lootGained } from '../logic/expedition';
 import { teleport, walkHome } from '../logic/journey';
 import { computePlayerStats } from '../logic/stats';
 import { isAtHome, isCleared, isDiscovered, travelKind, type TravelKind } from '../logic/worldProgress';
@@ -11,6 +11,7 @@ import { seasonWorld, segmentForHex, type World, type WorldHex } from '../logic/
 import { safeArea, viewportSize, type SafeArea } from '../ui/display';
 import { COLORS, css, FONT } from '../ui/theme';
 import type { GameSceneData } from './GameScene';
+import type { VillageSceneData } from './VillageScene';
 
 const FOG_FILL = 0x17141f;
 const FOG_EDGE = 0x2b2638;
@@ -31,6 +32,8 @@ interface DragState {
  * The season's hex world. Shows explored land, lets the player pan around and
  * pick a neighbouring hex to fight in (or walk back into the village).
  */
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
+
 export class WorldMapScene extends Phaser.Scene {
   private world!: World;
   private save!: SaveData;
@@ -273,7 +276,7 @@ export class WorldMapScene extends Phaser.Scene {
       const loot = lootCount(exp.loot);
       return `Expedition · ${hp} · ${exp.areasCleared} areas${loot > 0 ? ` · ${loot} loot` : ''}`;
     }
-    return `${SEASON.name} · ${this.save.segmentsCleared} areas cleared · ${this.save.world.waypoints.length} waypoints`;
+    return `${SEASON.name} · ${plural(this.save.segmentsCleared, 'area')} cleared · ${plural(this.save.world.waypoints.length, 'waypoint')}`;
   }
 
   private describeSelection(): {
@@ -282,6 +285,13 @@ export class WorldMapScene extends Phaser.Scene {
     action?: { label: string; run: () => void };
   } {
     const progress = this.save.world;
+    if (!this.selected && isAtHome(progress)) {
+      return {
+        title: 'Village',
+        detail: 'Tap a glowing hex to set out. Camps you reach become waypoints you can travel to from here.',
+        action: { label: 'Enter village', run: () => this.enterVillage() },
+      };
+    }
     if (!this.selected) {
       return {
         title: 'Choose your path',
@@ -307,11 +317,11 @@ export class WorldMapScene extends Phaser.Scene {
       return {
         title: 'Village',
         detail: here
-          ? 'You are home. Safe from the night.'
+          ? 'You are home. Safe from the night. Visit your stash before setting out.'
           : homeAction
             ? 'Going home ends the expedition. You keep all your loot.'
             : 'Your home. No monsters here.',
-        action: homeAction,
+        action: here ? { label: 'Enter village', run: () => this.enterVillage() } : homeAction,
       };
     }
     if (kind === 'teleport') {
@@ -409,12 +419,29 @@ export class WorldMapScene extends Phaser.Scene {
   }
 
   private walkHome(hex: Hex): void {
-    this.commit(walkHome(this.save, hex));
+    this.arriveHome(walkHome(this.save, hex));
   }
 
   private teleport(hex: Hex): void {
-    this.commit(teleport(this.save, hex));
+    const next = teleport(this.save, hex);
+    if (next.world.position === '0,0') {
+      this.arriveHome(next);
+      return;
+    }
+    this.commit(next);
     this.centerOn(hex);
+  }
+
+  /** Coming home ends the expedition: save, then show what was brought back. */
+  private arriveHome(next: SaveData): void {
+    const kept = lootGained(this.save.stash, next.stash);
+    this.commit(next);
+    const data: VillageSceneData = { arrival: { reason: 'returned', kept, lost: {} } };
+    this.scene.start('Village', data);
+  }
+
+  private enterVillage(): void {
+    this.scene.start('Village');
   }
 
   private commit(next: SaveData): void {

@@ -45,6 +45,16 @@ export function lootAfterDeath(loot: Loot, share: number): Loot {
   return out;
 }
 
+/** What `after` has more of than `before`, per item. Used to show what was just brought home. */
+export function lootGained(before: Loot, after: Loot): Loot {
+  const out: Loot = {};
+  for (const [id, n] of Object.entries(after)) {
+    const diff = n - (before[id] ?? 0);
+    if (diff > 0) out[id] = diff;
+  }
+  return out;
+}
+
 export function lootCount(loot: Loot): number {
   return Object.values(loot).reduce((sum, n) => sum + n, 0);
 }

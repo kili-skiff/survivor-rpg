@@ -24,6 +24,7 @@ import {
 import { applyUpgrade, rollUpgradeOptions, type UpgradeOption } from '../logic/upgrades';
 import { seasonWorld, segmentForHex } from '../logic/worldgen';
 import type { CombatContext } from '../systems/CombatContext';
+import type { VillageSceneData } from './VillageScene';
 import { DamageNumbers } from '../systems/DamageNumbers';
 import { HerbSystem, type HerbIndicator, type HerbSlot } from '../systems/HerbSystem';
 import { EnemySystem } from '../systems/EnemySystem';
@@ -105,6 +106,7 @@ export class GameScene extends Phaser.Scene {
   private viewW = 800;
   private viewH = 600;
   private hexKey: string | null = null;
+  private endInfo: RunEndInfo | null = null;
 
   constructor() {
     super('Game');
@@ -122,6 +124,7 @@ export class GameScene extends Phaser.Scene {
     this.clock = 0;
     this.levelUpOpen = false;
     this.pendingLevelUps = 0;
+    this.endInfo = null;
 
     let controls = this.registry.get('input') as InputState | undefined;
     if (!controls) {
@@ -255,6 +258,15 @@ export class GameScene extends Phaser.Scene {
   /** Returns to the world map after the result screen. */
   returnToMap(): void {
     this.scene.stop('UI');
+    const report = this.endInfo?.report;
+    if (report && report.outcome === 'fallen') {
+      // Falling ends the expedition: you wake up in the village.
+      const data: VillageSceneData = {
+        arrival: { reason: 'fallen', kept: report.lootKept ?? {}, lost: report.lootLost ?? {} },
+      };
+      this.scene.start('Village', data);
+      return;
+    }
     this.scene.start('WorldMap');
   }
 
@@ -436,6 +448,7 @@ export class GameScene extends Phaser.Scene {
       report,
       newBestTime: time > before.bestTime,
     };
+    this.endInfo = info;
     this.controls.reset();
     this.events.emit('runend', info);
   }

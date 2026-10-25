@@ -37,8 +37,8 @@ src/
     weapons/   one class per weapon + factory in index.ts
     skills/    active skills (e.g. Frost Nova)
     PlayerController, EnemySystem, PickupSystem, HerbSystem, DamageNumbers
-  scenes/    Boot (placeholder graphics), WorldMap (hex map, travel), Game (one fight, owns run state,
-             wires systems), UI (HUD, touch, menus during a fight)
+  scenes/    Boot (placeholder graphics), WorldMap (hex map, travel), Village (stash, what came home),
+             Game (one fight, owns run state, wires systems), UI (HUD, touch, menus during a fight)
   ui/        Display helpers (pixel density, safe area), colors
 ```
 
@@ -74,7 +74,7 @@ A small but complete piece of the game from `docs/vision.md`. Each step is its o
 - [x] Segments with a goal (e.g. survive N minutes) and a result screen
 - [x] Hex world map from a seed: rings, biomes, fog of war; tap a neighbour hex to play it
 - [x] Expeditions: build carries over between segments, camps as waypoints, partial loot loss on death
-- [ ] Village as the starting point (simple screen: stash and "set out")
+- [x] Village as the starting point (simple screen: stash and "set out")
 - [x] Herbs that grow in hexes by biome, gathered by standing next to them
 - [ ] Herb garden and brewing of three potions taken on an expedition
 - [ ] One class with a small skill tree
