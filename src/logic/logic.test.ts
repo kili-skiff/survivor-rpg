@@ -198,6 +198,7 @@ describe('save', () => {
       world: emptySave().world,
       stash: {},
       belt: {},
+      quests: emptySave().quests,
     });
   });
 

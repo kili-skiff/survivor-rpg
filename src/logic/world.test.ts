@@ -119,6 +119,21 @@ describe('world generation', () => {
     }
   });
 
+  it('places one tower in the outer ring and a camp near the village towards it', () => {
+    for (let s = 0; s < 30; s++) {
+      const world = generateWorld(`seed-${s}`, SEASON.generatorVersion);
+      const towers = [...world.hexes.values()].filter((h) => h.poi === 'tower');
+      expect(towers.map((h) => h.key)).toEqual([world.tower]);
+      expect(towers[0].ring).toBe(world.radius);
+      expect(towers[0].herbs).toBe(false);
+      const camp = world.hexes.get(world.roadCamp!)!;
+      expect(camp.poi).toBe('camp');
+      expect(camp.ring).toBe(2);
+      // It lies on the tower's side of the village: closer to the tower than the village is.
+      expect(hexDistance(camp.hex, towers[0].hex)).toBeLessThan(world.radius);
+    }
+  });
+
   it('spreads points of interest out', () => {
     for (let s = 0; s < 30; s++) {
       const pois = [...generateWorld(`seed-${s}`, SEASON.generatorVersion).hexes.values()].filter(

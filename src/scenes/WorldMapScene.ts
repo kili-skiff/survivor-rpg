@@ -1,6 +1,8 @@
 import * as Phaser from 'phaser';
 import { BIOMES, POIS } from '../config/world';
+import { TOWER_QUEST } from '../config/quests';
 import { herbForecast } from '../logic/herbs';
+import { questGoals, questMarked, questRevealed, questsAfterMove, toggleTracking } from '../logic/quests';
 import { BIOME_TILES, POI_TILES, TILESET } from '../config/tiles';
 import { hexEquals, hexKey, hexToPixelFlat, parseHexKey, pixelToHexFlat, type Hex } from '../logic/hex';
 import { hash32 } from '../logic/rng';
@@ -31,6 +33,8 @@ const VILLAGE_FILL = 0x8a6a2a;
 const DRAG_THRESHOLD = 8;
 /** Darkens hexes cleared on this expedition */
 const USED_TINT = 0x4d4d57;
+/** Ring and pin colour for quest goals on the map */
+const QUEST_COLOR = 0xc084fc;
 
 interface DragState {
   id: number;
@@ -55,6 +59,8 @@ export class WorldMapScene extends Phaser.Scene {
   private map!: Phaser.GameObjects.Graphics;
   /** Travel targets and selection, above the tiles */
   private outlines!: Phaser.GameObjects.Graphics;
+  /** Arrows at the screen edge pointing to quest goals that are off screen */
+  private questArrows!: Phaser.GameObjects.Graphics;
   /** One tile image per hex (empty when the tile art could not be loaded) */
   private tiles: { hex: WorldHex; image: Phaser.GameObjects.Image }[] = [];
   private tileScale = 1;
@@ -89,6 +95,7 @@ export class WorldMapScene extends Phaser.Scene {
     this.cameras.main.setBackgroundColor(COLORS.bg);
     this.map = this.add.graphics().setDepth(-1);
     this.outlines = this.add.graphics().setDepth(0.5);
+    this.questArrows = this.add.graphics().setDepth(9).setScrollFactor(0);
     if (this.textures.exists(TILESET.key)) {
       // Back to front, so trees and mountains overlap the hexes behind them.
       const byRow = [...this.world.hexes.values()].sort(
@@ -129,6 +136,8 @@ export class WorldMapScene extends Phaser.Scene {
     this.setupInput();
     this.layout();
     this.centerOn(parseHexKey(this.save.world.position));
+    // Coming back from a fight next to the tower completes the quest.
+    this.commit(this.save);
 
     this.scale.on('resize', this.onResize, this);
     this.events.once('shutdown', () => this.scale.off('resize', this.onResize, this));
@@ -250,6 +259,23 @@ export class WorldMapScene extends Phaser.Scene {
       o.strokePath();
     }
 
+    // Quest goals: a ring and a bobbing pin above the hex, visible through the fog.
+    const bob = Math.sin(this.time0 * 3) * 3 * u;
+    for (const key of questMarked(this.save.quests, this.world, progress)) {
+      const p = hexToPixelFlat(parseHexKey(key), this.hexSize);
+      o.lineStyle(3 * u, QUEST_COLOR, pulse);
+      this.hexPath(o, p.x, p.y, this.hexSize - 6 * u);
+      o.strokePath();
+      const top = p.y - this.hexSize * 1.05 + bob;
+      const s = 9 * u;
+      o.fillStyle(0x000000, 0.5).fillCircle(p.x, top - s * 0.4, s * 1.25);
+      o.fillStyle(QUEST_COLOR, 1).fillTriangle(p.x - s, top - s, p.x + s, top - s, p.x, top + s * 0.6);
+      o.fillCircle(p.x, top - s, s);
+      o.fillStyle(0x1c1917, 1).fillCircle(p.x, top - s, s * 0.4);
+    }
+
+    this.drawQuestArrows(pulse);
+
     for (const { hex, icon } of this.herbIcons) {
       icon.setVisible(this.isVisible(hex.key) && !isUsedUp(progress, hex.key));
     }
@@ -259,9 +285,57 @@ export class WorldMapScene extends Phaser.Scene {
     }
   }
 
+  /** Quest goals off screen get an arrow at the edge of the map area, pointing towards them. */
+  private drawQuestArrows(pulse: number): void {
+    const g = this.questArrows;
+    g.clear();
+    const u = this.u;
+    const cam = this.cameras.main;
+    const { width: W, height: H } = this.scale;
+    const inset = 26 * u;
+    const left = this.sa.left + inset;
+    const right = W - this.sa.right - inset;
+    const top = this.headerH + inset;
+    const bottom = H - this.panelH - inset;
+    const cx = (left + right) / 2;
+    const cy = (top + bottom) / 2;
+    for (const key of questMarked(this.save.quests, this.world, this.save.world)) {
+      const p = hexToPixelFlat(parseHexKey(key), this.hexSize);
+      const sx = p.x - cam.scrollX;
+      const sy = p.y - cam.scrollY;
+      if (sx >= left && sx <= right && sy >= top && sy <= bottom) continue;
+      const angle = Math.atan2(sy - cy, sx - cx);
+      const dx = Math.cos(angle);
+      const dy = Math.sin(angle);
+      // Walk along the direction until the inset map area is hit.
+      const tx = dx > 0 ? (right - cx) / dx : dx < 0 ? (left - cx) / dx : Infinity;
+      const ty = dy > 0 ? (bottom - cy) / dy : dy < 0 ? (top - cy) / dy : Infinity;
+      const t = Math.min(tx, ty);
+      const x = cx + dx * t;
+      const y = cy + dy * t;
+      const size = 12 * u * (0.9 + pulse * 0.2);
+      const tip = { x: x + dx * size * 1.2, y: y + dy * size * 1.2 };
+      const back = { x: x - dx * size * 0.7, y: y - dy * size * 0.7 };
+      const side = { x: -dy * size * 0.65, y: dx * size * 0.65 };
+      g.fillStyle(0x000000, 0.55).fillCircle(x, y, size * 1.3);
+      g.fillStyle(QUEST_COLOR, 1).fillTriangle(
+        tip.x,
+        tip.y,
+        back.x + side.x,
+        back.y + side.y,
+        back.x - side.x,
+        back.y - side.y,
+      );
+    }
+  }
+
   /** Whether a hex is shown. Dev mode can lift the fog for testing; travel rules stay the same. */
   private isVisible(key: string): boolean {
-    return this.devReveal() || isDiscovered(this.save.world, key);
+    return (
+      this.devReveal() ||
+      isDiscovered(this.save.world, key) ||
+      questRevealed(this.save.quests, this.world).includes(key)
+    );
   }
 
   private devReveal(): boolean {
@@ -332,6 +406,9 @@ export class WorldMapScene extends Phaser.Scene {
       color: css(COLORS.accent),
     });
     if (isDevMode()) this.devRevealButton(W - this.sa.right - 16 * u, this.sa.top + 14 * u);
+    if (questGoals(this.save.quests, this.world, this.save.world).length > 0) {
+      this.trackingButton(W - this.sa.right - 16 * u, this.headerH + 10 * u);
+    }
     this.text(left, this.sa.top + 38 * u, this.statusLine(), 12, {
       color: '#a1a1aa',
     });
@@ -363,6 +440,23 @@ export class WorldMapScene extends Phaser.Scene {
         this.button(W / 2, panelY + 126 * u, info.action.label, info.action.run);
       }
     }
+  }
+
+  /** Switches the quest marks (ring, pin, edge arrow) on the map on and off. */
+  private trackingButton(x: number, y: number): void {
+    const u = this.u;
+    const on = this.save.quests.tracked;
+    const t = this.text(x, y, on ? '◆  Quest marks on' : '◇  Quest marks off', 12, {
+      fontStyle: 'bold',
+      color: on ? '#1c1917' : '#d8b4fe',
+      backgroundColor: on ? css(QUEST_COLOR) : '#2e1065',
+      padding: { x: Math.round(10 * u), y: Math.round(7 * u) },
+    }).setOrigin(1, 0);
+    t.setInteractive({ useHandCursor: true }).on('pointerup', () => {
+      this.save = { ...this.save, quests: toggleTracking(this.save.quests) };
+      writeSave(safeStorage(), this.save);
+      this.buildHud();
+    });
   }
 
   /** Dev mode only: shows the whole map without saving anything as discovered. */
@@ -437,6 +531,18 @@ export class WorldMapScene extends Phaser.Scene {
       : undefined;
     const kind: TravelKind = travelKind(this.world, progress, this.selected);
     const here = hexEquals(this.selected, parseHexKey(progress.position));
+    if (h.poi === 'tower') {
+      const stage = this.save.quests.tower;
+      return {
+        title: POIS.tower.name,
+        detail:
+          stage === 'done'
+            ? TOWER_QUEST.towerSealed
+            : stage === 'active'
+              ? `Ring ${h.ring} · Quest goal. ${TOWER_QUEST.towerFar}`
+              : `Ring ${h.ring} · An old tower at the edge of the land.`,
+      };
+    }
     if (h.poi === 'village') {
       const homeAction =
         kind === 'walk'
@@ -608,9 +714,12 @@ export class WorldMapScene extends Phaser.Scene {
   }
 
   private commit(next: SaveData): void {
-    this.save = next;
+    // Standing next to the tower completes the quest: show its sealed gate.
+    const quests = questsAfterMove(next.quests, this.world, next.world);
+    const reachedTower = quests !== next.quests;
+    this.save = reachedTower ? { ...next, quests } : next;
     writeSave(safeStorage(), this.save);
-    this.selected = null;
+    this.selected = reachedTower ? parseHexKey(this.world.tower) : null;
     this.buildHud();
   }
 }

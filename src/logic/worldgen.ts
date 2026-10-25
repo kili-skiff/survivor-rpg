@@ -18,6 +18,10 @@ export interface World {
   seed: number;
   radius: number;
   hexes: Map<string, WorldHex>;
+  /** Hex key of the old tower in the outermost ring */
+  tower: string;
+  /** Hex key of the camp close to the village on the way to the tower */
+  roadCamp: string | null;
 }
 
 const BIOME_IDS = Object.keys(BIOMES) as BiomeId[];
@@ -62,8 +66,8 @@ export function generateWorld(
   }
 
   ensureHerbsNearHome(seed, hexes);
-  placePois(seed, hexes);
-  return { seed, radius, hexes };
+  const { tower, roadCamp } = placePois(seed, hexes, radius);
+  return { seed, radius, hexes, tower, roadCamp };
 }
 
 /** The hex at roughly `ring` steps from the village in direction `angle` (radians). */
@@ -132,10 +136,15 @@ function fitsPoi(h: WorldHex, id: PoiId, placed: WorldHex[]): boolean {
 }
 
 /**
- * Points of interest: the village in the centre, a camp within two steps of it so the first
- * expedition has a goal, then rare camps, merchants and dungeons spread out over the map.
+ * Points of interest: the village in the centre, the old tower in the outermost ring, a camp two
+ * steps from the village in the tower's direction (a first stop on the way), then rare camps,
+ * merchants and dungeons spread out over the map.
  */
-function placePois(seed: number, hexes: Map<string, WorldHex>): void {
+function placePois(
+  seed: number,
+  hexes: Map<string, WorldHex>,
+  radius: number,
+): { tower: string; roadCamp: string | null } {
   const rng = createRng(hash32(seed, SALT.poi));
   const village = hexes.get(hexKey(ORIGIN))!;
   village.poi = 'village';
@@ -145,10 +154,20 @@ function placePois(seed: number, hexes: Map<string, WorldHex>): void {
     rng,
   );
 
-  const earlyCamp = order.find((h) => h.ring === 2 && fitsPoi(h, 'camp', placed));
-  if (earlyCamp) {
-    earlyCamp.poi = 'camp';
-    placed.push(earlyCamp);
+  const tower = order.find((h) => h.ring === radius)!;
+  tower.poi = 'tower';
+  tower.herbs = false;
+  placed.push(tower);
+
+  // The road camp: of the hexes two steps out, the one closest to the tower.
+  let roadCamp: WorldHex | undefined;
+  for (const h of order) {
+    if (h.ring !== 2 || !fitsPoi(h, 'camp', placed)) continue;
+    if (!roadCamp || hexDistance(h.hex, tower.hex) < hexDistance(roadCamp.hex, tower.hex)) roadCamp = h;
+  }
+  if (roadCamp) {
+    roadCamp.poi = 'camp';
+    placed.push(roadCamp);
   }
   for (const id of ['dungeon', 'merchant', 'camp'] as const) {
     const def = POIS[id];
@@ -158,6 +177,7 @@ function placePois(seed: number, hexes: Map<string, WorldHex>): void {
       placed.push(h);
     }
   }
+  return { tower: tower.key, roadCamp: roadCamp?.key ?? null };
 }
 
 /** The fight you get when entering a hex. Further rings last longer and start harder. */

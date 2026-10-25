@@ -31,18 +31,19 @@ Goal: web first, native apps later (Capacitor for Android/iOS, Tauri for desktop
 
 ```
 src/
-  config/    Game data: weapons, items, skills, enemies, herbs, potions, segments, world/season, map tiles,
-             balancing (NO Phaser)
+  config/    Game data: weapons, items, skills, enemies, herbs, potions, villagers and quest texts,
+             segments, world, map tiles, balancing (NO Phaser)
   logic/     Pure game logic (NO Phaser, tested): stats, XP, upgrades, spawning, segments, save data,
              hex math, seeded RNG, world generation, world progress, expeditions and journeys,
-             potions (brewing, belt, buffs), device settings
+             potions (brewing, belt, buffs), quests, device settings
   entities/  Pooled Phaser objects (Enemy, Projectile, Pickup)
   input/     InputState: one input layer for touch, keyboard, later gamepads
   systems/   Gameplay behaviour, one job per file:
     weapons/   one class per weapon + factory in index.ts
     skills/    active skills (e.g. Frost Nova)
     PlayerController, EnemySystem, PickupSystem, HerbSystem, PotionSystem, DamageNumbers
-  panels/    Village panels (e.g. CauldronPanel): drawn on top of any scene, logic lives in logic/
+  panels/    Village panels (CauldronPanel, DialoguePanel for villagers): drawn on top of any scene,
+             logic lives in logic/
   scenes/    Boot (placeholder graphics), WorldMap (hex map, travel), Village (stash, belt, panels),
              Game (one fight, owns run state, wires systems), UI (HUD, touch, menus during a fight)
   ui/        Display helpers (pixel density, safe area), colors, dev mode
@@ -97,12 +98,15 @@ A small but complete piece of the game from `docs/vision.md`. Each step is its o
 - [x] Village as the starting point (simple screen: stash and "set out")
 - [x] Herbs that grow in hexes by biome, gathered by standing next to them
 - [x] Brewing of three potions in the village, packed into a belt and drunk with a button in a fight
+- [x] First quest: the elder sends you to an old tower at the edge of the map (the way there;
+      the tower stays sealed for now), the scout points out a camp on the way
 - [ ] Herb garden: plant herbs and harvest more of them, growing in real time
 - [ ] One class with a small skill tree
 - [ ] A boss guarding a dungeon or the outer ring
 
 ### Later
 
+- [ ] Inside the tower: endgame mechanics still open (e.g. ever harder floors)
 - [ ] Richer expedition panel on the map: health bar and the collected weapons, items and skills
 - [ ] Professions (e.g. herbalist) with skills such as faster gathering
 - [ ] Walkable village: house, garden, cauldron, merchant, blacksmith as places to walk to
