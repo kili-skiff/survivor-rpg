@@ -35,7 +35,7 @@ Goal: web first, native apps later (Capacitor for Android/iOS, Tauri for desktop
 ```
 src/
   config/    Game data: weapons, items, skills, enemies, herbs, potions, merchant, villagers and quests,
-             deeds, segments, world, map tiles, balancing (NO Phaser)
+             deeds, segments, world, map tiles, character sprites, balancing (NO Phaser)
   logic/     Pure game logic (NO Phaser, tested): stats, XP, upgrades, spawning, segments, save data,
              hex math, seeded RNG, world generation, world progress, expeditions and journeys,
              potions (brewing, belt, buffs), merchant (gold, lanterns, recipes), ring difficulty, chests,
@@ -53,7 +53,8 @@ src/
              Game (one fight, owns run state, wires systems), UI (HUD, touch, menus during a fight)
   ui/        Display helpers (pixel density, safe area), colors
   dev/       Dev-only test helpers behind one switch (DEV_TOOLS); calls are marked `// DEV:`
-public/assets/  Art files served as they are (e.g. tiles/hex-tiles.png for the world map)
+public/assets/  Art files served as they are (tiles/ for the world map, sprites/ for fight characters)
+scripts/lpc/    Builds the character sheets from LPC layers (Python + Pillow; see the script's header)
 ```
 
 ## Rules
@@ -83,6 +84,9 @@ public/assets/  Art files served as they are (e.g. tiles/hex-tiles.png for the w
     on top of logic in `logic/`, so the menu village can later become a walkable one (see vision).
 13. **Assets by others:** Only use art, sounds or fonts whose licence allows a public repo and website.
     Record each one in `CREDITS.md` (author, source, licence) when it is added.
+14. **Art is swappable:** the game is 3/4 top-down. Character art is set up in `config/sprites.ts`
+    (sheet, scale, hitbox height, animation speed); keep it there so better art can replace it later.
+    Enemies without a sprite, or with a sheet that fails to load, show their placeholder texture.
 
 ## Workflow
 

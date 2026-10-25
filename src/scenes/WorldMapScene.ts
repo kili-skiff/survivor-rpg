@@ -1,5 +1,6 @@
 import * as Phaser from 'phaser';
 import { BIOMES, POIS } from '../config/world';
+import { CHARACTER_SPRITES, SHEET } from '../config/sprites';
 import { TOWER_QUEST } from '../config/quests';
 import { herbForecast } from '../logic/herbs';
 import { questGoals, questMarked, questRevealed, questsAfterMove, toggleTracking } from '../logic/quests';
@@ -163,7 +164,12 @@ export class WorldMapScene extends Phaser.Scene {
         .setDepth(1);
       this.herbIcons.push({ hex: h, icon });
     }
-    this.marker = this.add.image(0, 0, 'player').setDepth(3);
+    // The watchman stands on the map, or the placeholder when the sprite sheet is missing.
+    const playerSheet = CHARACTER_SPRITES.player;
+    this.marker = this.textures.exists(playerSheet.key)
+      ? this.add.image(0, 0, playerSheet.key, SHEET.rows.down * SHEET.columns).setOrigin(0.5, 0.78)
+      : this.add.image(0, 0, 'player');
+    this.marker.setDepth(3);
     // Everything so far belongs to the map; the HUD camera only draws the HUD.
     this.hudCam.ignore([
       this.map,
@@ -241,7 +247,12 @@ export class WorldMapScene extends Phaser.Scene {
       // Bottom of the hex, so it does not cover point-of-interest glyphs or the player.
       icon.setPosition(p.x, p.y + this.hexSize * 0.58).setDisplaySize(11 * this.u, 12 * this.u);
     }
-    this.marker.setScale(1.1 * this.u);
+    if (this.marker.texture.key === CHARACTER_SPRITES.player.key) {
+      // The watchman fits on a hex with room to see the tile below.
+      this.marker.setScale(this.tiles.length > 0 ? this.tileScale * 0.38 : 0.5 * this.u);
+    } else {
+      this.marker.setScale(1.1 * this.u);
+    }
     this.buildHud();
   }
 

@@ -162,10 +162,11 @@ up one by one.
 - **Mood:** dark fantasy in the spirit of Diablo 2. Night is the central theme.
 - **Light matters:** the player carries a light, torches and camps are islands of light in the dark.
   Light radius could become a stat (potions, skill tree), and enemies could be more dangerous in darkness.
-- **Perspective is not decided yet:** isometric (more atmosphere, much more art work) or 3/4 top-down
-  (cheaper art, better readability on phones). Decide before the art pass, at the latest before the
-  village gets its visual design. A good tie-breaker: the asset pack or artist we can actually get.
-- Until then the game keeps its current placeholder view; gameplay work does not depend on this choice.
+- **Perspective: 3/4 top-down** (decided). Readable on phones, the usual view for survivors-likes, and
+  far more art is available for it than for isometric (which needs every character in 8 directions).
+- **Art in steps:** free art first (LPC characters, darkened to fit the night), replaced later by
+  better, possibly paid art in the Diablo 2 / Darkest Dungeon mood. Art is set up in config, so a swap
+  means new sheets, not new code. Licences must allow a public repo and website (see CREDITS.md).
 
 ## Platforms
 
@@ -178,7 +179,6 @@ up one by one.
 - How long should a full expedition take?
 - Theme: is "Nightwatch" (night, light, watchfires) the identity of the game?
 - What exactly survives a new season?
-- Perspective: isometric or 3/4 top-down (see Look and feel).
 - Walkable village: when to build it (ideally with real art), and how shortcuts work on phones.
 - Art source: asset packs, 3D models rendered to sprites, or commissioned pixel art.
 - Online features (leaderboards, maybe co-op) and when they make sense.

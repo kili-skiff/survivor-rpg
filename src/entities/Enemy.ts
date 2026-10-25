@@ -1,9 +1,11 @@
 import * as Phaser from 'phaser';
 import { ELITE } from '../config/balance';
+import { CHARACTER_SPRITES, SHEET, walkAnim, type CharacterSprite, type Facing } from '../config/sprites';
 import type { EnemyDef } from '../config/types';
+import { facingFor } from '../logic/facing';
 
 /** Pooled enemy: reused instead of created anew. */
-export class Enemy extends Phaser.Physics.Arcade.Image {
+export class Enemy extends Phaser.Physics.Arcade.Sprite {
   def!: EnemyDef;
   hp = 0;
   maxHp = 0;
@@ -20,6 +22,12 @@ export class Enemy extends Phaser.Physics.Arcade.Image {
   damage = 0;
   /** Elite: big, tough, golden shimmer, always drops gold */
   elite = false;
+  /** The animated sheet, or null when the placeholder texture is shown */
+  look: CharacterSprite | null = null;
+  /** Where the walk animation faces; null until the first move */
+  facing: Facing | null = null;
+  /** Height of the eyes above the enemy's position (px), for glowing eyes in the dark */
+  eyesY = 4;
 
   spawn(
     def: EnemyDef,
@@ -32,8 +40,15 @@ export class Enemy extends Phaser.Physics.Arcade.Image {
     this.def = def;
     this.elite = elite;
     this.damage = def.damage * damageMultiplier;
-    this.setScale(elite ? ELITE.scale : 1);
-    this.setTexture(def.texture);
+    const sheet = def.sprite ? CHARACTER_SPRITES[def.sprite] : undefined;
+    this.look = sheet && this.scene.textures.exists(sheet.key) ? sheet : null;
+    const base = this.look?.scale ?? 1;
+    const scale = base * (elite ? ELITE.scale : 1);
+    this.anims.stop();
+    this.facing = null;
+    if (this.look) this.setTexture(this.look.key, SHEET.rows.down * SHEET.columns);
+    else this.setTexture(def.texture);
+    this.setScale(scale);
     this.enableBody(true, x, y, true, true);
     this.hp = def.hp * hpMultiplier;
     this.maxHp = this.hp;
@@ -46,10 +61,36 @@ export class Enemy extends Phaser.Physics.Arcade.Image {
     this.tintState = -1;
     this.setDepth(2);
     const size = this.width;
-    this.body!.setCircle(def.radius, size / 2 - def.radius, size / 2 - def.radius);
+    if (this.look) {
+      // Hitbox around the body, not the whole frame; its radius in the world stays `def.radius`.
+      const r = def.radius / base;
+      this.body!.setCircle(r, size / 2 - r, size / 2 + this.look.bodyY - r);
+      this.eyesY = this.look.eyesY * scale;
+    } else {
+      this.body!.setCircle(def.radius, size / 2 - def.radius, size / 2 - def.radius);
+      this.eyesY = elite ? 8 : 4;
+    }
+  }
+
+  /** Walks in the direction of (dx, dy); the animation slows down with the enemy. */
+  walk(dx: number, dy: number, timeScale: number): void {
+    if (!this.look) {
+      this.setFlipX(dx < 0);
+      return;
+    }
+    const facing = facingFor(dx, dy);
+    if (facing !== this.facing) {
+      const first = this.facing === null;
+      this.facing = facing;
+      this.play(walkAnim(this.look.key, facing), true);
+      // Start somewhere in the cycle, so a horde does not step in sync.
+      if (first) this.anims.setProgress(Math.random());
+    }
+    this.anims.timeScale = timeScale;
   }
 
   despawn(): void {
+    this.anims.stop();
     this.disableBody(true, true);
   }
 }
