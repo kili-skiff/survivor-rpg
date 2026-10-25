@@ -54,10 +54,12 @@ stronger: with a better class build, a growing herb garden and potions for the n
 
 - Herbs **grow in hexes**; monsters do not drop them. Each biome has its own herb, and a rare
   Star Lily can grow anywhere from ring 3 outwards. Further rings grow more herbs.
-- **Gathering:** stand next to a herb for about a second. Moving away or taking a hit resets it.
-- Fresh herbs grow every time a hex is entered, at new spots. Nothing grows back during a fight.
+- Fresh herbs every time a hex is entered. They **bloom one by one at random moments** spread over
+  the fight, just off screen around the player, with a short hint. Nothing grows back during a fight.
+- **Gathering:** stand next to a herb for about a second. Moving away resets it, a hit halves it.
 - Arrows at the screen edge only appear for herbs just off screen; far herbs have to be found.
 - Gathered herbs are expedition loot: brought home safely, or halved on death.
+- Later: **professions** (e.g. herbalist) with skills such as faster or uninterruptible gathering.
 
 ## Village
 

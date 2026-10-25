@@ -83,6 +83,7 @@ A small but complete piece of the game from `docs/vision.md`. Each step is its o
 ### Later
 
 - [ ] Richer expedition panel on the map: health bar and the collected weapons, items and skills
+- [ ] Professions (e.g. herbalist) with skills such as faster gathering
 - [ ] Seasons with a shared seed, then leaderboards (needs a server)
 - [ ] More biomes, enemies, weapons and classes
 - [ ] Sound effects and music

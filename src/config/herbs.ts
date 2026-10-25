@@ -20,15 +20,23 @@ export const HERB_RULES = {
   rareMinRing: 3,
   /** Chance for each herb to be a rare one (from rareMinRing on) */
   rareChance: 0.15,
-  /** Distance from the starting point (px) */
-  minDistance: 260,
-  maxDistance: 720,
+  /**
+   * Herbs bloom one by one during the fight. The fight is split into one window per herb and each
+   * herb blooms at a random moment inside its window, between these fractions of the timer.
+   */
+  bloomFrom: 0.04,
+  bloomUntil: 0.8,
+  /** A herb blooms this far beyond the edge of the screen around the player (px) */
+  bloomMinBeyondScreen: 40,
+  bloomMaxBeyondScreen: 240,
   /** Minimum distance between two herbs (px) */
   minSpacing: 170,
   /** Stand within this distance to gather (px) */
   gatherRadius: 38,
   /** Time you have to stay next to a herb (seconds) */
   gatherSec: 1,
+  /** Share of the gathering progress kept when you take a hit */
+  progressKeptOnHit: 0.5,
   /**
    * Edge arrows only point to herbs at most this far beyond the edge of the screen (px).
    * Measured from the screen edge, so it works the same in portrait and landscape.

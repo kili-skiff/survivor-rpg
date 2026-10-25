@@ -2,8 +2,13 @@ import { HERB_RULES, HERBS } from '../config/herbs';
 import type { BiomeId, HerbDef, HerbId } from '../config/types';
 import type { Rng } from './spawning';
 
-export interface HerbSpot {
+/** A herb that will bloom during the fight, at `atSec` seconds into the segment. */
+export interface HerbBloom {
   herb: HerbId;
+  atSec: number;
+}
+
+export interface Point {
   x: number;
   y: number;
 }
@@ -24,31 +29,60 @@ export function commonHerbFor(biome: BiomeId): HerbDef {
 const RARE_HERBS = Object.values(HERBS).filter((h) => h.rare);
 
 /**
- * Places the herbs of one segment around the starting point (0, 0). Herbs are spread out and
- * kept away from the start, so the player has to go looking for them.
+ * When and which herbs bloom in a segment. The bloom period is split into one window per herb and
+ * each herb blooms at a random moment inside its own window: spread over the fight, but not
+ * predictable. The total is fixed; nothing grows back.
  */
-export function placeHerbs(biome: BiomeId, ring: number, rng: Rng): HerbSpot[] {
+export function planHerbBlooms(biome: BiomeId, ring: number, durationSec: number, rng: Rng): HerbBloom[] {
   const count = herbCountForRing(ring);
   const common = commonHerbFor(biome);
-  const spots: HerbSpot[] = [];
-  let attempts = 0;
-  while (spots.length < count && attempts < 400) {
-    attempts += 1;
-    const angle = rng() * Math.PI * 2;
-    const dist = HERB_RULES.minDistance + rng() * (HERB_RULES.maxDistance - HERB_RULES.minDistance);
-    const x = Math.cos(angle) * dist;
-    const y = Math.sin(angle) * dist;
-    // Relax the spacing rule if we are struggling to fit everything.
-    const spacing = attempts > 200 ? HERB_RULES.minSpacing / 2 : HERB_RULES.minSpacing;
-    if (spots.some((s) => Math.hypot(s.x - x, s.y - y) < spacing)) continue;
+  const start = durationSec * HERB_RULES.bloomFrom;
+  const window = (durationSec * HERB_RULES.bloomUntil - start) / count;
+  const blooms: HerbBloom[] = [];
+  for (let i = 0; i < count; i++) {
     const rare = ring >= HERB_RULES.rareMinRing && RARE_HERBS.length > 0 && rng() < HERB_RULES.rareChance;
     const herb = rare ? RARE_HERBS[Math.floor(rng() * RARE_HERBS.length)].id : common.id;
-    spots.push({ herb, x, y });
+    blooms.push({ herb, atSec: start + (i + rng()) * window });
   }
-  return spots;
+  return blooms;
 }
 
-/** Gathering progress for one herb: grows while the player stands close, resets otherwise. */
+/**
+ * Where a herb blooms: a random spot just off screen around the player, so an edge arrow shows
+ * it, and not too close to other herbs.
+ */
+export function bloomPosition(player: Point, viewW: number, viewH: number, others: Point[], rng: Rng): Point {
+  let best: Point = player;
+  let bestGap = -1;
+  for (let attempt = 0; attempt < 24; attempt++) {
+    const angle = rng() * Math.PI * 2;
+    const dx = Math.cos(angle);
+    const dy = Math.sin(angle);
+    // Distance from the player to the screen edge in this direction.
+    const toEdge = Math.min(
+      dx !== 0 ? viewW / 2 / Math.abs(dx) : Infinity,
+      dy !== 0 ? viewH / 2 / Math.abs(dy) : Infinity,
+    );
+    const beyond =
+      HERB_RULES.bloomMinBeyondScreen +
+      rng() * (HERB_RULES.bloomMaxBeyondScreen - HERB_RULES.bloomMinBeyondScreen);
+    const p = { x: player.x + dx * (toEdge + beyond), y: player.y + dy * (toEdge + beyond) };
+    const gap = Math.min(Infinity, ...others.map((o) => Math.hypot(o.x - p.x, o.y - p.y)));
+    if (gap >= HERB_RULES.minSpacing) return p;
+    if (gap > bestGap) {
+      bestGap = gap;
+      best = p;
+    }
+  }
+  return best;
+}
+
+/** Gathering progress for one herb: grows while the player stands close, resets when leaving. */
 export function advanceGather(progress: number, inRange: boolean, dt: number): number {
   return inRange ? Math.min(1, progress + dt / HERB_RULES.gatherSec) : 0;
+}
+
+/** A hit breaks your concentration and costs part of the progress. */
+export function progressAfterHit(progress: number): number {
+  return progress * HERB_RULES.progressKeptOnHit;
 }

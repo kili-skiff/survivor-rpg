@@ -9,7 +9,7 @@ import { InputState } from '../input/InputState';
 import { addXp } from '../logic/progression';
 import type { ExpeditionBuild } from '../logic/expedition';
 import { parseHexKey } from '../logic/hex';
-import { placeHerbs } from '../logic/herbs';
+import { planHerbBlooms } from '../logic/herbs';
 import { currentBuild, finishFight, type FightReport } from '../logic/journey';
 import { loadSave, recordRun, safeStorage, writeSave, type SaveData } from '../logic/save';
 import { isSegmentCleared, type RunOutcome } from '../logic/segment';
@@ -170,9 +170,14 @@ export class GameScene extends Phaser.Scene {
     };
     this.refreshStats();
 
-    // Fresh herbs grow every time a hex is entered; nothing grows back during the fight.
-    const spots = segment.herbs ? placeHerbs(segment.herbs.biome, segment.herbs.ring, Math.random) : [];
-    this.herbs = new HerbSystem(this, spots, this.player, this.numbers);
+    // Fresh herbs every time a hex is entered. They bloom one by one at random moments;
+    // nothing grows back during the fight.
+    const blooms = segment.herbs
+      ? planHerbBlooms(segment.herbs.biome, segment.herbs.ring, segment.durationSec, Math.random)
+      : [];
+    this.herbs = new HerbSystem(this, blooms, this.player, this.numbers, (herb) =>
+      this.events.emit('herbbloom', herb),
+    );
     this.run.herbsTotal = this.herbs.totalCount;
 
     this.cameras.main.startFollow(this.player.sprite, false, 1, 1);
@@ -268,7 +273,7 @@ export class GameScene extends Phaser.Scene {
     this.enemies.update();
     for (const [id, weapon] of this.weapons) weapon.update(this.weaponStats[id]!, dms, dt);
     this.pickups.update(dt, this.run.stats.magnet);
-    this.herbs.update(dt, this.clock / 1000);
+    this.herbs.update(dt, this.run.time, this.viewW, this.viewH);
     this.run.herbsGathered = this.herbs.gatheredCount;
     this.numbers.update(dt);
 

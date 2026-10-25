@@ -1,7 +1,8 @@
 import * as Phaser from 'phaser';
 import { PASSIVES } from '../config/passives';
+import { HERBS } from '../config/herbs';
 import { SKILLS } from '../config/skills';
-import type { PassiveId, SkillId, WeaponId } from '../config/types';
+import type { HerbId, PassiveId, SkillId, WeaponId } from '../config/types';
 import { WEAPONS } from '../config/weapons';
 import type { InputState } from '../input/InputState';
 import { formatTime, xpToNext } from '../logic/progression';
@@ -110,11 +111,13 @@ export class UIScene extends Phaser.Scene {
     this.scale.on('resize', this.onResize, this);
     this.gs.events.on('levelup', this.onLevelUp, this);
     this.gs.events.on('runend', this.onRunEnd, this);
+    this.gs.events.on('herbbloom', this.onHerbBloom, this);
     this.game.events.on(Phaser.Core.Events.HIDDEN, this.onHidden, this);
     this.events.once('shutdown', () => {
       this.scale.off('resize', this.onResize, this);
       this.gs.events.off('levelup', this.onLevelUp, this);
       this.gs.events.off('runend', this.onRunEnd, this);
+      this.gs.events.off('herbbloom', this.onHerbBloom, this);
       this.game.events.off(Phaser.Core.Events.HIDDEN, this.onHidden, this);
     });
 
@@ -381,16 +384,18 @@ export class UIScene extends Phaser.Scene {
       const y = cy + dy * t;
       const size = (ind.rare ? 13 : 10) * u;
       const alpha = Phaser.Math.Clamp(1.1 - ind.distance / 400, 0.45, 1);
-      const tip = { x: x + dx * size, y: y + dy * size };
-      const side = { x: -dy * size * 0.7, y: dx * size * 0.7 };
-      g.fillStyle(0x000000, 0.5 * alpha).fillCircle(x, y, size * 0.95);
+      // A long, slim arrow so the direction is unambiguous.
+      const tip = { x: x + dx * size * 1.2, y: y + dy * size * 1.2 };
+      const back = { x: x - dx * size * 0.7, y: y - dy * size * 0.7 };
+      const side = { x: -dy * size * 0.6, y: dx * size * 0.6 };
+      g.fillStyle(0x000000, 0.5 * alpha).fillCircle(x, y, size * 1.15);
       g.fillStyle(ind.color, alpha).fillTriangle(
         tip.x,
         tip.y,
-        x - dx * size * 0.4 + side.x,
-        y - dy * size * 0.4 + side.y,
-        x - dx * size * 0.4 - side.x,
-        y - dy * size * 0.4 - side.y,
+        back.x + side.x,
+        back.y + side.y,
+        back.x - side.x,
+        back.y - side.y,
       );
     }
   }
@@ -500,6 +505,37 @@ export class UIScene extends Phaser.Scene {
       if (this.time.now - this.overlayOpenedAt > 250) onClick();
     });
     this.overlay.push(g, zone);
+  }
+
+  /** A short hint below the timer when a herb blooms nearby. */
+  private onHerbBloom(herb: HerbId): void {
+    const def = HERBS[herb];
+    const u = this.u;
+    const hint = this.add
+      .text(
+        this.scale.width / 2,
+        this.sa.top + 62 * u,
+        `${def.rare ? 'A rare ' : 'A '}${def.name} is blooming nearby`,
+        {
+          fontFamily: FONT,
+          fontSize: `${Math.round(13 * u)}px`,
+          fontStyle: 'bold',
+          color: css(def.color),
+          stroke: '#000000',
+          strokeThickness: 3,
+        },
+      )
+      .setOrigin(0.5, 0)
+      .setDepth(40)
+      .setAlpha(0);
+    this.tweens.add({
+      targets: hint,
+      alpha: 1,
+      duration: 250,
+      yoyo: true,
+      hold: 2200,
+      onComplete: () => hint.destroy(),
+    });
   }
 
   /** Shows the area name and goal for a moment when a fight starts. */
