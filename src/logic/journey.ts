@@ -44,7 +44,8 @@ export function currentBuild(save: SaveData): ExpeditionBuild | null {
  * Applies the end of a fight in `target`.
  * - Cleared: you stand on the hex, your build and loot carry on. Camps heal you fully and
  *   become waypoints.
- * - Fallen (or given up): the expedition ends, you wake up in the village and keep only part of the loot.
+ * - Fallen (or given up): the expedition ends, you wake up in the village and lose the loot
+ *   (all of it, or what BALANCE.lootKeptOnDeath does not keep).
  */
 export function finishFight(
   save: SaveData,

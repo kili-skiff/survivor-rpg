@@ -283,9 +283,9 @@ export class VillageScene extends Phaser.Scene {
         )
         .join(', ');
     if (a.reason === 'fallen') {
-      const kept = lootCount(a.kept) > 0 ? `You saved ${list(a.kept)}.` : 'You saved nothing.';
+      const kept = lootCount(a.kept) > 0 ? ` You saved ${list(a.kept)}.` : '';
       const lost = lootCount(a.lost) > 0 ? ` Lost: ${list(a.lost)}.` : '';
-      return `You wake up in the village. ${kept}${lost}`;
+      return `You wake up in the village.${kept}${lost}`;
     }
     return lootCount(a.kept) > 0 ? `Home safe. You brought back ${list(a.kept)}.` : 'Home safe.';
   }

@@ -11,8 +11,11 @@ export const BALANCE = {
   healAmount: 25,
   /** Maximum number of XP gems at once */
   maxGems: 450,
-  /** Share of the expedition loot you keep when you die (0..1) */
-  lootKeptOnDeath: 0.5,
+  /**
+   * Share of the expedition loot you keep when you die (0..1). Nothing: all you carry is lost.
+   * Potions in the belt stay (and later the equipment you wear).
+   */
+  lootKeptOnDeath: 0,
   /** Hard cap on simultaneous enemies (performance) */
   maxEnemiesHardCap: 320,
 } as const;
@@ -79,11 +82,16 @@ export const LIGHT = {
   torchGlow: 0.17,
   torchColor: 0xffc896,
   /** Bloomed herbs give off a faint light so they are easier to spot in the dark */
-  herbRadius: 70,
-  rareHerbRadius: 100,
+  herbRadius: 40,
+  rareHerbRadius: 55,
+  /** Herb glows are subtle and pulse slowly between these strengths */
+  herbGlowMin: 0.06,
+  herbGlowMax: 0.18,
   /** Dropped treasure chests glow golden, so they can be found in the dark */
   chestRadius: 90,
   chestColor: 0xfbbf24,
+  /** XP gems in the dark glimmer faintly (alpha at full darkness) */
+  gemGlimmer: 0.3,
   /** Enemies in the dark show only their glowing eyes, so you see danger coming */
   eyesColor: 0xff5a3c,
 } as const;

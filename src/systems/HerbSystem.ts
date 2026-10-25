@@ -89,6 +89,10 @@ export class HerbSystem {
         x: h.x,
         y: h.y,
         radius: HERBS[h.herb].rare ? LIGHT.rareHerbRadius : LIGHT.herbRadius,
+        // A slow pulse, each herb in its own rhythm.
+        strength:
+          LIGHT.herbGlowMin +
+          (LIGHT.herbGlowMax - LIGHT.herbGlowMin) * (0.5 + 0.5 * Math.sin(this.runTime * 2.2 + h.x * 0.013)),
         color: HERBS[h.herb].color,
       }));
   }

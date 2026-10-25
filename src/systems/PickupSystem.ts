@@ -48,6 +48,11 @@ export class PickupSystem {
     p.attracted = false;
   }
 
+  /** XP gems lying on the ground (they glimmer in the dark). */
+  gems(): Pickup[] {
+    return (this.group.getChildren() as Pickup[]).filter((p) => p.active && p.kind === 'xp');
+  }
+
   /** Positions of the treasure chests lying on the ground. */
   chests(): { x: number; y: number }[] {
     return (this.group.getChildren() as Pickup[])
