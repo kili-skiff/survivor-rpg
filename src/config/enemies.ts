@@ -43,8 +43,16 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
     damage: 8,
     xp: 3,
     unlockAt: 90,
-    // Fast charger: runs up, crouches (warning), then dashes along a fixed line, ~225 px.
-    behavior: { kind: 'charge', range: 250, windupSec: 0.55, dashSec: 0.6, dashSpeed: 3, restSec: 0.9 },
+    // Fast pouncer: runs up, crouches (circle on the ground), leaps there in an arc, lands stunned.
+    behavior: {
+      kind: 'charge',
+      range: 250,
+      windupSec: 0.55,
+      leapSec: 0.55,
+      height: 46,
+      landRadius: 34,
+      restSec: 0.9,
+    },
     weight: 4,
   },
   brute: {

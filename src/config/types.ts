@@ -107,20 +107,23 @@ export type EnemyBehavior =
       swayHz: number;
     }
   /**
-   * Runs up, stops to show it is about to charge (the warning), then dashes in a straight line along
-   * the line it showed, and catches its breath. The line is fixed when the warning starts, so it can be dodged.
+   * Runs up, crouches (the warning, with a circle on the ground where it will land), then leaps
+   * there in an arc and is stunned for a moment. The landing spot is fixed when the warning starts, so
+   * it can be dodged. It cannot be hit in the air and hurts only where it lands.
    */
   | {
       kind: 'charge';
-      /** Starts the warning when the player is this close (px) */
+      /** Starts the warning when the player is this close (px); also the longest leap */
       range: number;
-      /** How long the warning lasts (s) */
+      /** How long the warning (the crouch) lasts (s) */
       windupSec: number;
-      /** How long the dash lasts (s) */
-      dashSec: number;
-      /** Dash speed as a multiple of its walking speed */
-      dashSpeed: number;
-      /** How long it is slow after the dash (s) */
+      /** How long the leap lasts (s) */
+      leapSec: number;
+      /** Height of the arc at its peak (px) */
+      height: number;
+      /** Hurts the player if they stand within this radius of the landing spot (px) */
+      landRadius: number;
+      /** How long it is slow after landing (s) */
       restSec: number;
     };
 

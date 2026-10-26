@@ -124,7 +124,7 @@ A small but complete piece of the game from `docs/vision.md`. Each step is its o
 - [x] Deeds: exploration milestones (new rings, camps, watchfires, the tower) with small bonuses for good
 - [x] Spread the swarm: soft separation, sideways drift, reaction delay and varied speed, so enemies do not pile into one blob (`logic/swarm.ts`)
 - [ ] Finetune the swarm (work in progress): in tight crowds enemies seem to shove each other, so smooth their movement, soften the hard overlap push and maybe shrink the personal space; values in `SWARM`
-- [x] Behaviour per enemy type, as data in `config/enemies.ts`: the bat flies nearly straight over the crowd (`flies`), the ghoul is a charger (runs up, warning line, dash; `logic/charge.ts`), the zombie and the colossus chase; types can be limited to rings (`minRing`) (`logic/behaviors.ts`). The `flank` behaviour (arc, aiming ahead) stays in the code for later types
+- [x] Behaviour per enemy type, as data in `config/enemies.ts`: the bat flies nearly straight over the crowd (`flies`), the ghoul is a pouncer (runs up, crouches over a landing circle, leaps in an arc, lands stunned; `logic/charge.ts`), the zombie and the colossus chase; types can be limited to rings (`minRing`) (`logic/behaviors.ts`). The `flank` behaviour (arc, aiming ahead) stays in the code for later types
 - [ ] More behaviours and new enemy types: ranged, orbiters, runners that pass by; bat flocks that sweep from side to side (with the wave system)
 - [ ] Elites with a mechanic, their own movement and fair health (target fight length)
 - [ ] Open idea: light as a combat rule (slows or hurts enemies in the lantern's light); to be thought through

@@ -2,7 +2,7 @@ import * as Phaser from 'phaser';
 import { BALANCE, ELITE, MAX_CHARGERS_AT_ONCE } from '../config/balance';
 import { eliteChance, ringModifiers, type RingModifiers } from '../logic/difficulty';
 import { ENEMIES } from '../config/enemies';
-import { dashDistance, REST_SPEED, stepCharge } from '../logic/charge';
+import { leapAt, REST_SPEED, stepCharge, windupProgress } from '../logic/charge';
 import { dieAnim } from '../config/sprites';
 import type { EnemyDef } from '../config/types';
 import { Enemy } from '../entities/Enemy';
@@ -16,6 +16,8 @@ const MAX_CORPSES = 48;
 /** How long a fallen enemy stays before it fades out (ms) */
 const CORPSE_STAY_MS = 900;
 const CORPSE_FADE_MS = 500;
+/** How long the dust ring of a landing is shown (ms) */
+const LAND_FX_MS = 300;
 
 interface Target {
   x: number;
@@ -49,6 +51,8 @@ export class EnemySystem {
     private readonly now: () => number,
     private readonly numbers: DamageNumbers,
     private readonly onKilled: (e: Enemy) => void,
+    /** A pouncing enemy has landed; the scene checks whether it hurts the player */
+    private readonly onLanded: (e: Enemy) => void = () => {},
   ) {
     this.group = scene.physics.add.group({ classType: Enemy, maxSize: BALANCE.maxEnemiesHardCap });
     this.eliteRings = scene.add.graphics().setDepth(1.9);
@@ -93,6 +97,7 @@ export class EnemySystem {
     const best: { e: Enemy; d: number }[] = [];
     const r2 = range * range;
     for (const e of this.active()) {
+      if (e.airborne) continue;
       const d = (e.x - px) ** 2 + (e.y - py) ** 2;
       if (d > r2) continue;
       if (best.length < count) {
@@ -107,7 +112,7 @@ export class EnemySystem {
   }
 
   damage(e: Enemy, amount: number, knockX = 0, knockY = 0): void {
-    if (!e.active || this.devNoDamage) return; // DEV: invincible mode deals no damage
+    if (!e.active || e.airborne || this.devNoDamage) return; // DEV: invincible mode deals no damage
     e.hp -= amount;
     e.flashUntil = this.now() + 70;
     e.x += knockX;
@@ -180,7 +185,7 @@ export class EnemySystem {
     // How many chargers are busy (warning or dash) right now; only a few at a time, so it stays readable.
     let chargers = 0;
     for (const e of this.active()) {
-      if (e.charge.phase === 'windup' || e.charge.phase === 'dash') chargers++;
+      if (e.charge.phase === 'windup' || e.charge.phase === 'leap') chargers++;
     }
 
     for (const e of this.active()) {
@@ -204,14 +209,34 @@ export class EnemySystem {
         const was = e.charge.phase;
         const phase = stepCharge(e.charge, behavior, e.x, e.y, px, py, now, chargers < MAX_CHARGERS_AT_ONCE);
         if (was === 'approach' && phase === 'windup') chargers++;
-        if (phase === 'windup') {
-          // The warning: a red line along the dash that is about to come.
-          const len = dashDistance(behavior, e.def.speed * e.speedJitter);
-          const ry = e.y + (e.look ? e.look.bodyY * e.scaleY : 2);
-          rings
-            .lineStyle(4, 0xff4d4d, 0.35 + 0.5 * pulse)
-            .lineBetween(e.x, ry, e.x + e.charge.dirX * len, ry + e.charge.dirY * len);
+        if (was === 'leap' && phase === 'rest') this.land(e, behavior.landRadius, now);
+        e.flies = phase === 'leap' || (e.def.flies ?? false); // in the air it is not part of the crowd
+        if (phase === 'windup' || phase === 'leap') {
+          // The warning: a circle where it will land, filling up while it crouches.
+          const fill = phase === 'leap' ? 1 : windupProgress(e.charge, behavior, now);
+          const { targetX: tx, targetY: ty } = e.charge;
+          rings.fillStyle(0xff4d4d, 0.1 + 0.3 * fill).fillCircle(tx, ty, behavior.landRadius);
+          rings.lineStyle(3, 0xff4d4d, 0.35 + 0.5 * pulse).strokeCircle(tx, ty, behavior.landRadius);
         }
+        if (phase === 'leap') {
+          // Its shadow stays on the ground while it is in the air.
+          const g = leapAt(e.charge, behavior, now);
+          rings
+            .fillStyle(0x000000, 0.35)
+            .fillEllipse(
+              g.x,
+              g.y + (e.look ? e.look.bodyY * e.baseScale : 2) + 6,
+              e.radius * 1.6,
+              e.radius * 0.7,
+            );
+        }
+        this.squash(e, behavior, now);
+      }
+      // The dust ring of a landing.
+      const t = (now - e.landAt) / LAND_FX_MS;
+      if (t >= 0 && t < 1) {
+        const lr = (behavior?.kind === 'charge' ? behavior.landRadius : 30) * (0.6 + 0.8 * t);
+        rings.lineStyle(3, 0xd8d0bc, 0.6 * (1 - t)).strokeCircle(e.landX, e.landY, lr);
       }
       this.updateTint(e, now, slowed);
       if (e.elite) {
@@ -237,14 +262,15 @@ export class EnemySystem {
         e.steerX = 0;
         e.steerY = 0;
         e.setVelocity(0, 0);
-        e.walk(e.charge.dirX, e.charge.dirY, 0);
+        e.walk(e.charge.targetX - e.x, e.charge.targetY - e.y, 0);
         continue;
       }
-      if (charge && e.charge.phase === 'dash') {
-        e.steerX = e.charge.dirX * e.moveSpeed * charge.dashSpeed;
-        e.steerY = e.charge.dirY * e.moveSpeed * charge.dashSpeed;
-        e.setVelocity(e.steerX, e.steerY);
-        e.walk(e.steerX, e.steerY, slow * 1.8);
+      if (charge && e.charge.phase === 'leap') {
+        // In the air: its position follows the arc (the sprite is lifted, the shadow stays down).
+        const g = leapAt(e.charge, charge, now);
+        e.setVelocity(0, 0);
+        e.setPosition(g.x, g.y - g.height);
+        e.walk(e.charge.targetX - e.charge.startX, e.charge.targetY - e.charge.startY, 0);
         continue;
       }
       if (charge && e.charge.phase === 'rest') {
@@ -256,6 +282,24 @@ export class EnemySystem {
     }
     // Bodies never sit inside each other.
     this.swarm.separate();
+  }
+
+  /** The landing: dust, and the scene decides whether the player stood in it. */
+  private land(e: Enemy, radius: number, now: number): void {
+    e.setPosition(e.charge.targetX, e.charge.targetY);
+    e.landAt = now;
+    e.landX = e.x;
+    e.landY = e.y;
+    const reach = radius + e.def.radius;
+    if (Math.hypot(this.target.x - e.x, this.target.y - e.y) <= reach) this.onLanded(e);
+  }
+
+  /** Crouches before the leap, stretches in the air, squashes on landing. */
+  private squash(e: Enemy, p: { restSec: number }, now: number): void {
+    const phase = e.charge.phase;
+    const landed = phase === 'rest' && now - (e.charge.until - p.restSec * 1000) < 200;
+    const [sx, sy] = phase === 'windup' || landed ? [1.15, 0.8] : phase === 'leap' ? [0.9, 1.12] : [1, 1];
+    e.setScale(e.baseScale * sx, e.baseScale * sy);
   }
 
   private updateTint(e: Enemy, now: number, slowed: boolean): void {

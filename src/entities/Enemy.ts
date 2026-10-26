@@ -34,8 +34,14 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite implements SwarmAgent {
   steerY = 0;
   /** Flies over the others (see EnemyDef.flies) */
   flies = false;
-  /** Where it is in its charge; only used by chargers */
+  /** Where it is in its pounce; only used by chargers */
   charge = newChargeState();
+  /** Its normal scale (sprite scale, elites bigger); chargers squash and stretch around it */
+  baseScale = 1;
+  /** Where and when it last landed from a leap (game time ms), for the dust ring */
+  landAt = -1e9;
+  landX = 0;
+  landY = 0;
   slowUntil = 0;
   slowFactor = 1;
   flashUntil = 0;
@@ -74,6 +80,8 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite implements SwarmAgent {
     if (this.look) this.setTexture(this.look.key, SHEET.rows.down * SHEET.columns);
     else this.setTexture(def.texture);
     this.setScale(scale);
+    this.baseScale = scale;
+    this.landAt = -1e9;
     this.enableBody(true, x, y, true, true);
     this.hp = def.hp * hpMultiplier;
     this.maxHp = this.hp;
@@ -109,6 +117,11 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite implements SwarmAgent {
       this.body!.setCircle(def.radius, size / 2 - def.radius, size / 2 - def.radius);
       this.eyesY = elite ? 8 : 4;
     }
+  }
+
+  /** In the air during a leap: cannot be hit and does not hurt by touching */
+  get airborne(): boolean {
+    return this.charge.phase === 'leap';
   }
 
   /** Walks in the direction of (dx, dy); the animation slows down with the enemy. */
