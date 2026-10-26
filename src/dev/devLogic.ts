@@ -84,6 +84,39 @@ export class FrameWindow {
   }
 }
 
-export function fpsLabel(r: FpsReading): string {
-  return `DEV  ${Math.round(r.fps)} fps · worst ${Math.round(r.worstMs)} ms`;
+/** Counts something that only goes up (kills) as a rate per minute over the last half minute. */
+export class RollingRate {
+  private samples: { t: number; total: number }[] = [];
+
+  constructor(private readonly windowMs = 30000) {}
+
+  /** Feed the running total at game time `nowMs`; returns the rate per minute. 0 until two seconds are measured. */
+  update(total: number, nowMs: number): number {
+    const samples = this.samples;
+    // A smaller total or earlier time means a new run: start over.
+    if (
+      samples.length > 0 &&
+      (total < samples[samples.length - 1].total || nowMs < samples[samples.length - 1].t)
+    ) {
+      samples.length = 0;
+    }
+    samples.push({ t: nowMs, total });
+    // Keep one sample at or before the start of the window, drop the older ones.
+    while (samples.length > 2 && samples[1].t <= nowMs - this.windowMs) samples.shift();
+    const first = samples[0];
+    const dt = nowMs - first.t;
+    if (dt < 2000) return 0;
+    return ((total - first.total) / dt) * 60000;
+  }
+}
+
+export interface DevReadout {
+  fps: FpsReading;
+  enemies: number;
+  killsPerMinute: number;
+}
+
+/** The two lines of the dev readout: frame rate and the state of the fight. */
+export function readoutLabel(r: DevReadout): string {
+  return `${Math.round(r.fps.fps)} fps · worst ${Math.round(r.fps.worstMs)} ms\n${r.enemies} enemies · ${Math.round(r.killsPerMinute)} kills/min`;
 }
