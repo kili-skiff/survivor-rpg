@@ -1,5 +1,5 @@
 import * as Phaser from 'phaser';
-import { ELITE, SWARM } from '../config/balance';
+import { CHARGE_MAX_DELAY_MS, ELITE, SWARM } from '../config/balance';
 import { CHARACTER_SPRITES, SHEET, walkAnim, type CharacterSprite, type Facing } from '../config/sprites';
 import type { EnemyDef } from '../config/types';
 import { steeringFor } from '../logic/behaviors';
@@ -91,7 +91,7 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite implements SwarmAgent {
     this.wobble = steering.wobble;
     this.wobbleHz = steering.wobbleHz;
     this.flies = def.flies ?? false;
-    this.charge = newChargeState();
+    this.charge = newChargeState(Math.random() * CHARGE_MAX_DELAY_MS);
     this.slowUntil = 0;
     this.slowFactor = 1;
     this.flashUntil = 0;

@@ -41,6 +41,28 @@ describe('charge', () => {
     expect(stepCharge(s, P, 0, 0, 5000, 0, 3100)).toBe('approach');
   });
 
+  it('hesitates for its own delay once the player is in range', () => {
+    const s = newChargeState(800);
+    expect(stepCharge(s, P, 0, 0, 100, 0, 1000)).toBe('approach');
+    expect(stepCharge(s, P, 0, 0, 100, 0, 1799)).toBe('approach');
+    expect(stepCharge(s, P, 0, 0, 100, 0, 1800)).toBe('windup');
+  });
+
+  it('waits while no slot is free, and starts when one is', () => {
+    const s = newChargeState();
+    expect(stepCharge(s, P, 0, 0, 100, 0, 0, false)).toBe('approach');
+    expect(stepCharge(s, P, 0, 0, 100, 0, 5000, false)).toBe('approach');
+    expect(stepCharge(s, P, 0, 0, 100, 0, 5010, true)).toBe('windup');
+  });
+
+  it('forgets the delay when the player gets out of range', () => {
+    const s = newChargeState(500);
+    stepCharge(s, P, 0, 0, 100, 0, 0);
+    expect(s.readyAt).toBe(500);
+    stepCharge(s, P, 0, 0, 900, 0, 100);
+    expect(s.readyAt).toBe(-1);
+  });
+
   it('copes with standing exactly on the player', () => {
     const s = newChargeState();
     expect(stepCharge(s, P, 5, 5, 5, 5, 0)).toBe('windup');

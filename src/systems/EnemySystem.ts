@@ -1,5 +1,5 @@
 import * as Phaser from 'phaser';
-import { BALANCE, ELITE } from '../config/balance';
+import { BALANCE, ELITE, MAX_CHARGERS_AT_ONCE } from '../config/balance';
 import { eliteChance, ringModifiers, type RingModifiers } from '../logic/difficulty';
 import { ENEMIES } from '../config/enemies';
 import { dashDistance, REST_SPEED, stepCharge } from '../logic/charge';
@@ -177,6 +177,11 @@ export class EnemySystem {
     const rings = this.eliteRings;
     rings.clear();
     const pulse = 0.6 + Math.sin(now / 160) * 0.3;
+    // How many chargers are busy (warning or dash) right now; only a few at a time, so it stays readable.
+    let chargers = 0;
+    for (const e of this.active()) {
+      if (e.charge.phase === 'windup' || e.charge.phase === 'dash') chargers++;
+    }
 
     for (const e of this.active()) {
       const dx = px - e.x;
@@ -196,7 +201,9 @@ export class EnemySystem {
       e.setDepth((e.flies ? 2.5 : 2) + Phaser.Math.Clamp((e.y - py) / 4000, -0.4, 0.4) * (e.flies ? 0.2 : 1));
       const behavior = e.def.behavior;
       if (behavior?.kind === 'charge') {
-        const phase = stepCharge(e.charge, behavior, e.x, e.y, px, py, now);
+        const was = e.charge.phase;
+        const phase = stepCharge(e.charge, behavior, e.x, e.y, px, py, now, chargers < MAX_CHARGERS_AT_ONCE);
+        if (was === 'approach' && phase === 'windup') chargers++;
         if (phase === 'windup') {
           // The warning: a red line along the dash that is about to come.
           const len = dashDistance(behavior, e.def.speed * e.speedJitter);
