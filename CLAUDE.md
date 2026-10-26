@@ -118,6 +118,10 @@ A small but complete piece of the game from `docs/vision.md`. Each step is its o
 - [x] Treasure chests (rare from anyone, likely from elites) with a slot-machine roll (gold, upgrades; equipment later)
 - [x] Intro quest: at the first start the elder hands over the lantern and points to the nearest watchfire; lighting it pays gold
 - [x] Deeds: exploration milestones (new rings, camps, watchfires, the tower) with small bonuses for good
+- [ ] Spread the swarm: separation and varied speed, so enemies do not pile into one blob (see `docs/vision.md`)
+- [ ] New enemy types with different behaviour (flanker, ranged, charger, ...)
+- [ ] Elites with a mechanic, their own movement and fair health (target fight length)
+- [ ] Open idea: light as a combat rule (slows or hurts enemies in the lantern's light); to be thought through
 - [ ] Varied fight goals (kill N enemies, find the light or the dungeon, ... see `docs/vision.md`)
 - [ ] Herb garden: plant herbs and harvest more of them, growing in real time
 - [ ] One class with a small skill tree

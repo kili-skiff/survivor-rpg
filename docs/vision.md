@@ -57,6 +57,36 @@ stronger: with a better class build, a growing herb garden and potions for the n
 - Level-ups during a run offer a choice of weapons, items and skill upgrades.
 - Bosses guard dungeons and important places.
 
+## Swarms, enemy behaviour and elites
+
+Problem seen in later rings: enemies scale hard and all run straight at the player, so they pile into
+one big blob that follows you. Single targets, elites included, become nearly impossible to hit.
+Ideas collected so far (nothing decided beyond the "wanted" list):
+
+**Wanted:**
+
+- **Spread the swarm:** enemies keep a little distance from each other and have more varied speed
+  and reaction times, so they stay a loose crowd instead of stacking.
+- **Different behaviours:** flankers that come in an arc or aim ahead of you, runners that pass by,
+  orbiters that keep their distance, ranged enemies that stop and shoot, chargers with a warning.
+  New enemy types per ring should differ in behaviour, not only in numbers.
+- **Elites need a rethink,** but not necessarily "alone": give them a mechanic to react to
+  (telegraphed charge, shield to break, summoned helpers), let them move on their own instead of
+  hiding in the blob, let one weapon prefer them as a target, and set their health from a target
+  fight length (e.g. 10-15 seconds with a normal build) instead of from a flat multiplier.
+
+**Still to think through:** light as a combat rule (enemies slowed or hurt inside the lantern's
+light, faster in the dark; watchfires as safer zones). It would give lanterns a role against swarms
+and fits the identity of the game. Not decided.
+
+**Other ideas on the table:** waves with breathers instead of a constant stream, announced events
+(a ring closing in, a wall from one side), obstacles (trees, ruins) that break up the crowd, tools
+against blobs (area damage, pierce, knockback, percent-health damage), fewer but more varied
+enemies, and showing a "recommended strength" per ring on the map so hard rings are a choice.
+
+Reference: Vampire Survivors mixes straight lines, sine-wave flyers, walls and rings; Brotato uses
+waves with rests and ranged enemies.
+
 ## Varied fight goals
 
 Today every hex fight has the same goal: survive N minutes. That should become more varied, so
