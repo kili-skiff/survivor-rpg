@@ -64,6 +64,7 @@ one big blob that follows you. Single targets, elites included, become nearly im
 Ideas collected so far (nothing decided beyond the "wanted" list):
 
 **Wanted:**
+
 - **Spread the swarm:** enemies keep a little distance from each other and have more varied speed
   and reaction times, so they stay a loose crowd instead of stacking.
 - **Different behaviours:** flankers that come in an arc or aim ahead of you, runners that pass by,
