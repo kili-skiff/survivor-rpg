@@ -98,13 +98,30 @@ export type EnemyBehavior =
       /** Aims at where the player will be in this many seconds at most (less when close) */
       leadSec: number;
     }
-  /** Swings wildly left and right on the way, so it is hard to hit */
+  /** Swings left and right on the way (a small share of its speed; the usual drift is smaller still) */
   | {
       kind: 'flutter';
-      /** Sideways swing as a share of its speed (the usual drift is much smaller) */
+      /** Sideways swing as a share of its speed */
       sway: number;
       /** Swings per second */
       swayHz: number;
+    }
+  /**
+   * Runs up, stops to show it is about to charge (the warning), then dashes in a straight line along
+   * the line it showed, and catches its breath. The line is fixed when the warning starts, so it can be dodged.
+   */
+  | {
+      kind: 'charge';
+      /** Starts the warning when the player is this close (px) */
+      range: number;
+      /** How long the warning lasts (s) */
+      windupSec: number;
+      /** How long the dash lasts (s) */
+      dashSec: number;
+      /** Dash speed as a multiple of its walking speed */
+      dashSpeed: number;
+      /** How long it is slow after the dash (s) */
+      restSec: number;
     };
 
 export interface EnemyDef {
@@ -125,6 +142,8 @@ export interface EnemyDef {
   minRing?: number;
   /** How it moves toward the player (default: chase) */
   behavior?: EnemyBehavior;
+  /** Flies over the others: never pushed by them, never pushes them, and drawn above them */
+  flies?: boolean;
   /** Relative spawn weight */
   weight: number;
 }

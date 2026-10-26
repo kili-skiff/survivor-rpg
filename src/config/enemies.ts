@@ -11,8 +11,10 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
     damage: 5,
     xp: 1,
     unlockAt: 0,
-    // Erratic flyer: swings wildly from side to side on the way.
-    behavior: { kind: 'flutter', sway: 0.9, swayHz: 1.1 },
+    // Fast and nearly straight; it flies over the crowd instead of squeezing through it.
+    // (Flocks that sweep from side to side come with the wave system.)
+    behavior: { kind: 'flutter', sway: 0.2, swayHz: 0.7 },
+    flies: true,
     weight: 10,
   },
   zombie: {
@@ -41,8 +43,8 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
     damage: 8,
     xp: 3,
     unlockAt: 90,
-    // Fast: it cuts in from the side and heads for where the player is going.
-    behavior: { kind: 'flank', arcDeg: 38, leadSec: 1.1 },
+    // Fast charger: runs up, crouches (warning), then dashes along a fixed line, ~225 px.
+    behavior: { kind: 'charge', range: 250, windupSec: 0.55, dashSec: 0.6, dashSpeed: 3, restSec: 0.9 },
     weight: 4,
   },
   brute: {

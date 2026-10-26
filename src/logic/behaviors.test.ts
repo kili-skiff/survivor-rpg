@@ -29,6 +29,11 @@ describe('steering from behaviour', () => {
     const s = steeringFor({ kind: 'flutter', sway: 0.9, swayHz: 1.1 }, createRng(1));
     expect(s).toEqual({ arc: 0, lead: 0, wobble: 0.9, wobbleHz: 1.1 });
   });
+
+  it('lets a charger walk up like a plain chaser', () => {
+    const b = { kind: 'charge', range: 200, windupSec: 0.5, dashSec: 0.6, dashSpeed: 3, restSec: 1 } as const;
+    expect(steeringFor(b, createRng(1))).toEqual(steeringFor({ kind: 'chase' }, createRng(1)));
+  });
 });
 
 describe('enemy behaviours in the config', () => {
@@ -42,8 +47,14 @@ describe('enemy behaviours in the config', () => {
         expect(b.leadSec).toBeGreaterThan(0);
         expect(b.leadSec).toBeLessThanOrEqual(3);
       }
+      if (b.kind === 'charge') {
+        expect(b.range).toBeGreaterThan(def.radius * 4);
+        expect(b.windupSec).toBeGreaterThan(0);
+        expect(b.dashSpeed).toBeGreaterThan(1);
+        expect(b.restSec).toBeGreaterThan(0);
+      }
       if (b.kind === 'flutter') {
-        expect(b.sway).toBeGreaterThan(SWARM.wobble);
+        expect(b.sway).toBeGreaterThan(0);
         expect(b.sway).toBeLessThanOrEqual(2);
         expect(b.swayHz).toBeGreaterThan(0);
       }

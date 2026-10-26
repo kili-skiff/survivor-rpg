@@ -114,6 +114,20 @@ describe('separating bodies', () => {
   });
 });
 
+describe('flyers', () => {
+  it('are neither avoided by the crowd nor pushed by it', () => {
+    const swarm = new Swarm<SwarmAgent>({ ...SWARM, wobble: 0 });
+    const walker = agent(0, 0, { aimX: 2000, aimY: 0, nextAimAt: 1e9 });
+    const flyer = agent(0, 4, { aimX: 2000, aimY: 0, nextAimAt: 1e9, flies: true });
+    swarm.steer([walker, flyer], { x: 2000, y: 0 }, 0, createRng(3));
+    expect(walker.steerY).toBeCloseTo(0, 5);
+    expect(Math.abs(flyer.steerY)).toBeLessThan(0.5); // only the aim, no push
+    const before = [walker.x, walker.y, flyer.x, flyer.y];
+    swarm.separate();
+    expect([walker.x, walker.y, flyer.x, flyer.y]).toEqual(before);
+  });
+});
+
 describe('speed variation', () => {
   it('stays within the jitter', () => {
     const rng = createRng(11);

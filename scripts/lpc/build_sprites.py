@@ -56,6 +56,14 @@ def load(root: Path, rel: str, color, strength) -> Image.Image:
     return tint(img, color, strength) if color else img
 
 
+# A last tint over the finished sheet (after the night grading), for characters that must stand out
+# from the others at a glance. name -> (colour, strength).
+FINISH = {
+    # Pale violet bones: clearly not the grey-brown zombie, and not red (warning) or blue (slowed).
+    "ghoul": ((165, 120, 235), 0.6),
+}
+
+
 def build(root: Path, name: str, layers: list[Layer], saturation: float, brightness: float) -> None:
     sheet = Image.new("RGBA", (FRAME * WALK_COLS, FRAME * 5), (0, 0, 0, 0))
     walk = Image.new("RGBA", (FRAME * WALK_COLS, FRAME * 4), (0, 0, 0, 0))
@@ -68,7 +76,10 @@ def build(root: Path, name: str, layers: list[Layer], saturation: float, brightn
     sheet.alpha_composite(walk, (0, 0))
     sheet.alpha_composite(hurt, (0, FRAME * 4))
     OUT.mkdir(parents=True, exist_ok=True)
-    grade(sheet, saturation, brightness).save(OUT / f"{name}.png", optimize=True)
+    out = grade(sheet, saturation, brightness)
+    if name in FINISH:
+        out = tint(out, *FINISH[name])
+    out.save(OUT / f"{name}.png", optimize=True)
     print("wrote", OUT / f"{name}.png")
 
 

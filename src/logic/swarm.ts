@@ -52,6 +52,8 @@ export interface SwarmAgent extends Point {
   aimY: number;
   /** Game time (ms) at which it looks at the player again */
   nextAimAt: number;
+  /** Flies over the others: not part of the crowd, neither pushed nor pushing (default: false) */
+  flies?: boolean;
   /** Result: the velocity to move with (px/s) */
   steerX: number;
   steerY: number;
@@ -153,6 +155,7 @@ export class Swarm<A extends SwarmAgent> {
     const { cell, maxPerCell } = this.params;
     for (let i = 0; i < agents.length; i++) {
       const a = agents[i];
+      if (a.flies) continue; // flyers are not in the crowd: nobody avoids or pushes them
       const key = cellKey(Math.floor(a.x / cell), Math.floor(a.y / cell));
       let bucket = this.grid.get(key);
       if (!bucket) {
@@ -206,7 +209,7 @@ export class Swarm<A extends SwarmAgent> {
 
     // Steer away from neighbours that come too close.
     const strength = p.separation * (p.separationNear + (1 - p.separationNear) * far);
-    if (strength > 0) {
+    if (strength > 0 && !a.flies) {
       const cx = Math.floor(a.x / p.cell);
       const cy = Math.floor(a.y / p.cell);
       let sx = 0;

@@ -3,6 +3,7 @@ import { ELITE, SWARM } from '../config/balance';
 import { CHARACTER_SPRITES, SHEET, walkAnim, type CharacterSprite, type Facing } from '../config/sprites';
 import type { EnemyDef } from '../config/types';
 import { steeringFor } from '../logic/behaviors';
+import { newChargeState } from '../logic/charge';
 import { facingFor } from '../logic/facing';
 import { speedFactor, type SwarmAgent } from '../logic/swarm';
 
@@ -31,6 +32,10 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite implements SwarmAgent {
   /** Velocity chosen by the swarm this frame (px/s) */
   steerX = 0;
   steerY = 0;
+  /** Flies over the others (see EnemyDef.flies) */
+  flies = false;
+  /** Where it is in its charge; only used by chargers */
+  charge = newChargeState();
   slowUntil = 0;
   slowFactor = 1;
   flashUntil = 0;
@@ -85,6 +90,8 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite implements SwarmAgent {
     this.lead = steering.lead;
     this.wobble = steering.wobble;
     this.wobbleHz = steering.wobbleHz;
+    this.flies = def.flies ?? false;
+    this.charge = newChargeState();
     this.slowUntil = 0;
     this.slowFactor = 1;
     this.flashUntil = 0;

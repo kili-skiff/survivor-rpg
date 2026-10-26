@@ -2,6 +2,7 @@ import * as Phaser from 'phaser';
 import { BALANCE, ELITE } from '../config/balance';
 import { eliteChance, ringModifiers, type RingModifiers } from '../logic/difficulty';
 import { ENEMIES } from '../config/enemies';
+import { dashDistance, REST_SPEED, stepCharge } from '../logic/charge';
 import { dieAnim } from '../config/sprites';
 import type { EnemyDef } from '../config/types';
 import { Enemy } from '../entities/Enemy';
@@ -191,8 +192,20 @@ export class EnemySystem {
 
       const slowed = now < e.slowUntil;
       e.moveSpeed = e.def.speed * e.speedJitter * (slowed ? e.slowFactor : 1);
-      // Lower on screen = in front; the player always stays on top.
-      e.setDepth(2 + Phaser.Math.Clamp((e.y - py) / 4000, -0.4, 0.4));
+      // Lower on screen = in front; the player (3) always stays on top. Flyers pass over the crowd.
+      e.setDepth((e.flies ? 2.5 : 2) + Phaser.Math.Clamp((e.y - py) / 4000, -0.4, 0.4) * (e.flies ? 0.2 : 1));
+      const behavior = e.def.behavior;
+      if (behavior?.kind === 'charge') {
+        const phase = stepCharge(e.charge, behavior, e.x, e.y, px, py, now);
+        if (phase === 'windup') {
+          // The warning: a red line along the dash that is about to come.
+          const len = dashDistance(behavior, e.def.speed * e.speedJitter);
+          const ry = e.y + (e.look ? e.look.bodyY * e.scaleY : 2);
+          rings
+            .lineStyle(4, 0xff4d4d, 0.35 + 0.5 * pulse)
+            .lineBetween(e.x, ry, e.x + e.charge.dirX * len, ry + e.charge.dirY * len);
+        }
+      }
       this.updateTint(e, now, slowed);
       if (e.elite) {
         const r = e.def.radius * ELITE.scale + 7;
@@ -210,19 +223,41 @@ export class EnemySystem {
     this.swarm.steer(live, this.target, now, Math.random, this.targetVelocity);
     for (let i = 0; i < live.length; i++) {
       const e = live[i];
+      const slow = now < e.slowUntil ? e.slowFactor : 1;
+      const charge = e.def.behavior?.kind === 'charge' ? e.def.behavior : null;
+      if (charge && e.charge.phase === 'windup') {
+        // Stands still and crouches: the animation freezes.
+        e.steerX = 0;
+        e.steerY = 0;
+        e.setVelocity(0, 0);
+        e.walk(e.charge.dirX, e.charge.dirY, 0);
+        continue;
+      }
+      if (charge && e.charge.phase === 'dash') {
+        e.steerX = e.charge.dirX * e.moveSpeed * charge.dashSpeed;
+        e.steerY = e.charge.dirY * e.moveSpeed * charge.dashSpeed;
+        e.setVelocity(e.steerX, e.steerY);
+        e.walk(e.steerX, e.steerY, slow * 1.8);
+        continue;
+      }
+      if (charge && e.charge.phase === 'rest') {
+        e.steerX *= REST_SPEED;
+        e.steerY *= REST_SPEED;
+      }
       e.setVelocity(e.steerX, e.steerY);
-      e.walk(e.steerX, e.steerY, now < e.slowUntil ? e.slowFactor : 1);
+      e.walk(e.steerX, e.steerY, slow);
     }
     // Bodies never sit inside each other.
     this.swarm.separate();
   }
 
   private updateTint(e: Enemy, now: number, slowed: boolean): void {
-    const state = now < e.flashUntil ? 1 : slowed ? 2 : 0;
+    const state = now < e.flashUntil ? 1 : slowed ? 2 : e.charge.phase === 'windup' ? 3 : 0;
     if (state === e.tintState) return;
     e.tintState = state;
     if (state === 1) e.setTint(0xffffff).setTintMode(Phaser.TintModes.FILL);
     else if (state === 2) e.setTint(0x8fd3ff).setTintMode(Phaser.TintModes.MULTIPLY);
+    else if (state === 3) e.setTint(0xff6a6a).setTintMode(Phaser.TintModes.MULTIPLY);
     else if (e.elite) e.setTint(ELITE.tint).setTintMode(Phaser.TintModes.MULTIPLY);
     else e.clearTint().setTintMode(Phaser.TintModes.MULTIPLY);
   }
