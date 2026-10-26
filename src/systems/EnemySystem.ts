@@ -48,6 +48,9 @@ export class EnemySystem {
     this.corpses = scene.add.group({ classType: Phaser.GameObjects.Sprite, maxSize: MAX_CORPSES });
   }
 
+  /** DEV: while true, nothing hurts enemies (invincible mode); set by the scene. */
+  devNoDamage = false;
+
   // DEV: spawns one elite of the given type at the edge of the view.
   devSpawnElite(def: EnemyDef, runTime: number): void {
     const pos = this.spawnPoint();
@@ -96,7 +99,7 @@ export class EnemySystem {
   }
 
   damage(e: Enemy, amount: number, knockX = 0, knockY = 0): void {
-    if (!e.active) return;
+    if (!e.active || this.devNoDamage) return; // DEV: invincible mode deals no damage
     e.hp -= amount;
     e.flashUntil = this.now() + 70;
     e.x += knockX;

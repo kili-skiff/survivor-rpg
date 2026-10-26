@@ -68,6 +68,7 @@ export class UIScene extends Phaser.Scene {
   private devClearBtn: Phaser.GameObjects.Text | null = null; // DEV:
   private devGodBtn: Phaser.GameObjects.Text | null = null; // DEV:
   private devEliteBtn: Phaser.GameObjects.Text | null = null; // DEV:
+  private devInvincibleBtn: Phaser.GameObjects.Text | null = null; // DEV:
   private devFps: FpsCounter | null = null; // DEV:
   private skillButtons: SkillButton[] = [];
   private potionButtons: PotionButton[] = [];
@@ -168,6 +169,17 @@ export class UIScene extends Phaser.Scene {
           .on('pointerdown', () => {
             if (this.overlayKind !== 'none') return;
             this.gs.devToggleGodMode();
+            this.layoutDevButtons();
+          })
+      : null;
+    // DEV: invincible mode toggle (no damage taken or dealt, whole screen lit).
+    this.devInvincibleBtn = isDevMode()
+      ? this.add
+          .text(0, 0, '', devButtonStyle(this.u))
+          .setInteractive({ useHandCursor: true })
+          .on('pointerdown', () => {
+            if (this.overlayKind !== 'none') return;
+            this.gs.devToggleInvincible();
             this.layoutDevButtons();
           })
       : null;
@@ -303,8 +315,13 @@ export class UIScene extends Phaser.Scene {
     this.devEliteBtn
       ?.setStyle(devButtonStyle(u))
       .setPosition(left, top + 84 * u + ((this.devClearBtn?.height ?? 0) + 6 * u) * 2);
+    const invincible = this.gs.devInvincible();
+    this.devInvincibleBtn
+      ?.setText(invincible ? 'DEV  invincible on' : 'DEV  invincible off')
+      .setStyle(devButtonStyle(u, invincible))
+      .setPosition(left, top + 84 * u + ((this.devClearBtn?.height ?? 0) + 6 * u) * 3);
     this.devFps?.setScale(u);
-    this.devFps?.text.setPosition(left, top + 84 * u + ((this.devClearBtn?.height ?? 0) + 6 * u) * 3);
+    this.devFps?.text.setPosition(left, top + 84 * u + ((this.devClearBtn?.height ?? 0) + 6 * u) * 4);
   }
 
   private createPotionButton(id: PotionId, label: string): void {
