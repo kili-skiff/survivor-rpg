@@ -39,7 +39,7 @@ src/
              deeds, segments, world, map tiles, character sprites, ground tiles, balancing (NO Phaser)
   logic/     Pure game logic (NO Phaser, tested): stats, XP, upgrades, spawning, segments, save data,
              hex math, seeded RNG, world generation, world progress, expeditions and journeys,
-             potions (brewing, belt, buffs), lantern pendulum physics, merchant (gold, lanterns, recipes), ring difficulty, chests,
+             potions (brewing, belt, buffs), lantern pendulum physics, merchant (gold, lanterns, recipes), ring difficulty, horde steering (swarm), chests,
              quests, deeds, device settings
   entities/  Pooled Phaser objects (Enemy, Projectile, Pickup)
   input/     InputState: one input layer for touch, keyboard, later gamepads
@@ -118,7 +118,8 @@ A small but complete piece of the game from `docs/vision.md`. Each step is its o
 - [x] Treasure chests (rare from anyone, likely from elites) with a slot-machine roll (gold, upgrades; equipment later)
 - [x] Intro quest: at the first start the elder hands over the lantern and points to the nearest watchfire; lighting it pays gold
 - [x] Deeds: exploration milestones (new rings, camps, watchfires, the tower) with small bonuses for good
-- [ ] Spread the swarm: separation and varied speed, so enemies do not pile into one blob (see `docs/vision.md`)
+- [x] Spread the swarm: soft separation, sideways drift, reaction delay and varied speed, so enemies do not pile into one blob (`logic/swarm.ts`)
+- [ ] Finetune the swarm (work in progress): in tight crowds enemies seem to shove each other, so smooth their movement, soften the hard overlap push and maybe shrink the personal space; values in `SWARM`
 - [ ] New enemy types with different behaviour (flanker, ranged, charger, ...)
 - [ ] Elites with a mechanic, their own movement and fair health (target fight length)
 - [ ] Open idea: light as a combat rule (slows or hurts enemies in the lantern's light); to be thought through

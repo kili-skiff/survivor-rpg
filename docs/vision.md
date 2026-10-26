@@ -65,8 +65,15 @@ Ideas collected so far (nothing decided beyond the "wanted" list):
 
 **Wanted:**
 
-- **Spread the swarm:** enemies keep a little distance from each other and have more varied speed
-  and reaction times, so they stay a loose crowd instead of stacking.
+- **Spread the swarm** (built, `logic/swarm.ts`, values in `SWARM`): enemies keep a little distance
+  from each other, drift sideways on their own rhythm, react to the player with a delay and differ in
+  speed, so they stay a loose crowd instead of stacking. Next to the player the effect fades, so a
+  crowd can still close in. In a test fight in ring 6 the biggest clump of enemies (within 60 px of
+  each other) was less than half of what plain chasing gives.
+  **Work in progress:** a first tuning that helps clearly but still needs finetuning. In tight crowds
+  enemies can look as if they shove each other (soft steering and the hard overlap push work against
+  each other). Ideas: smooth the velocity, push out only part of an overlap per frame, a smaller
+  personal space.
 - **Different behaviours:** flankers that come in an arc or aim ahead of you, runners that pass by,
   orbiters that keep their distance, ranged enemies that stop and shoot, chargers with a warning.
   New enemy types per ring should differ in behaviour, not only in numbers.

@@ -45,6 +45,38 @@ export const ELITE = {
   eyesColor: 0xfacc15,
 } as const;
 
+/**
+ * How the horde moves, so it stays a loose crowd instead of one blob (logic/swarm.ts).
+ * First tuning, still to be finetuned: in tight crowds enemies can look as if they shove each other.
+ * Distances are px, times are ms.
+ */
+export const SWARM = {
+  /** Size of the grid cells used to find neighbours. Personal space of the biggest pairs should fit in 3x3 cells. */
+  cell: 72,
+  /** Bodies counted per cell; further ones still feel the push, but do not push back */
+  maxPerCell: 8,
+  /** Soft personal space: enemies closer than this (times the sum of both radii) push each other away */
+  personalSpace: 1.9,
+  /** How hard that push bends the course (1 = as strong as the pull toward the player) */
+  separation: 1.3,
+  /** Share of the push that is left right next to the player, so a crowd can still close in to bite */
+  separationNear: 0.4,
+  /** Between these distances to the player the push grows from `separationNear` to full strength */
+  closeInStart: 50,
+  closeInEnd: 220,
+  /** Sideways drift as a share of speed, fading out close to the player */
+  wobble: 0.35,
+  /** How fast the drift swings left and right (cycles per second) */
+  wobbleHz: 0.4,
+  /** Far away, an enemy aims at where the player was a moment ago; this long until it looks again */
+  aimLagMin: 150,
+  aimLagMax: 450,
+  /** Each enemy's speed varies by this share around its type's speed */
+  speedJitter: 0.25,
+  /** Bodies may overlap this much (share of the sum of both radii) before they are pushed apart */
+  bodyOverlap: 0.9,
+} as const;
+
 /** Treasure chests from elites: rewards are rolled like a slot machine. */
 export const CHEST = {
   /** Chance that a killed enemy leaves a chest: rare for anyone, likely for elites */

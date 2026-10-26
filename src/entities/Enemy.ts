@@ -1,16 +1,30 @@
 import * as Phaser from 'phaser';
-import { ELITE } from '../config/balance';
+import { ELITE, SWARM } from '../config/balance';
 import { CHARACTER_SPRITES, SHEET, walkAnim, type CharacterSprite, type Facing } from '../config/sprites';
 import type { EnemyDef } from '../config/types';
 import { facingFor } from '../logic/facing';
+import { speedFactor, type SwarmAgent } from '../logic/swarm';
 
 /** Pooled enemy: reused instead of created anew. */
-export class Enemy extends Phaser.Physics.Arcade.Sprite {
+export class Enemy extends Phaser.Physics.Arcade.Sprite implements SwarmAgent {
   def!: EnemyDef;
   hp = 0;
   maxHp = 0;
   /** Per-enemy speed variation so hordes don't stack perfectly */
   speedJitter = 1;
+  // How it moves in the horde (see logic/swarm.ts)
+  /** Body radius in the world (px), elites are bigger */
+  radius = 0;
+  /** Speed this frame (px/s), after slowing */
+  moveSpeed = 0;
+  /** Offsets its sideways drift from the others (0..2π) */
+  phase = 0;
+  aimX = 0;
+  aimY = 0;
+  nextAimAt = 0;
+  /** Velocity chosen by the swarm this frame (px/s) */
+  steerX = 0;
+  steerY = 0;
   slowUntil = 0;
   slowFactor = 1;
   flashUntil = 0;
@@ -52,7 +66,14 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
     this.enableBody(true, x, y, true, true);
     this.hp = def.hp * hpMultiplier;
     this.maxHp = this.hp;
-    this.speedJitter = 0.88 + Math.random() * 0.24;
+    this.speedJitter = speedFactor(SWARM, Math.random);
+    this.radius = def.radius * (elite ? ELITE.scale : 1);
+    this.phase = Math.random() * Math.PI * 2;
+    this.aimX = x;
+    this.aimY = y;
+    this.nextAimAt = 0;
+    this.steerX = 0;
+    this.steerY = 0;
     this.slowUntil = 0;
     this.slowFactor = 1;
     this.flashUntil = 0;
