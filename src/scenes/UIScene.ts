@@ -13,8 +13,8 @@ import { safeStorage } from '../logic/save';
 import { isSegmentWarning, segmentRemaining } from '../logic/segment';
 import { loadSettings, otherSide, writeSettings, type Settings } from '../logic/settings';
 import { describeUpgrade, type UpgradeOption } from '../logic/upgrades';
-import { FpsCounter } from '../dev/FpsCounter'; // DEV:
-import { devButtonStyle, isDevMode } from '../dev/devMode'; // DEV:
+import { DevPanel } from '../dev/DevPanel'; // DEV:
+import { isDevMode } from '../dev/devMode'; // DEV:
 import { safeArea, viewportSize, type SafeArea } from '../ui/display';
 import { COLORS, css, FONT } from '../ui/theme';
 import type { GameScene, RunEndInfo } from './GameScene';
@@ -65,11 +65,7 @@ export class UIScene extends Phaser.Scene {
   private herbText!: Phaser.GameObjects.Text;
   private goldText!: Phaser.GameObjects.Text;
   private pauseBtn!: Phaser.GameObjects.Text;
-  private devClearBtn: Phaser.GameObjects.Text | null = null; // DEV:
-  private devGodBtn: Phaser.GameObjects.Text | null = null; // DEV:
-  private devEliteBtn: Phaser.GameObjects.Text | null = null; // DEV:
-  private devInvincibleBtn: Phaser.GameObjects.Text | null = null; // DEV:
-  private devFps: FpsCounter | null = null; // DEV:
+  private devPanel: DevPanel | null = null; // DEV:
   private skillButtons: SkillButton[] = [];
   private potionButtons: PotionButton[] = [];
   private loadoutIcons: Phaser.GameObjects.GameObject[] = [];
@@ -147,44 +143,30 @@ export class UIScene extends Phaser.Scene {
       .setOrigin(1, 0)
       .setInteractive({ useHandCursor: true });
     this.pauseBtn.on('pointerdown', () => this.togglePause());
-    // DEV: win the fight at once.
-    this.devClearBtn = isDevMode()
-      ? this.add
-          .text(0, 0, 'DEV  clear area', devButtonStyle(this.u))
-          .setInteractive({ useHandCursor: true })
-          .on('pointerdown', () => this.overlayKind === 'none' && this.gs.devClearArea())
+    // DEV: foldable dev panel: buttons, frame rate, enemy count, kills per minute.
+    this.devPanel = isDevMode()
+      ? new DevPanel(
+          this,
+          this.u,
+          [
+            { label: () => 'clear area', run: () => this.gs.devClearArea() },
+            {
+              label: () => (this.gs.devGodMode() ? 'god mode on' : 'god mode off'),
+              active: () => this.gs.devGodMode(),
+              short: 'god mode',
+              run: () => this.gs.devToggleGodMode(),
+            },
+            { label: () => 'spawn elite', run: () => this.gs.devSpawnElite() },
+            {
+              label: () => (this.gs.devInvincible() ? 'invincible on' : 'invincible off'),
+              active: () => this.gs.devInvincible(),
+              short: 'invincible',
+              run: () => this.gs.devToggleInvincible(),
+            },
+          ],
+          () => this.gs.devStats(),
+        )
       : null;
-    // DEV: spawn an elite.
-    this.devEliteBtn = isDevMode()
-      ? this.add
-          .text(0, 0, 'DEV  spawn elite', devButtonStyle(this.u))
-          .setInteractive({ useHandCursor: true })
-          .on('pointerdown', () => this.overlayKind === 'none' && this.gs.devSpawnElite())
-      : null;
-    // DEV: god mode toggle.
-    this.devGodBtn = isDevMode()
-      ? this.add
-          .text(0, 0, '', devButtonStyle(this.u))
-          .setInteractive({ useHandCursor: true })
-          .on('pointerdown', () => {
-            if (this.overlayKind !== 'none') return;
-            this.gs.devToggleGodMode();
-            this.layoutDevButtons();
-          })
-      : null;
-    // DEV: invincible mode toggle (no damage taken or dealt, whole screen lit).
-    this.devInvincibleBtn = isDevMode()
-      ? this.add
-          .text(0, 0, '', devButtonStyle(this.u))
-          .setInteractive({ useHandCursor: true })
-          .on('pointerdown', () => {
-            if (this.overlayKind !== 'none') return;
-            this.gs.devToggleInvincible();
-            this.layoutDevButtons();
-          })
-      : null;
-    // DEV: frame rate label.
-    this.devFps = isDevMode() ? new FpsCounter(this, this.u) : null;
 
     this.createSkillButton('dash', this.isTouch ? 'Dash' : 'Dash · Space');
     this.createSkillButton('nova', this.isTouch ? 'Nova' : 'Nova · E');
@@ -220,7 +202,8 @@ export class UIScene extends Phaser.Scene {
   override update(): void {
     this.updateMovement();
     this.drawHud();
-    this.devFps?.update(); // DEV:
+    this.devPanel?.setVisible(this.overlayKind === 'none'); // DEV: hidden while a menu is open
+    this.devPanel?.update(); // DEV:
   }
 
   // ---------------------------------------------------------------- Input
@@ -299,29 +282,6 @@ export class UIScene extends Phaser.Scene {
     const x = (k.D.isDown || k.RIGHT.isDown ? 1 : 0) - (k.A.isDown || k.LEFT.isDown ? 1 : 0);
     const y = (k.S.isDown || k.DOWN.isDown ? 1 : 0) - (k.W.isDown || k.UP.isDown ? 1 : 0);
     this.controls.setMove(x, y);
-  }
-
-  // DEV: clear and god mode buttons below the weapon icons on the left.
-  private layoutDevButtons(): void {
-    const u = this.u;
-    const left = this.sa.left + 12 * u;
-    const top = this.sa.top + 10 * u;
-    this.devClearBtn?.setStyle(devButtonStyle(u)).setPosition(left, top + 84 * u);
-    const god = this.gs.devGodMode();
-    this.devGodBtn
-      ?.setText(god ? 'DEV  god mode on' : 'DEV  god mode off')
-      .setStyle(devButtonStyle(u, god))
-      .setPosition(left, top + 84 * u + (this.devClearBtn?.height ?? 0) + 6 * u);
-    this.devEliteBtn
-      ?.setStyle(devButtonStyle(u))
-      .setPosition(left, top + 84 * u + ((this.devClearBtn?.height ?? 0) + 6 * u) * 2);
-    const invincible = this.gs.devInvincible();
-    this.devInvincibleBtn
-      ?.setText(invincible ? 'DEV  invincible on' : 'DEV  invincible off')
-      .setStyle(devButtonStyle(u, invincible))
-      .setPosition(left, top + 84 * u + ((this.devClearBtn?.height ?? 0) + 6 * u) * 3);
-    this.devFps?.setScale(u);
-    this.devFps?.text.setPosition(left, top + 84 * u + ((this.devClearBtn?.height ?? 0) + 6 * u) * 4);
   }
 
   private createPotionButton(id: PotionId, label: string): void {
@@ -420,7 +380,7 @@ export class UIScene extends Phaser.Scene {
       .setFontSize(Math.round(16 * u))
       .setPadding(Math.round(12 * u), Math.round(6 * u))
       .setPosition(right, top);
-    this.layoutDevButtons(); // DEV:
+    this.devPanel?.layout(left, top + 84 * u, u); // DEV: below the weapon icons on the left
     this.killsText
       .setFontSize(Math.round(14 * u))
       .setPosition(right - this.pauseBtn.width - 10 * u, top + 6 * u);

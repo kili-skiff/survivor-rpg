@@ -419,6 +419,11 @@ export class GameScene extends Phaser.Scene {
     return this.devGodMode() || this.devInvincible();
   }
 
+  // DEV: numbers for the dev panel (the game clock stops while paused).
+  devStats(): { enemies: number; kills: number; nowMs: number } {
+    return { enemies: this.enemies.group.countActive(true), kills: this.run.kills, nowMs: this.clock };
+  }
+
   // DEV: spawns an elite at the edge of the view.
   devSpawnElite(): void {
     if (this.run.alive) this.enemies.devSpawnElite(ENEMIES.zombie, this.run.time);
