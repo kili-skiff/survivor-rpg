@@ -2,7 +2,7 @@ import * as Phaser from 'phaser';
 import { BALANCE, ELITE, MAX_CHARGERS_AT_ONCE } from '../config/balance';
 import { eliteChance, ringModifiers, type RingModifiers } from '../logic/difficulty';
 import { ENEMIES } from '../config/enemies';
-import { leapAt, REST_SPEED, stepCharge, windupProgress } from '../logic/charge';
+import { isLocked, leapAt, REST_SPEED, stepCharge, windupProgress } from '../logic/charge';
 import { dieAnim } from '../config/sprites';
 import type { EnemyDef } from '../config/types';
 import { Enemy } from '../entities/Enemy';
@@ -215,8 +215,14 @@ export class EnemySystem {
           // The warning: a circle where it will land, filling up while it crouches.
           const fill = phase === 'leap' ? 1 : windupProgress(e.charge, behavior, now);
           const { targetX: tx, targetY: ty } = e.charge;
-          rings.fillStyle(0xff4d4d, 0.1 + 0.3 * fill).fillCircle(tx, ty, behavior.landRadius);
-          rings.lineStyle(3, 0xff4d4d, 0.35 + 0.5 * pulse).strokeCircle(tx, ty, behavior.landRadius);
+          // Locked (it will land here now): brighter and solid.
+          const locked = isLocked(e.charge, behavior, now);
+          rings
+            .fillStyle(0xff4d4d, 0.1 + 0.3 * fill + (locked ? 0.15 : 0))
+            .fillCircle(tx, ty, behavior.landRadius);
+          rings
+            .lineStyle(locked ? 4 : 3, locked ? 0xffd0d0 : 0xff4d4d, locked ? 1 : 0.35 + 0.5 * pulse)
+            .strokeCircle(tx, ty, behavior.landRadius);
         }
         if (phase === 'leap') {
           // Its shadow stays on the ground while it is in the air.

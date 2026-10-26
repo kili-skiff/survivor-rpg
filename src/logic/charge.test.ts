@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { ENEMIES } from '../config/enemies';
-import { leapAt, newChargeState, stepCharge, windupProgress, type ChargeParams } from './charge';
+import { isLocked, leapAt, newChargeState, stepCharge, windupProgress, type ChargeParams } from './charge';
 
 const P: ChargeParams = {
   kind: 'charge',
   range: 200,
   windupSec: 0.5,
+  lockSec: 0.2,
   leapSec: 0.6,
   height: 40,
   landRadius: 30,
@@ -20,13 +21,25 @@ describe('pounce', () => {
     expect(stepCharge(s, P, 320, 0, 500, 0, 20)).toBe('windup');
   });
 
-  it('fixes the landing spot when the warning starts', () => {
+  it('follows the player during the warning and freezes for the last part', () => {
     const s = newChargeState();
-    stepCharge(s, P, 0, 0, 0, 150, 0);
+    stepCharge(s, P, 0, 0, 0, 150, 0); // warning from 0 to 500, locked from 300
     expect([s.targetX, s.targetY]).toEqual([0, 150]);
-    // The player runs off: the spot stays.
-    stepCharge(s, P, 0, 0, 300, -50, 200);
-    expect([s.targetX, s.targetY]).toEqual([0, 150]);
+    stepCharge(s, P, 0, 0, 100, 100, 200);
+    expect([s.targetX, s.targetY]).toEqual([100, 100]);
+    expect(isLocked(s, P, 299)).toBe(false);
+    expect(isLocked(s, P, 300)).toBe(true);
+    // The player runs off after that: the spot stays.
+    stepCharge(s, P, 0, 0, 300, -50, 350);
+    expect([s.targetX, s.targetY]).toEqual([100, 100]);
+  });
+
+  it('never aims further than the leap reaches', () => {
+    const s = newChargeState();
+    stepCharge(s, P, 0, 0, 100, 0, 0);
+    stepCharge(s, P, 0, 0, 190, 0, 100);
+    stepCharge(s, P, 10, 0, 1000, 0, 150); // it is 990 away from the player now
+    expect(Math.hypot(s.targetX - 10, s.targetY)).toBeCloseTo(P.range);
   });
 
   it('goes through warning, leap and rest, then approaches again', () => {

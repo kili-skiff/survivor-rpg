@@ -108,8 +108,8 @@ export type EnemyBehavior =
     }
   /**
    * Runs up, crouches (the warning, with a circle on the ground where it will land), then leaps
-   * there in an arc and is stunned for a moment. The landing spot is fixed when the warning starts, so
-   * it can be dodged. It cannot be hit in the air and hurts only where it lands.
+   * there in an arc and is stunned for a moment. The circle follows the player and freezes shortly before
+   * the jump, so it can be dodged by changing direction at the last moment. It cannot be hit in the air and hurts only where it lands.
    */
   | {
       kind: 'charge';
@@ -117,6 +117,8 @@ export type EnemyBehavior =
       range: number;
       /** How long the warning (the crouch) lasts (s) */
       windupSec: number;
+      /** The circle follows the player during the warning, but stands still for the last this many seconds (s) */
+      lockSec: number;
       /** How long the leap lasts (s) */
       leapSec: number;
       /** Height of the arc at its peak (px) */

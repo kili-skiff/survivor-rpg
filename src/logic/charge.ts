@@ -15,7 +15,7 @@ export interface ChargeState {
   /** Where it jumped from (set when the leap starts) */
   startX: number;
   startY: number;
-  /** Where it will land: the player's position when the warning started */
+  /** Where it will land: follows the player during the warning and stays put for its last part */
   targetX: number;
   targetY: number;
   /** How long this one hesitates (ms) after it could pounce, so a group does not start together */
@@ -62,6 +62,15 @@ export function stepCharge(
       break;
     }
     case 'windup':
+      if (!isLocked(s, p, now)) {
+        // The circle follows the player, but never further than the leap reaches.
+        const dx = tx - x;
+        const dy = ty - y;
+        const d = Math.hypot(dx, dy);
+        const k = d > p.range ? p.range / d : 1;
+        s.targetX = x + dx * k;
+        s.targetY = y + dy * k;
+      }
       if (now >= s.until) {
         s.phase = 'leap';
         s.until = now + p.leapSec * 1000;
@@ -83,6 +92,11 @@ export function stepCharge(
       break;
   }
   return s.phase;
+}
+
+/** Whether the landing spot is fixed already (the last part of the warning, and the leap). */
+export function isLocked(s: ChargeState, p: ChargeParams, now: number): boolean {
+  return s.phase !== 'windup' || now >= s.until - p.lockSec * 1000;
 }
 
 /** How far through the warning it is, 0..1 (0 outside the warning). */

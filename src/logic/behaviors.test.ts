@@ -35,6 +35,7 @@ describe('steering from behaviour', () => {
       kind: 'charge',
       range: 200,
       windupSec: 0.5,
+      lockSec: 0.2,
       leapSec: 0.6,
       height: 40,
       landRadius: 30,

@@ -43,11 +43,12 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
     damage: 8,
     xp: 3,
     unlockAt: 90,
-    // Fast pouncer: runs up, crouches (circle on the ground), leaps there in an arc, lands stunned.
+    // Fast pouncer: runs up, crouches (circle follows you, then freezes), leaps there in an arc, lands stunned.
     behavior: {
       kind: 'charge',
       range: 250,
-      windupSec: 0.55,
+      windupSec: 0.7,
+      lockSec: 0.25,
       leapSec: 0.55,
       height: 46,
       landRadius: 34,
