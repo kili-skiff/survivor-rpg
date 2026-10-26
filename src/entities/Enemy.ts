@@ -2,6 +2,7 @@ import * as Phaser from 'phaser';
 import { ELITE, SWARM } from '../config/balance';
 import { CHARACTER_SPRITES, SHEET, walkAnim, type CharacterSprite, type Facing } from '../config/sprites';
 import type { EnemyDef } from '../config/types';
+import { steeringFor } from '../logic/behaviors';
 import { facingFor } from '../logic/facing';
 import { speedFactor, type SwarmAgent } from '../logic/swarm';
 
@@ -19,6 +20,11 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite implements SwarmAgent {
   moveSpeed = 0;
   /** Offsets its sideways drift from the others (0..2π) */
   phase = 0;
+  // From its behaviour (config/enemies.ts, logic/behaviors.ts)
+  arc = 0;
+  lead = 0;
+  wobble = 0;
+  wobbleHz = 0;
   aimX = 0;
   aimY = 0;
   nextAimAt = 0;
@@ -74,6 +80,11 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite implements SwarmAgent {
     this.nextAimAt = 0;
     this.steerX = 0;
     this.steerY = 0;
+    const steering = steeringFor(def.behavior, Math.random);
+    this.arc = steering.arc;
+    this.lead = steering.lead;
+    this.wobble = steering.wobble;
+    this.wobbleHz = steering.wobbleHz;
     this.slowUntil = 0;
     this.slowFactor = 1;
     this.flashUntil = 0;

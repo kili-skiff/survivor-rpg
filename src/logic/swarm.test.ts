@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { SWARM } from '../config/balance';
 import { createRng } from './rng';
-import { speedFactor, Swarm, type SwarmAgent, type SwarmParams } from './swarm';
+import { speedFactor, Swarm, VelocityEstimator, type SwarmAgent, type SwarmParams } from './swarm';
 
 function agent(x: number, y: number, over: Partial<SwarmAgent> = {}): SwarmAgent {
   return {
@@ -10,6 +10,10 @@ function agent(x: number, y: number, over: Partial<SwarmAgent> = {}): SwarmAgent
     radius: 12,
     moveSpeed: 100,
     phase: 0,
+    arc: 0,
+    lead: 0,
+    wobble: SWARM.wobble,
+    wobbleHz: SWARM.wobbleHz,
     aimX: 0,
     aimY: 0,
     nextAimAt: 0,
@@ -144,6 +148,8 @@ function chase(params: SwarmParams, seed: number): SwarmAgent[] {
     return agent(Math.cos(angle) * dist, Math.sin(angle) * dist, {
       phase: rng() * Math.PI * 2,
       moveSpeed: 85 * speedFactor(params, rng),
+      wobble: params.wobble,
+      wobbleHz: params.wobbleHz,
     });
   });
   const target = { x: 0, y: 0 };
@@ -179,5 +185,132 @@ describe('the horde as a whole', () => {
     const player = { x: Math.cos(t * 0.3) * 300, y: Math.sin(t * 0.3) * 300 };
     const near = agents.filter((a) => Math.hypot(a.x - player.x, a.y - player.y) < 80).length;
     expect(near).toBeGreaterThanOrEqual(10);
+  });
+});
+
+// ------------------------------------------------------------------ behaviours
+
+/** Angle of an agent's velocity (radians, 0 = east). */
+const heading = (a: SwarmAgent) => Math.atan2(a.steerY, a.steerX);
+
+/** Params without the usual drift, so only the behaviour under test bends the course. */
+const steady = { wobble: 0 };
+
+/** Steers one agent on its own, so that neighbours do not bend its course. */
+function steerAlone(
+  a: SwarmAgent,
+  target: { x: number; y: number },
+  targetVelocity = { x: 0, y: 0 },
+): number {
+  new Swarm<SwarmAgent>().steer([a], target, 0, createRng(1), targetVelocity);
+  return heading(a);
+}
+
+describe('arc', () => {
+  it('bends the course while far away, to the side given by its sign', () => {
+    expect(steerAlone(agent(-800, 0, { ...steady, arc: 0.6 }), { x: 0, y: 0 })).toBeCloseTo(0.6, 1);
+    expect(steerAlone(agent(-800, 0, { ...steady, arc: -0.6 }), { x: 0, y: 0 })).toBeCloseTo(-0.6, 1);
+  });
+
+  it('straightens out right next to the player', () => {
+    expect(Math.abs(steerAlone(agent(-30, 0, { ...steady, arc: 0.6 }), { x: 0, y: 0 }))).toBeLessThan(0.05);
+  });
+
+  it('does nothing for a straight chaser', () => {
+    expect(Math.abs(steerAlone(agent(-800, 0, steady), { x: 0, y: 0 }))).toBeLessThan(0.01);
+  });
+});
+
+describe('lead', () => {
+  it('aims ahead of a player who is moving', () => {
+    const player = { x: 0, y: 0 };
+    const running = { x: 0, y: 100 }; // south
+    const ahead = steerAlone(agent(-600, 0, { ...steady, lead: 1 }), player, running);
+    const behind = steerAlone(agent(-600, 0, steady), player, running);
+    expect(ahead).toBeGreaterThan(0.1); // toward where the player is going
+    expect(Math.abs(behind)).toBeLessThan(0.01);
+  });
+
+  it('never aims further ahead than it needs to get there', () => {
+    // Right next to a fast player: looking a full second ahead would send it far past them.
+    const uncapped = Math.atan2(400, 20);
+    const h = steerAlone(agent(-20, 0, { ...steady, lead: 1 }), { x: 0, y: 0 }, { x: 0, y: 400 });
+    expect(h).toBeLessThan(uncapped - 0.1);
+  });
+
+  it('does nothing when the player stands still', () => {
+    expect(Math.abs(steerAlone(agent(-600, 0, { ...steady, lead: 1 }), { x: 0, y: 0 }))).toBeLessThan(0.01);
+  });
+});
+
+describe('flutter (a bigger sway)', () => {
+  /** The strongest sideways push over two seconds of an enemy that is far from the player. */
+  function widestSwing(wobble: number, wobbleHz: number): number {
+    const a = agent(-3000, 0, { wobble, wobbleHz, aimX: 0, aimY: 0, nextAimAt: 1e12 });
+    const swarm = new Swarm<SwarmAgent>();
+    let widest = 0;
+    for (let t = 0; t < 2000; t += 20) {
+      swarm.steer([a], { x: 0, y: 0 }, t, createRng(1));
+      widest = Math.max(widest, Math.abs(a.steerY));
+    }
+    return widest;
+  }
+
+  it('swings much wider than the usual drift', () => {
+    expect(widestSwing(0.9, 1.1)).toBeGreaterThan(widestSwing(SWARM.wobble, SWARM.wobbleHz) * 1.5);
+  });
+});
+
+describe('estimating the speed of the player', () => {
+  it('finds the speed of a steady walk', () => {
+    const v = new VelocityEstimator();
+    for (let i = 0; i < 120; i++) v.update(i * (100 / 60), -i * (40 / 60), i * (1000 / 60));
+    expect(v.x).toBeCloseTo(100, 0);
+    expect(v.y).toBeCloseTo(-40, 0);
+  });
+
+  it('starts at zero and starts over after a long gap (pause, jump)', () => {
+    const v = new VelocityEstimator();
+    v.update(0, 0, 0);
+    expect(v.x).toBe(0);
+    for (let i = 1; i < 30; i++) v.update(i * 2, 0, i * 16);
+    expect(v.x).toBeGreaterThan(50);
+    v.update(5000, 0, 5000); // one second later and far away
+    expect(v.x).toBe(0);
+  });
+});
+
+describe('flankers in a chase', () => {
+  /** 30 enemies hunt a player who walks north at 90 px/s; returns how many are within 100 px after 30 s. */
+  function arrived(over: Partial<SwarmAgent>): number {
+    const rng = createRng(21);
+    const swarm = new Swarm<SwarmAgent>();
+    const agents = Array.from({ length: 30 }, (_, i) =>
+      agent(-500 - rng() * 100, (rng() - 0.5) * 400, {
+        phase: i,
+        moveSpeed: 118,
+        ...over,
+        arc: (over.arc ?? 0) * (i % 2 === 0 ? 1 : -1),
+      }),
+    );
+    const player = { x: 0, y: 0 };
+    const velocity = new VelocityEstimator();
+    const dt = 1 / 60;
+    for (let step = 0; step < 30 * 60; step++) {
+      const t = step * dt;
+      player.y = -90 * t;
+      velocity.update(player.x, player.y, t * 1000);
+      swarm.steer(agents, player, t * 1000, rng, velocity);
+      for (const a of agents) {
+        a.x += a.steerX * dt;
+        a.y += a.steerY * dt;
+      }
+      swarm.separate();
+    }
+    return agents.filter((a) => Math.hypot(a.x - player.x, a.y - player.y) < 100).length;
+  }
+
+  it('still catch up with the player, they do not circle for ever', () => {
+    expect(arrived({ arc: 0.66, lead: 1.1 })).toBeGreaterThanOrEqual(25);
   });
 });

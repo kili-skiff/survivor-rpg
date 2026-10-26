@@ -11,6 +11,8 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
     damage: 5,
     xp: 1,
     unlockAt: 0,
+    // Erratic flyer: swings wildly from side to side on the way.
+    behavior: { kind: 'flutter', sway: 0.9, swayHz: 1.1 },
     weight: 10,
   },
   zombie: {
@@ -24,6 +26,8 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
     damage: 9,
     xp: 2,
     unlockAt: 30,
+    // The plain, relentless chaser: slow and straight, so the others stand out next to it.
+    behavior: { kind: 'chase' },
     weight: 6,
   },
   ghoul: {
@@ -37,25 +41,9 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
     damage: 8,
     xp: 3,
     unlockAt: 90,
-    weight: 4,
-  },
-  // Fast and fragile; it does not follow the player's tail but cuts in from the side.
-  // Art: the ghoul sheet in a night-blue tint until it gets its own.
-  shade: {
-    id: 'shade',
-    name: 'Shade',
-    texture: 'enemy-ghoul',
-    sprite: 'ghoul',
-    tint: 0x8aa4ff,
-    radius: 11,
-    hp: 18,
-    speed: 118,
-    damage: 7,
-    xp: 3,
-    unlockAt: 60,
-    minRing: 2,
+    // Fast: it cuts in from the side and heads for where the player is going.
     behavior: { kind: 'flank', arcDeg: 38, leadSec: 1.1 },
-    weight: 3,
+    weight: 4,
   },
   brute: {
     id: 'brute',
@@ -68,6 +56,8 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
     damage: 18,
     xp: 12,
     unlockAt: 180,
+    // For now a plain chaser; a charger with a warning is planned.
+    behavior: { kind: 'chase' },
     weight: 1,
   },
 };

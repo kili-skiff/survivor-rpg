@@ -6,7 +6,7 @@ export type WeaponId = 'bolt' | 'blades' | 'aura';
 export type PassiveId =
   'vitality' | 'swiftness' | 'might' | 'haste' | 'magnet' | 'regen' | 'armor' | 'lantern';
 export type SkillId = 'dash' | 'nova';
-export type EnemyId = 'bat' | 'zombie' | 'ghoul' | 'brute' | 'shade';
+export type EnemyId = 'bat' | 'zombie' | 'ghoul' | 'brute';
 
 /** Player stats, computed from base values + passive items. */
 export interface PlayerStats {
@@ -97,6 +97,14 @@ export type EnemyBehavior =
       arcDeg: number;
       /** Aims at where the player will be in this many seconds at most (less when close) */
       leadSec: number;
+    }
+  /** Swings wildly left and right on the way, so it is hard to hit */
+  | {
+      kind: 'flutter';
+      /** Sideways swing as a share of its speed (the usual drift is much smaller) */
+      sway: number;
+      /** Swings per second */
+      swayHz: number;
     };
 
 export interface EnemyDef {
@@ -117,8 +125,6 @@ export interface EnemyDef {
   minRing?: number;
   /** How it moves toward the player (default: chase) */
   behavior?: EnemyBehavior;
-  /** Colour multiplied over the sprite, e.g. to tell a variant of a sheet apart */
-  tint?: number;
   /** Relative spawn weight */
   weight: number;
 }

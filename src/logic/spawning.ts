@@ -22,9 +22,9 @@ export function enemyHpMultiplier(t: number): number {
   return 1 + t / 80;
 }
 
-/** Picks a weighted enemy type among those unlocked at time t. */
-export function pickEnemy(t: number, defs: EnemyDef[], rng: Rng): EnemyDef {
-  const pool = defs.filter((d) => d.unlockAt <= t);
+/** Picks a weighted enemy type among those unlocked at time t and allowed in this ring. */
+export function pickEnemy(t: number, defs: EnemyDef[], rng: Rng, ring = 1): EnemyDef {
+  const pool = defs.filter((d) => d.unlockAt <= t && (d.minRing ?? 1) <= ring);
   const candidates = pool.length > 0 ? pool : defs;
   const total = candidates.reduce((sum, d) => sum + d.weight, 0);
   let roll = rng() * total;

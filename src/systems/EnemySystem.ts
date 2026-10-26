@@ -6,7 +6,7 @@ import { dieAnim } from '../config/sprites';
 import type { EnemyDef } from '../config/types';
 import { Enemy } from '../entities/Enemy';
 import { enemyHpMultiplier, maxEnemies, pickEnemy, spawnBatchSize, spawnIntervalMs } from '../logic/spawning';
-import { Swarm } from '../logic/swarm';
+import { Swarm, VelocityEstimator } from '../logic/swarm';
 import type { DamageNumbers } from './DamageNumbers';
 
 const ENEMY_LIST: EnemyDef[] = Object.values(ENEMIES);
@@ -33,6 +33,10 @@ export class EnemySystem {
   private elites = 0;
   /** Steers the horde so it stays a loose crowd */
   private readonly swarm = new Swarm<Enemy>();
+  /** How fast the player moves, so flankers can aim ahead of them */
+  private readonly targetVelocity = new VelocityEstimator();
+  /** The ring of this fight's hex: some enemies only appear further out */
+  private ringNumber = 1;
   /** The enemies that move this frame; reused every frame */
   private readonly live: Enemy[] = [];
   /** Pool of death animations, so killing never creates new objects */
@@ -71,6 +75,7 @@ export class EnemySystem {
   /** Sets the difficulty for the ring of this fight's hex. */
   setRing(ring: number): void {
     this.ring = ringModifiers(ring);
+    this.ringNumber = ring;
     this.elites = eliteChance(ring);
   }
 
@@ -151,7 +156,7 @@ export class EnemySystem {
     let alive = this.group.countActive(true);
     const batch = spawnBatchSize(runTime);
     for (let i = 0; i < batch && alive < limit; i++) {
-      const def = pickEnemy(runTime, ENEMY_LIST, Math.random);
+      const def = pickEnemy(runTime, ENEMY_LIST, Math.random, this.ringNumber);
       const pos = this.spawnPoint();
       const e = this.group.get(pos.x, pos.y, def.texture) as Enemy | null;
       if (!e) break;
@@ -201,7 +206,8 @@ export class EnemySystem {
     }
 
     // Where each one goes: toward the player, around its neighbours, with a drift of its own.
-    this.swarm.steer(live, this.target, now, Math.random);
+    this.targetVelocity.update(px, py, now);
+    this.swarm.steer(live, this.target, now, Math.random, this.targetVelocity);
     for (let i = 0; i < live.length; i++) {
       const e = live[i];
       e.setVelocity(e.steerX, e.steerY);
