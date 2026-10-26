@@ -47,6 +47,7 @@ export const ELITE = {
 
 /**
  * How the horde moves, so it stays a loose crowd instead of one blob (logic/swarm.ts).
+ * First tuning, still to be finetuned: in tight crowds enemies can look as if they shove each other.
  * Distances are px, times are ms.
  */
 export const SWARM = {

@@ -119,6 +119,7 @@ A small but complete piece of the game from `docs/vision.md`. Each step is its o
 - [x] Intro quest: at the first start the elder hands over the lantern and points to the nearest watchfire; lighting it pays gold
 - [x] Deeds: exploration milestones (new rings, camps, watchfires, the tower) with small bonuses for good
 - [x] Spread the swarm: soft separation, sideways drift, reaction delay and varied speed, so enemies do not pile into one blob (`logic/swarm.ts`)
+- [ ] Finetune the swarm (work in progress): in tight crowds enemies seem to shove each other, so smooth their movement, soften the hard overlap push and maybe shrink the personal space; values in `SWARM`
 - [ ] New enemy types with different behaviour (flanker, ranged, charger, ...)
 - [ ] Elites with a mechanic, their own movement and fair health (target fight length)
 - [ ] Open idea: light as a combat rule (slows or hurts enemies in the lantern's light); to be thought through
