@@ -77,6 +77,10 @@ Ideas collected so far (nothing decided beyond the "wanted" list):
 - **Different behaviours:** flankers that come in an arc or aim ahead of you, runners that pass by,
   orbiters that keep their distance, ranged enemies that stop and shoot, chargers with a warning.
   New enemy types per ring should differ in behaviour, not only in numbers.
+  **Built so far** (`logic/behaviors.ts`, set per type in `config/enemies.ts`): the bat flutters (a wide
+  swing from side to side), the ghoul flanks (comes in an arc and aims where the player is going), the
+  zombie and the colossus still chase straight. A type can be limited to rings (`minRing`). Still to do:
+  charger (the colossus), ranged, orbiters, runners.
 - **Elites need a rethink,** but not necessarily "alone": give them a mechanic to react to
   (telegraphed charge, shield to break, summoned helpers), let them move on their own instead of
   hiding in the blob, let one weapon prefer them as a target, and set their health from a target
