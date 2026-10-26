@@ -39,6 +39,24 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
     unlockAt: 90,
     weight: 4,
   },
+  // Fast and fragile; it does not follow the player's tail but cuts in from the side.
+  // Art: the ghoul sheet in a night-blue tint until it gets its own.
+  shade: {
+    id: 'shade',
+    name: 'Shade',
+    texture: 'enemy-ghoul',
+    sprite: 'ghoul',
+    tint: 0x8aa4ff,
+    radius: 11,
+    hp: 18,
+    speed: 118,
+    damage: 7,
+    xp: 3,
+    unlockAt: 60,
+    minRing: 2,
+    behavior: { kind: 'flank', arcDeg: 38, leadSec: 1.1 },
+    weight: 3,
+  },
   brute: {
     id: 'brute',
     name: 'Colossus',

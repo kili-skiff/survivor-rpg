@@ -6,7 +6,7 @@ export type WeaponId = 'bolt' | 'blades' | 'aura';
 export type PassiveId =
   'vitality' | 'swiftness' | 'might' | 'haste' | 'magnet' | 'regen' | 'armor' | 'lantern';
 export type SkillId = 'dash' | 'nova';
-export type EnemyId = 'bat' | 'zombie' | 'ghoul' | 'brute';
+export type EnemyId = 'bat' | 'zombie' | 'ghoul' | 'brute' | 'shade';
 
 /** Player stats, computed from base values + passive items. */
 export interface PlayerStats {
@@ -86,6 +86,19 @@ export interface SkillDef {
   levels: LevelStep<SkillStats>[];
 }
 
+/** How an enemy moves toward the player. The movement itself lives in logic/behaviors.ts and logic/swarm.ts. */
+export type EnemyBehavior =
+  /** Straight at the player (the default) */
+  | { kind: 'chase' }
+  /** Comes in an arc from one side (chosen per enemy) and aims where the player is going, not where they are */
+  | {
+      kind: 'flank';
+      /** How far the course bends away from a straight line while far away (degrees); it straightens out when close */
+      arcDeg: number;
+      /** Aims at where the player will be in this many seconds at most (less when close) */
+      leadSec: number;
+    };
+
 export interface EnemyDef {
   id: EnemyId;
   name: string;
@@ -100,6 +113,12 @@ export interface EnemyDef {
   xp: number;
   /** The enemy can spawn from this second onwards */
   unlockAt: number;
+  /** The enemy only appears in hexes of this ring or further out (default 1: everywhere) */
+  minRing?: number;
+  /** How it moves toward the player (default: chase) */
+  behavior?: EnemyBehavior;
+  /** Colour multiplied over the sprite, e.g. to tell a variant of a sheet apart */
+  tint?: number;
   /** Relative spawn weight */
   weight: number;
 }
