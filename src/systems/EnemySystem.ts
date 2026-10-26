@@ -6,16 +6,15 @@ import { dieAnim } from '../config/sprites';
 import type { EnemyDef } from '../config/types';
 import { Enemy } from '../entities/Enemy';
 import { enemyHpMultiplier, maxEnemies, pickEnemy, spawnBatchSize, spawnIntervalMs } from '../logic/spawning';
+import { Swarm } from '../logic/swarm';
 import type { DamageNumbers } from './DamageNumbers';
 
 const ENEMY_LIST: EnemyDef[] = Object.values(ENEMIES);
-const SEPARATION_CELL = 36;
 /** Fallen enemies shown at once (their death animation, then they fade) */
 const MAX_CORPSES = 48;
 /** How long a fallen enemy stays before it fades out (ms) */
 const CORPSE_STAY_MS = 900;
 const CORPSE_FADE_MS = 500;
-const MAX_PER_CELL = 6;
 
 interface Target {
   x: number;
@@ -32,7 +31,10 @@ export class EnemySystem {
   private readonly eliteRings: Phaser.GameObjects.Graphics;
   private ring: RingModifiers = ringModifiers(1);
   private elites = 0;
-  private readonly grid = new Map<number, Enemy[]>();
+  /** Steers the horde so it stays a loose crowd */
+  private readonly swarm = new Swarm<Enemy>();
+  /** The enemies that move this frame; reused every frame */
+  private readonly live: Enemy[] = [];
   /** Pool of death animations, so killing never creates new objects */
   private readonly corpses: Phaser.GameObjects.Group;
 
@@ -161,8 +163,8 @@ export class EnemySystem {
     const now = this.now();
     const { x: px, y: py } = this.target;
     const recycleDist = this.viewDiag * 0.8;
-    const grid = this.grid;
-    grid.clear();
+    const live = this.live;
+    live.length = 0;
     const rings = this.eliteRings;
     rings.clear();
     const pulse = 0.6 + Math.sin(now / 160) * 0.3;
@@ -180,9 +182,7 @@ export class EnemySystem {
       }
 
       const slowed = now < e.slowUntil;
-      const speed = e.def.speed * e.speedJitter * (slowed ? e.slowFactor : 1);
-      e.setVelocity((dx / d) * speed, (dy / d) * speed);
-      e.walk(dx, dy, slowed ? e.slowFactor : 1);
+      e.moveSpeed = e.def.speed * e.speedJitter * (slowed ? e.slowFactor : 1);
       // Lower on screen = in front; the player always stays on top.
       e.setDepth(2 + Phaser.Math.Clamp((e.y - py) / 4000, -0.4, 0.4));
       this.updateTint(e, now, slowed);
@@ -194,14 +194,18 @@ export class EnemySystem {
         rings.lineStyle(3, ELITE.tint, pulse).strokeCircle(e.x, ry, r);
       }
 
-      const key = Math.floor(e.x / SEPARATION_CELL) * 92821 + Math.floor(e.y / SEPARATION_CELL);
-      const bucket = grid.get(key);
-      if (bucket) {
-        if (bucket.length < MAX_PER_CELL) bucket.push(e);
-      } else grid.set(key, [e]);
+      live.push(e);
     }
 
-    this.separate();
+    // Where each one goes: toward the player, around its neighbours, with a drift of its own.
+    this.swarm.steer(live, this.target, now, Math.random);
+    for (let i = 0; i < live.length; i++) {
+      const e = live[i];
+      e.setVelocity(e.steerX, e.steerY);
+      e.walk(e.steerX, e.steerY, now < e.slowUntil ? e.slowFactor : 1);
+    }
+    // Bodies never sit inside each other.
+    this.swarm.separate();
   }
 
   private updateTint(e: Enemy, now: number, slowed: boolean): void {
@@ -212,32 +216,6 @@ export class EnemySystem {
     else if (state === 2) e.setTint(0x8fd3ff).setTintMode(Phaser.TintModes.MULTIPLY);
     else if (e.elite) e.setTint(ELITE.tint).setTintMode(Phaser.TintModes.MULTIPLY);
     else e.clearTint().setTintMode(Phaser.TintModes.MULTIPLY);
-  }
-
-  /** Simple separation so enemies don't collapse into a single point. */
-  private separate(): void {
-    for (const bucket of this.grid.values()) {
-      for (let i = 0; i < bucket.length; i++) {
-        for (let j = i + 1; j < bucket.length; j++) {
-          const a = bucket[i];
-          const b = bucket[j];
-          const dx = b.x - a.x;
-          const dy = b.y - a.y;
-          const min = (a.def.radius + b.def.radius) * 0.9;
-          const d2 = dx * dx + dy * dy;
-          if (d2 < min * min) {
-            const d = Math.sqrt(d2) || 0.01;
-            const push = (min - d) * 0.5;
-            const nx = d2 > 0 ? dx / d : Math.random() - 0.5;
-            const ny = d2 > 0 ? dy / d : Math.random() - 0.5;
-            a.x -= nx * push;
-            a.y -= ny * push;
-            b.x += nx * push;
-            b.y += ny * push;
-          }
-        }
-      }
-    }
   }
 
   private spawnPoint(): { x: number; y: number } {
