@@ -52,3 +52,38 @@ export function jumpTo(world: World, save: SaveData, target: Hex): SaveData {
 export function toggleAllDeeds(deeds: readonly DeedId[]): DeedId[] {
   return deeds.length === DEEDS.length ? [] : DEEDS.map((d) => d.id);
 }
+
+/** Below this many frames per second the FPS label lights up. */
+export const LOW_FPS = 50;
+/** How long frame times are collected before the FPS label updates (ms). */
+const FPS_WINDOW_MS = 500;
+
+export interface FpsReading {
+  fps: number;
+  /** The longest single frame in the window (ms): shows hitches that the average hides */
+  worstMs: number;
+}
+
+/** Collects frame times and reports the average frame rate and the worst frame every half second. */
+export class FrameWindow {
+  private elapsed = 0;
+  private frames = 0;
+  private worst = 0;
+
+  /** Adds one frame (ms). Returns a reading when a window is full, else null. */
+  add(deltaMs: number): FpsReading | null {
+    this.elapsed += deltaMs;
+    this.frames += 1;
+    this.worst = Math.max(this.worst, deltaMs);
+    if (this.elapsed < FPS_WINDOW_MS) return null;
+    const reading = { fps: (this.frames * 1000) / this.elapsed, worstMs: this.worst };
+    this.elapsed = 0;
+    this.frames = 0;
+    this.worst = 0;
+    return reading;
+  }
+}
+
+export function fpsLabel(r: FpsReading): string {
+  return `DEV  ${Math.round(r.fps)} fps · worst ${Math.round(r.worstMs)} ms`;
+}

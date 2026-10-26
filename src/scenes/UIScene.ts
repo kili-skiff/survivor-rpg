@@ -13,6 +13,7 @@ import { safeStorage } from '../logic/save';
 import { isSegmentWarning, segmentRemaining } from '../logic/segment';
 import { loadSettings, otherSide, writeSettings, type Settings } from '../logic/settings';
 import { describeUpgrade, type UpgradeOption } from '../logic/upgrades';
+import { FpsCounter } from '../dev/FpsCounter'; // DEV:
 import { devButtonStyle, isDevMode } from '../dev/devMode'; // DEV:
 import { safeArea, viewportSize, type SafeArea } from '../ui/display';
 import { COLORS, css, FONT } from '../ui/theme';
@@ -67,6 +68,7 @@ export class UIScene extends Phaser.Scene {
   private devClearBtn: Phaser.GameObjects.Text | null = null; // DEV:
   private devGodBtn: Phaser.GameObjects.Text | null = null; // DEV:
   private devEliteBtn: Phaser.GameObjects.Text | null = null; // DEV:
+  private devFps: FpsCounter | null = null; // DEV:
   private skillButtons: SkillButton[] = [];
   private potionButtons: PotionButton[] = [];
   private loadoutIcons: Phaser.GameObjects.GameObject[] = [];
@@ -169,6 +171,8 @@ export class UIScene extends Phaser.Scene {
             this.layoutDevButtons();
           })
       : null;
+    // DEV: frame rate label.
+    this.devFps = isDevMode() ? new FpsCounter(this, this.u) : null;
 
     this.createSkillButton('dash', this.isTouch ? 'Dash' : 'Dash · Space');
     this.createSkillButton('nova', this.isTouch ? 'Nova' : 'Nova · E');
@@ -204,6 +208,7 @@ export class UIScene extends Phaser.Scene {
   override update(): void {
     this.updateMovement();
     this.drawHud();
+    this.devFps?.update(); // DEV:
   }
 
   // ---------------------------------------------------------------- Input
@@ -298,6 +303,8 @@ export class UIScene extends Phaser.Scene {
     this.devEliteBtn
       ?.setStyle(devButtonStyle(u))
       .setPosition(left, top + 84 * u + ((this.devClearBtn?.height ?? 0) + 6 * u) * 2);
+    this.devFps?.setScale(u);
+    this.devFps?.text.setPosition(left, top + 84 * u + ((this.devClearBtn?.height ?? 0) + 6 * u) * 3);
   }
 
   private createPotionButton(id: PotionId, label: string): void {
