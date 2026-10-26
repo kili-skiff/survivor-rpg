@@ -182,6 +182,7 @@ export class GameScene extends Phaser.Scene {
     this.numbers = new DamageNumbers(this, now);
     this.player = new PlayerController(this, now);
     this.enemies = new EnemySystem(this, this.player, now, this.numbers, (e) => this.onEnemyKilled(e));
+    this.enemies.devNoDamage = this.devInvincible(); // DEV: invincible mode
     this.pickups = new PickupSystem(this, this.player, (p) => this.onPickup(p));
     this.ctx = {
       scene: this,
@@ -189,7 +190,7 @@ export class GameScene extends Phaser.Scene {
       enemies: this.enemies,
       now,
       visionRange: () =>
-        visionRange(this.run.stats.light, lanternLightsAll(this.lanternLevel) || this.devGodMode()), // DEV: god mode
+        visionRange(this.run.stats.light, lanternLightsAll(this.lanternLevel) || this.devFullLight()), // DEV: full light
     };
 
     this.physics.add.overlap(this.player.sprite, this.enemies.group, (_p, e) =>
@@ -259,7 +260,7 @@ export class GameScene extends Phaser.Scene {
     );
     this.lighting.setEnabled(loadSettings(safeStorage()).lighting);
     this.lighting.setRadiusScale(this.run.stats.light);
-    this.lighting.setLightsAll(lanternLightsAll(this.lanternLevel) || this.devGodMode()); // DEV: god mode
+    this.lighting.setLightsAll(lanternLightsAll(this.lanternLevel) || this.devFullLight()); // DEV: full light
 
     this.cameras.main.startFollow(this.player.sprite, false, 1, 1);
     this.onResize();
@@ -385,11 +386,37 @@ export class GameScene extends Phaser.Scene {
     return isDevMode() && this.registry.get('devGod') === true;
   }
 
-  // DEV: switches god mode and applies it right away.
+  // DEV: switches god mode and applies it right away. It replaces invincible mode.
   devToggleGodMode(): void {
-    this.registry.set('devGod', !this.devGodMode());
+    const on = !this.devGodMode();
+    this.registry.set('devGod', on);
+    if (on) {
+      this.registry.set('devInvincible', false);
+      this.enemies.devNoDamage = false;
+    }
     this.refreshStats();
     this.run.hp = this.run.stats.maxHp;
+  }
+
+  // DEV: invincible mode: you take no damage and deal none, and the whole screen is lit. For watching
+  // a horde in peace (nothing dies). Kept for the session in the registry; it replaces god mode.
+  devInvincible(): boolean {
+    return isDevMode() && this.registry.get('devInvincible') === true;
+  }
+
+  // DEV: switches invincible mode and applies it right away.
+  devToggleInvincible(): void {
+    const on = !this.devInvincible();
+    this.registry.set('devInvincible', on);
+    if (on) this.registry.set('devGod', false);
+    this.enemies.devNoDamage = on;
+    this.refreshStats();
+    this.run.hp = this.run.stats.maxHp;
+  }
+
+  // DEV: whole screen lit, in god mode and in invincible mode.
+  private devFullLight(): boolean {
+    return this.devGodMode() || this.devInvincible();
   }
 
   // DEV: spawns an elite at the edge of the view.
@@ -483,7 +510,7 @@ export class GameScene extends Phaser.Scene {
     this.run.stats.light *= lanternMultiplier(this.lanternLevel);
     if (this.devGodMode()) this.run.stats = godModeStats(this.run.stats); // DEV:
     this.lighting?.setRadiusScale(this.run.stats.light);
-    this.lighting?.setLightsAll(lanternLightsAll(this.lanternLevel) || this.devGodMode()); // DEV: god mode
+    this.lighting?.setLightsAll(lanternLightsAll(this.lanternLevel) || this.devFullLight()); // DEV: full light
     if (this.run.stats.maxHp > prevMax) this.run.hp += this.run.stats.maxHp - prevMax;
 
     this.weaponStats = {};
@@ -555,7 +582,14 @@ export class GameScene extends Phaser.Scene {
   // ---------------------------------------------------------------- Events from the systems
 
   private onPlayerTouched(e: Enemy): void {
-    if (!e.active || !this.run.alive || this.devGodMode() || !this.player.tryTakeHit()) return; // DEV: god mode
+    if (
+      !e.active ||
+      !this.run.alive ||
+      this.devGodMode() ||
+      this.devInvincible() ||
+      !this.player.tryTakeHit()
+    )
+      return; // DEV: god mode, invincible
     this.herbs.interrupt();
     const dmg = damageAfterArmor(e.damage, this.run.stats.armor) * damageTakenMultiplier(this.potions.active);
     this.run.hp -= dmg;
