@@ -397,12 +397,15 @@ export class WorldMapScene extends Phaser.Scene {
     const pulse = 0.55 + Math.sin(this.time0 * 4) * 0.35;
     const withTiles = this.tiles.length > 0;
     g.clear();
+    const unexplored: { x: number; y: number }[] = [];
 
     for (const h of this.world.hexes.values()) {
       const p = hexToPixelFlat(h.hex, this.hexSize);
       const discovered = this.isVisible(h.key);
-      if (!discovered) g.fillStyle(FOG_FILL, 1).lineStyle(1.5 * u, FOG_EDGE, 1);
-      else if (withTiles) continue;
+      if (!discovered) {
+        unexplored.push(p);
+        g.fillStyle(FOG_FILL, 1).lineStyle(1.5 * u, FOG_EDGE, 1);
+      } else if (withTiles) continue;
       else {
         const fill = h.poi === 'village' ? VILLAGE_FILL : BIOMES[h.biome].color;
         g.fillStyle(fill, isUsedUp(progress, h.key) ? 0.25 : 0.85).lineStyle(1.5 * u, 0x0d0b12, 0.9);
@@ -410,6 +413,8 @@ export class WorldMapScene extends Phaser.Scene {
       this.hexPath(g, p.x, p.y, this.hexSize - 1.5 * u);
       g.fillPath().strokePath();
     }
+    // The fog stays faint over unexplored hexes: they should look as black as ever.
+    this.fog.drawCover(unexplored, FOG_FILL, this.hexSize - 1.5 * u);
     // Hexes cleared on this expedition are greyed out: used up until you return home.
     for (const { hex, image } of this.tiles) {
       const discovered = this.isVisible(hex.key);

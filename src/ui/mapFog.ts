@@ -7,6 +7,8 @@ import { fogDensity } from '../logic/fogNoise';
 const FOG_DEPTH = 0.4;
 /** Firelight sits on top of the fog: it lights the land, but the wisps stay visible through it. */
 const GLOW_DEPTH = 0.45;
+/** Covers the fog over unexplored hexes: above the fog sheets, below the firelight. */
+const COVER_DEPTH = 0.43;
 const LIGHT_TEXTURE = 'light';
 
 interface Sheet {
@@ -39,6 +41,7 @@ export interface FogBounds {
 export class MapFog {
   private readonly sheets: Sheet[] = [];
   private readonly glows = new Map<string, Glow>();
+  private readonly cover: Phaser.GameObjects.Graphics;
   private hexSize = 1;
 
   /** `fires` are the hex keys of all watchfires on the map. */
@@ -51,6 +54,7 @@ export class MapFog {
         .setTint(def.color);
       this.sheets.push({ def, sprite, phase: i * 2.1, x: i * 97, y: i * 53 });
     });
+    this.cover = scene.add.graphics().setDepth(COVER_DEPTH);
     if (scene.textures.exists(LIGHT_TEXTURE)) {
       fires.forEach((key, i) => {
         const image = scene.add
@@ -66,7 +70,7 @@ export class MapFog {
 
   /** Everything the map camera draws for the fog (the HUD camera must ignore it). */
   objects(): Phaser.GameObjects.GameObject[] {
-    return [...this.sheets.map((s) => s.sprite), ...[...this.glows.values()].map((g) => g.image)];
+    return [...this.sheets.map((s) => s.sprite), this.cover, ...[...this.glows.values()].map((g) => g.image)];
   }
 
   /** Sizes the fog to the map. `fires` maps a watchfire's hex key to its position on the map. */
@@ -89,6 +93,26 @@ export class MapFog {
   }
 
   /**
+   * Hides most of the fog over unexplored hexes, so they stay as black as the map made them.
+   * `hexes` are the centres of the unexplored hexes, `fill` is their colour, `size` the hex radius.
+   */
+  drawCover(hexes: readonly { x: number; y: number }[], fill: number, size: number): void {
+    const g = this.cover;
+    g.clear();
+    g.fillStyle(fill, MAP_FOG.unexploredCover);
+    for (const { x, y } of hexes) {
+      g.beginPath();
+      for (let i = 0; i < 6; i++) {
+        const a = (Math.PI / 3) * i;
+        if (i === 0) g.moveTo(x + size * Math.cos(a), y + size * Math.sin(a));
+        else g.lineTo(x + size * Math.cos(a), y + size * Math.sin(a));
+      }
+      g.closePath();
+      g.fillPath();
+    }
+  }
+
+  /**
    * Moves the fog on. `lit` tells which watchfires burn; `showFog` switches the clouds off
    * (dev reveal), the firelight stays.
    */
@@ -105,6 +129,7 @@ export class MapFog {
         .setAlpha(Math.min(1, s.def.alpha * breath))
         .setVisible(showFog);
     }
+    this.cover.setVisible(showFog);
     const { strength, flicker } = MAP_FOG.fireGlow;
     for (const [key, glow] of this.glows) {
       const on = lit(key);

@@ -73,6 +73,8 @@ export const MAP_FOG = {
     /** Flicker share of the strength */
     flicker: 0.12,
   },
+  /** How much of the fog over unexplored hexes is covered up again (0 = none, 1 = fully black) */
+  unexploredCover: 0.82,
   /** Fog is drawn this far (in hexes) beyond the outermost hex, so panning shows no edge nearby */
   marginHexes: 10,
 } as const;
