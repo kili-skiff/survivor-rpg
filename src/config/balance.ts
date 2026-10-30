@@ -45,6 +45,24 @@ export const ELITE = {
   eyesColor: 0xfacc15,
 } as const;
 
+/** Tools against a crowd that piles up: knockback, bursts and damage as a share of health (logic/hitEffects.ts). */
+export const HIT_EFFECTS = {
+  /** A burst around a hit enemy does this share of the hit's damage to its neighbours */
+  splashShare: 0.6,
+  /** Elites take only this share of damage that is a share of health (else they would melt) */
+  percentVsElite: 0.25,
+  /** Elites shrug off this share of every push, on top of their type's own resistance */
+  eliteKnockResist: 0.6,
+  /** A push slows down: its speed is multiplied by exp(-this * seconds) */
+  pushDecay: 7,
+  /** No push is faster than this (px/s), however many hits land at once */
+  pushMax: 520,
+  /** Pushes slower than this stop at once (px/s) */
+  pushStop: 8,
+  /** How long a burst ring is shown (ms) */
+  burstFxMs: 260,
+} as const;
+
 /** At most this many chargers are in their warning or dash at the same time; the others wait. */
 export const MAX_CHARGERS_AT_ONCE = 2;
 /** Global cooldown (ms): after any charger starts its warning, none of them may start another for this long. */

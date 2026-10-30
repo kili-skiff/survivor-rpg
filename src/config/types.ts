@@ -37,6 +37,12 @@ export interface WeaponStats {
   speed: number;
   /** Area multiplier */
   area: number;
+  /** Push on every hit (px/s, 0 = none): spreads a crowd out and buys time; heavy enemies resist */
+  knockback: number;
+  /** Radius (px, before `area`) of the burst around a hit enemy that damages its neighbours (0 = none) */
+  splash: number;
+  /** Extra damage per hit as a share of the enemy's maximum health (0 = none): keeps up with tougher enemies */
+  percent: number;
 }
 
 export interface LevelStep<T> {
@@ -145,6 +151,8 @@ export interface EnemyDef {
   unlockAt: number;
   /** The enemy only appears in hexes of this ring or further out (default 1: everywhere) */
   minRing?: number;
+  /** Share of every push it shrugs off (0..1, default 0): big ones hardly move */
+  knockResist?: number;
   /** How it moves toward the player (default: chase) */
   behavior?: EnemyBehavior;
   /** Flies over the others: never pushed by them, never pushes them, and drawn above them */

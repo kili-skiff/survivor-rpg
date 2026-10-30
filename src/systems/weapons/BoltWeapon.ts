@@ -2,6 +2,7 @@ import * as Phaser from 'phaser';
 import { BALANCE } from '../../config/balance';
 import { shotLifetimeMs } from '../../logic/vision';
 import type { WeaponStats } from '../../config/types';
+import type { HitEffects } from '../../logic/hitEffects';
 import type { Enemy } from '../../entities/Enemy';
 import { Projectile } from '../../entities/Projectile';
 import type { CombatContext } from '../CombatContext';
@@ -14,6 +15,8 @@ const SPREAD = 0.18;
 export class BoltWeapon implements Weapon {
   private readonly projectiles: Phaser.Physics.Arcade.Group;
   private timer = FIRST_SHOT_DELAY;
+  /** What a hit does besides damage; follows the weapon's level */
+  private readonly effects: HitEffects = {};
 
   constructor(private readonly ctx: CombatContext) {
     this.projectiles = ctx.scene.physics.add.group({ classType: Projectile, maxSize: 150 });
@@ -23,6 +26,9 @@ export class BoltWeapon implements Weapon {
   }
 
   update(stats: WeaponStats, dms: number): void {
+    this.effects.knockback = stats.knockback;
+    this.effects.splash = stats.splash * stats.area;
+    this.effects.percent = stats.percent;
     this.expireProjectiles();
     this.timer -= dms;
     if (this.timer > 0) return;
@@ -59,7 +65,10 @@ export class BoltWeapon implements Weapon {
     p.hits.add(e);
     const v = p.body!.velocity;
     const len = v.length() || 1;
-    this.ctx.enemies.damage(e, p.damage, (v.x / len) * 6, (v.y / len) * 6);
+    const ux = v.x / len;
+    const uy = v.y / len;
+    // Pushed the way the bolt flew.
+    this.ctx.enemies.hit(e, p.damage, this.effects, e.x - ux, e.y - uy, ux * 6, uy * 6);
     p.pierceLeft -= 1;
     if (p.pierceLeft <= 0) p.despawn();
   }
