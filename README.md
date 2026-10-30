@@ -29,6 +29,8 @@ Then open it in your browser. On a phone in the same Wi-Fi, open the "Network" a
 
 Where the game is heading: [docs/vision.md](docs/vision.md)
 
+World and story: [docs/lore.md](docs/lore.md)
+
 Architecture and conventions: [CLAUDE.md](CLAUDE.md)
 
 ## Credits
