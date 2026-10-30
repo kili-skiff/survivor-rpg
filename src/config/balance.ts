@@ -45,16 +45,16 @@ export const ELITE = {
   eyesColor: 0xfacc15,
 } as const;
 
-/**
- * How the horde moves, so it stays a loose crowd instead of one blob (logic/swarm.ts).
- * First tuning, still to be finetuned: in tight crowds enemies can look as if they shove each other.
- * Distances are px, times are ms.
- */
 /** At most this many chargers are in their warning or dash at the same time; the others wait. */
 export const MAX_CHARGERS_AT_ONCE = 2;
 /** A charger hesitates a random time up to this (ms) once the player is in range. */
 export const CHARGE_MAX_DELAY_MS = 1500;
 
+/**
+ * How the horde moves, so it stays a loose crowd instead of one blob (logic/swarm.ts).
+ * First tuning, still to be finetuned: in tight crowds enemies can look as if they shove each other.
+ * Distances are px, times are ms.
+ */
 export const SWARM = {
   /** Size of the grid cells used to find neighbours. Personal space of the biggest pairs should fit in 3x3 cells. */
   cell: 72,
