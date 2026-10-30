@@ -56,6 +56,11 @@ export class PlayerController {
     }
   }
 
+  /** Where the player looks: the last direction of movement, as a unit vector. */
+  get aim(): { readonly x: number; readonly y: number } {
+    return this.facing;
+  }
+
   /** Walk animation in the facing direction, or the standing pose. */
   private animate(moving: boolean): void {
     if (!this.look) return;
