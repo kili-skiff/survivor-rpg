@@ -4,7 +4,8 @@ import type { BiomeId, PoiId } from './types';
 // The sheet is a grid of 8 columns; frame = row * 8 + column.
 export const TILESET = {
   key: 'hex-tiles',
-  path: 'assets/tiles/hex-tiles.png',
+  // The version after '?' is raised whenever the art changes, so browsers do not keep an old copy.
+  path: 'assets/tiles/hex-tiles.png?v=2',
   frameWidth: 32,
   frameHeight: 48,
   /** Width of the hex face in the frame (px); the face is a regular flat-top hex */

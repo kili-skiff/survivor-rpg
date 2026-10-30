@@ -13,7 +13,15 @@ import {
   toggleTracking,
 } from '../logic/quests';
 import { BIOME_TILES, POI_TILES, TILESET } from '../config/tiles';
-import { hexEquals, hexKey, hexToPixelFlat, parseHexKey, pixelToHexFlat, type Hex } from '../logic/hex';
+import {
+  hexEquals,
+  hexKey,
+  hexToPixelFlat,
+  ORIGIN,
+  parseHexKey,
+  pixelToHexFlat,
+  type Hex,
+} from '../logic/hex';
 import { hash32 } from '../logic/rng';
 import { formatTime } from '../logic/progression';
 import { loadSave, safeStorage, writeSave, type SaveData } from '../logic/save';
@@ -34,6 +42,7 @@ import { seasonWorld, segmentForHex, type World, type WorldHex } from '../logic/
 import { jumpTo } from '../dev/devLogic'; // DEV:
 import { devButtonStyle, isDevMode } from '../dev/devMode'; // DEV:
 import { safeArea, viewportSize, type SafeArea } from '../ui/display';
+import { MapFog } from '../ui/mapFog';
 import { COLORS, css, FONT } from '../ui/theme';
 import type { GameSceneData } from './GameScene';
 import type { VillageSceneData } from './VillageScene';
@@ -93,6 +102,8 @@ export class WorldMapScene extends Phaser.Scene {
   private poiLabels: { hex: WorldHex; text: Phaser.GameObjects.Text }[] = [];
   /** A small herb in each hex that shows which herb grows there */
   private herbIcons: { hex: WorldHex; icon: Phaser.GameObjects.Image }[] = [];
+  /** Night fog drifting over the whole map; the village and lit watchfires glow through it */
+  private fog!: MapFog;
   private marker!: Phaser.GameObjects.Image;
   private hud: Phaser.GameObjects.GameObject[] = [];
   private drag: DragState | null = null;
@@ -163,7 +174,8 @@ export class WorldMapScene extends Phaser.Scene {
           strokeThickness: 3,
         })
         .setOrigin(0.5)
-        .setDepth(2);
+        // Below the fog, like the tiles they sit on.
+        .setDepth(0.3);
       this.poiLabels.push({ hex: h, text });
     }
     for (const h of this.world.hexes.values()) {
@@ -171,9 +183,15 @@ export class WorldMapScene extends Phaser.Scene {
       const icon = this.add
         .image(0, 0, 'herb')
         .setTint(herbForecast(h.biome, h.ring).common.color)
-        .setDepth(1);
+        // Below the fog, like the tiles they sit on.
+        .setDepth(0.3);
       this.herbIcons.push({ hex: h, icon });
     }
+    this.fog = new MapFog(
+      this,
+      [...this.world.hexes.values()].filter((h) => h.poi === 'watchfire').map((h) => h.key),
+      hexKey(ORIGIN),
+    );
     // The watchman stands on the map, or the placeholder when the sprite sheet is missing.
     const playerSheet = CHARACTER_SPRITES.player;
     this.marker = this.textures.exists(playerSheet.key)
@@ -189,6 +207,7 @@ export class WorldMapScene extends Phaser.Scene {
       ...this.tiles.map((t) => t.image),
       ...this.poiLabels.map((l) => l.text),
       ...this.herbIcons.map((h) => h.icon),
+      ...this.fog.objects(),
     ]);
     this.cameras.main.setZoom(
       Phaser.Math.Clamp((this.registry.get('mapZoom') as number) ?? 1, MIN_ZOOM, MAX_ZOOM),
@@ -213,6 +232,8 @@ export class WorldMapScene extends Phaser.Scene {
   override update(_t: number, deltaMs: number): void {
     this.time0 += deltaMs / 1000;
     this.drawMap();
+    // DEV: "fog off" also clears the drifting clouds, so the tiles can be checked unobscured.
+    this.fog.update(deltaMs / 1000, this.time0, (key) => isLit(this.save.world, key), !this.devReveal());
     const pos = hexToPixelFlat(parseHexKey(this.save.world.position), this.hexSize);
     this.marker.setPosition(pos.x, pos.y - Math.abs(Math.sin(this.time0 * 3)) * 3 * this.u);
   }
@@ -307,7 +328,23 @@ export class WorldMapScene extends Phaser.Scene {
     } else {
       this.marker.setScale(1.1 * this.u);
     }
+    this.layoutFog();
     this.buildHud();
+  }
+
+  /** Fits the fog to the map: its extent and the watchfire positions depend on the hex size. */
+  private layoutFog(): void {
+    const bounds = { minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity };
+    const fires = new Map<string, { x: number; y: number }>();
+    for (const h of this.world.hexes.values()) {
+      const p = hexToPixelFlat(h.hex, this.hexSize);
+      bounds.minX = Math.min(bounds.minX, p.x);
+      bounds.minY = Math.min(bounds.minY, p.y);
+      bounds.maxX = Math.max(bounds.maxX, p.x);
+      bounds.maxY = Math.max(bounds.maxY, p.y);
+      if (h.poi === 'watchfire' || h.poi === 'village') fires.set(h.key, p);
+    }
+    this.fog.layout(this.hexSize, bounds, fires);
   }
 
   private isWide(): boolean {
@@ -369,12 +406,15 @@ export class WorldMapScene extends Phaser.Scene {
     const pulse = 0.55 + Math.sin(this.time0 * 4) * 0.35;
     const withTiles = this.tiles.length > 0;
     g.clear();
+    const unexplored: { x: number; y: number }[] = [];
 
     for (const h of this.world.hexes.values()) {
       const p = hexToPixelFlat(h.hex, this.hexSize);
       const discovered = this.isVisible(h.key);
-      if (!discovered) g.fillStyle(FOG_FILL, 1).lineStyle(1.5 * u, FOG_EDGE, 1);
-      else if (withTiles) continue;
+      if (!discovered) {
+        unexplored.push(p);
+        g.fillStyle(FOG_FILL, 1).lineStyle(1.5 * u, FOG_EDGE, 1);
+      } else if (withTiles) continue;
       else {
         const fill = h.poi === 'village' ? VILLAGE_FILL : BIOMES[h.biome].color;
         g.fillStyle(fill, isUsedUp(progress, h.key) ? 0.25 : 0.85).lineStyle(1.5 * u, 0x0d0b12, 0.9);
@@ -382,6 +422,8 @@ export class WorldMapScene extends Phaser.Scene {
       this.hexPath(g, p.x, p.y, this.hexSize - 1.5 * u);
       g.fillPath().strokePath();
     }
+    // The fog stays faint over unexplored hexes: they should look as black as ever.
+    this.fog.drawCover(unexplored, FOG_FILL, this.hexSize - 1.5 * u);
     // Hexes cleared on this expedition are greyed out: used up until you return home.
     for (const { hex, image } of this.tiles) {
       const discovered = this.isVisible(hex.key);
@@ -459,6 +501,26 @@ export class WorldMapScene extends Phaser.Scene {
         g.fillStyle(0xfdba74, 0.8 * glow).fillCircle(p.x, p.y, s * 0.08);
       }
     }
+    this.drawNestFlame(g, hexToPixelFlat(ORIGIN, s));
+  }
+
+  /**
+   * The flame of the Nest, drawn over the fire bowl painted on the village tile. Drawn in code, above
+   * the fog, so it flickers and stays bright. Sizes are in pixels of the tile art (one tile pixel =
+   * `tileScale` screen pixels); the bowl's rim sits half a pixel below the hex centre.
+   */
+  private drawNestFlame(g: Phaser.GameObjects.Graphics, center: { x: number; y: number }): void {
+    const px = this.tiles.length > 0 ? this.tileScale : this.hexSize / 16;
+    const t = this.time0;
+    const flicker = 0.9 + Math.sin(t * 8) * 0.07 + Math.sin(t * 14 + 1) * 0.05;
+    const sway = Math.sin(t * 5) * 0.7 * px;
+    const x = center.x + px;
+    const base = center.y - 0.5 * px;
+    const h = 7.5 * px * flicker;
+    g.fillStyle(0xdc4a0b, 0.95).fillTriangle(x - 3.5 * px, base, x + 3.5 * px, base, x + sway, base - h);
+    g.fillStyle(0xf68c02, 1).fillTriangle(x - 2.6 * px, base, x + 2.6 * px, base, x + sway, base - h * 0.82);
+    g.fillStyle(0xf1b81a, 1).fillTriangle(x - 1.8 * px, base, x + 1.8 * px, base, x + sway, base - h * 0.6);
+    g.fillStyle(0xfbe7a2, 1).fillTriangle(x - 0.9 * px, base, x + 0.9 * px, base, x + sway, base - h * 0.34);
   }
 
   /** A stone brazier with a flame; `heat` 1 = burning, lower = embers only. */
