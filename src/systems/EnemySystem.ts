@@ -6,7 +6,8 @@ import { ChargeGate, isLocked, leapAt, REST_SPEED, stepCharge, windupProgress } 
 import { dieAnim } from '../config/sprites';
 import type { EnemyDef } from '../config/types';
 import { Enemy } from '../entities/Enemy';
-import { enemyHpMultiplier, maxEnemies, pickEnemy, spawnBatchSize, spawnIntervalMs } from '../logic/spawning';
+import { forEachSpawnPoint, SpawnDirector, type Announcement, type DirectorPhase } from '../logic/director';
+import { baseSpawnRate, enemyHpMultiplier, maxEnemies, pickEnemy } from '../logic/spawning';
 import { Swarm, VelocityEstimator } from '../logic/swarm';
 import type { DamageNumbers } from './DamageNumbers';
 
@@ -29,7 +30,8 @@ export class EnemySystem {
   readonly group: Phaser.Physics.Arcade.Group;
   /** Diagonal of the visible world area; set by the scene on resize */
   viewDiag = 1000;
-  private spawnTimer = 400;
+  /** Paces the fight: build-ups, announced surges and breathers instead of a constant stream */
+  private readonly director = new SpawnDirector(Math.random);
   /** Golden rings under elites, so they stand out from the horde */
   private readonly eliteRings: Phaser.GameObjects.Graphics;
   private ring: RingModifiers = ringModifiers(1);
@@ -55,6 +57,8 @@ export class EnemySystem {
     private readonly onKilled: (e: Enemy) => void,
     /** A pouncing enemy has landed; the scene checks whether it hurts the player */
     private readonly onLanded: (e: Enemy) => void = () => {},
+    /** The director announces a surge (a wave, a ring, a wall); the scene tells the player */
+    private readonly onAnnounce: (a: Announcement) => void = () => {},
   ) {
     this.group = scene.physics.add.group({ classType: Enemy, maxSize: BALANCE.maxEnemiesHardCap });
     this.eliteRings = scene.add.graphics().setDepth(1.9);
@@ -155,24 +159,36 @@ export class EnemySystem {
     });
   }
 
-  /** Spawns new waves based on the run time in seconds. */
+  /** What the director is doing, for the dev readout. */
+  get directorState(): { phase: DirectorPhase; pressure: number } {
+    return { phase: this.director.phase, pressure: this.director.pressure };
+  }
+
+  /** Spawns what the director orders, based on the fight time in seconds. */
   spawn(dms: number, runTime: number): void {
-    this.spawnTimer -= dms;
-    if (this.spawnTimer > 0) return;
-    this.spawnTimer += spawnIntervalMs(runTime) / this.ring.spawnRate;
-    const limit = maxEnemies(runTime, BALANCE.maxEnemiesHardCap);
-    let alive = this.group.countActive(true);
-    const batch = spawnBatchSize(runTime);
-    for (let i = 0; i < batch && alive < limit; i++) {
-      const def = pickEnemy(runTime, ENEMY_LIST, Math.random, this.ringNumber);
-      const pos = this.spawnPoint();
-      const e = this.group.get(pos.x, pos.y, def.texture) as Enemy | null;
-      if (!e) break;
-      const elite = Math.random() < this.elites;
-      const hp = enemyHpMultiplier(runTime) * this.ring.hp * (elite ? ELITE.hp : 1);
-      e.spawn(def, pos.x, pos.y, hp, this.ring.damage * (elite ? ELITE.damage : 1), elite);
-      alive += 1;
+    const room = maxEnemies(runTime, BALANCE.maxEnemiesHardCap) - this.group.countActive(true);
+    const step = this.director.update(dms / 1000, {
+      time: runTime,
+      rate: baseSpawnRate(runTime) * this.ring.spawnRate,
+      room,
+    });
+    const dist = this.viewDiag / 2 + 40;
+    for (const order of step.orders) {
+      forEachSpawnPoint(order, this.target.x, this.target.y, dist, Math.random, (x, y) =>
+        this.spawnAt(x, y, runTime),
+      );
     }
+    if (step.announce) this.onAnnounce(step.announce);
+  }
+
+  /** One enemy of a type that fits the fight time and ring, normal or elite. */
+  private spawnAt(x: number, y: number, runTime: number): void {
+    const def = pickEnemy(runTime, ENEMY_LIST, Math.random, this.ringNumber);
+    const e = this.group.get(x, y, def.texture) as Enemy | null;
+    if (!e) return;
+    const elite = Math.random() < this.elites;
+    const hp = enemyHpMultiplier(runTime) * this.ring.hp * (elite ? ELITE.hp : 1);
+    e.spawn(def, x, y, hp, this.ring.damage * (elite ? ELITE.damage : 1), elite);
   }
 
   update(): void {

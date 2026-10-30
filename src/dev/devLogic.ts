@@ -114,9 +114,16 @@ export interface DevReadout {
   fps: FpsReading;
   enemies: number;
   killsPerMinute: number;
+  /** What the spawn director is doing: its phase and how strong the stream is right now */
+  director?: { phase: string; pressure: number };
 }
 
-/** The two lines of the dev readout: frame rate and the state of the fight. */
+/** The lines of the dev readout: frame rate, the state of the fight and the pace of the spawn director. */
 export function readoutLabel(r: DevReadout): string {
-  return `${Math.round(r.fps.fps)} fps · worst ${Math.round(r.fps.worstMs)} ms\n${r.enemies} enemies · ${Math.round(r.killsPerMinute)} kills/min`;
+  const lines = [
+    `${Math.round(r.fps.fps)} fps · worst ${Math.round(r.fps.worstMs)} ms`,
+    `${r.enemies} enemies · ${Math.round(r.killsPerMinute)} kills/min`,
+  ];
+  if (r.director) lines.push(`${r.director.phase} · x${r.director.pressure.toFixed(1)}`);
+  return lines.join('\n');
 }

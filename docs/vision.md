@@ -167,13 +167,21 @@ Ideas collected so far (nothing decided beyond the "wanted" list):
 light, faster in the dark; watchfires as safer zones). It would give lanterns a role against swarms
 and fits the identity of the game. Not decided.
 
-**Spawn director** (wanted, separate from the swarm steering): one place that decides when and how
-enemies come, instead of a constant stream. Waves with breathers, announced events (a ring closing
-in, a wall from one side), and pressure that rises and falls over a fight.
-Mind the ghouls: their pounces already run through a global cooldown (`ChargeGate`,
-`CHARGE_COOLDOWN_MS`), so a wave of ghouls pounces one after another instead of all at once. The
-director and the cooldown should not work against each other: either leave the pacing of pounces to the
-gate, or let the director set the cooldown per wave.
+**Spawn director** (built, `logic/director.ts`, values in `config/director.ts`; separate from the swarm
+steering): one place that decides when and how enemies come, instead of a constant stream. A fight runs
+in cycles: a **build-up** where the stream rises, an **announced surge** (a hint in red a few seconds
+before it hits) and a **breather** with almost no spawns. The first build-up is longer and gentler.
+The strength of the stream is still the old curve (`baseSpawnRate`, scaled by the ring), multiplied
+per phase, so a cycle brings about as many enemies as before, only in a shape. Surge kinds:
+
+- _swarm:_ a wave of higher pressure that comes from one side ("from the north-east"); always the first
+- _ring:_ from 1 minute on, a ring of enemies closes in from all sides at once
+- _wall:_ from 1:30 on, a line of enemies crosses one side at once
+
+The ghouls' pounces keep running through their own global cooldown (`ChargeGate`,
+`CHARGE_COOLDOWN_MS`): the director does not touch it, so even a wave full of ghouls pounces one after
+another with breathers. Still open for the director: bat flocks that sweep from side to side, an arrow
+on the screen edge for the side a surge comes from, and a "recommended strength" per ring.
 
 **Other ideas on the table:** obstacles (trees, ruins) that break up the crowd, tools
 against blobs (area damage, pierce, knockback, percent-health damage), fewer but more varied

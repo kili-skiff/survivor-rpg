@@ -89,6 +89,16 @@ describe('fps window', () => {
     const label = readoutLabel({ fps: { fps: 59.6, worstMs: 21.4 }, enemies: 187, killsPerMinute: 41.6 });
     expect(label).toBe('60 fps · worst 21 ms\n187 enemies · 42 kills/min');
   });
+
+  it('adds the pace of the spawn director as a third line', () => {
+    const label = readoutLabel({
+      fps: { fps: 60, worstMs: 16 },
+      enemies: 10,
+      killsPerMinute: 5,
+      director: { phase: 'surge', pressure: 2 },
+    });
+    expect(label).toBe('60 fps · worst 16 ms\n10 enemies · 5 kills/min\nsurge · x2.0');
+  });
 });
 
 describe('kills per minute', () => {

@@ -8,6 +8,7 @@ import type { HerbId, PassiveId, PotionId, SkillId, WeaponId } from '../config/t
 import { WEAPONS } from '../config/weapons';
 import type { InputState } from '../input/InputState';
 import { describeEarned } from '../logic/deeds';
+import type { Announcement } from '../logic/director';
 import { formatTime, xpToNext } from '../logic/progression';
 import { safeStorage } from '../logic/save';
 import { isSegmentWarning, segmentRemaining } from '../logic/segment';
@@ -29,6 +30,9 @@ interface PotionButton {
   y: number;
   r: number;
 }
+
+/** Warnings of a coming surge are red, so they stand out from the friendly hints */
+const SURGE_COLOR = 0xff6a6a;
 
 type OverlayKind = 'none' | 'levelup' | 'pause' | 'runend' | 'chest';
 
@@ -185,6 +189,7 @@ export class UIScene extends Phaser.Scene {
     this.gs.events.on('runend', this.onRunEnd, this);
     this.gs.events.on('herbbloom', this.onHerbBloom, this);
     this.gs.events.on('chestdrop', this.onChestDrop, this);
+    this.gs.events.on('surge', this.onSurge, this);
     this.game.events.on(Phaser.Core.Events.HIDDEN, this.onHidden, this);
     this.events.once('shutdown', () => {
       this.scale.off('resize', this.onResize, this);
@@ -193,6 +198,7 @@ export class UIScene extends Phaser.Scene {
       this.gs.events.off('runend', this.onRunEnd, this);
       this.gs.events.off('herbbloom', this.onHerbBloom, this);
       this.gs.events.off('chestdrop', this.onChestDrop, this);
+      this.gs.events.off('surge', this.onSurge, this);
       this.game.events.off(Phaser.Core.Events.HIDDEN, this.onHidden, this);
     });
 
@@ -1017,6 +1023,11 @@ export class UIScene extends Phaser.Scene {
   /** A short hint below the timer when an enemy leaves a treasure chest. */
   private onChestDrop(): void {
     this.showHint('A treasure chest dropped!', LIGHT.chestColor);
+  }
+
+  /** The spawn director announces a wave, a ring or a wall a few seconds before it hits. */
+  private onSurge(a: Announcement): void {
+    this.showHint(a.text, SURGE_COLOR);
   }
 
   /** Fades a line in below the timer for a moment; a second hint goes below the first. */
