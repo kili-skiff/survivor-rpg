@@ -57,8 +57,6 @@ const MIN_ZOOM = 0.5;
 const MAX_ZOOM = 2.5;
 /** Darkens hexes cleared on this expedition */
 const USED_TINT = 0x4d4d57;
-/** Where the watchman stands on the village hex, in hex sizes from its centre: beside the Nest */
-const HOME_STAND = { x: 0.55, y: 0.3 };
 /** Ring and pin colour for quest goals on the map */
 const QUEST_COLOR = 0xc084fc;
 
@@ -237,12 +235,7 @@ export class WorldMapScene extends Phaser.Scene {
     // DEV: "fog off" also clears the drifting clouds, so the tiles can be checked unobscured.
     this.fog.update(deltaMs / 1000, this.time0, (key) => isLit(this.save.world, key), !this.devReveal());
     const pos = hexToPixelFlat(parseHexKey(this.save.world.position), this.hexSize);
-    // At home the watchman stands beside the Nest instead of in front of its flame.
-    const home = isAtHome(this.save.world) ? HOME_STAND : { x: 0, y: 0 };
-    this.marker.setPosition(
-      pos.x + home.x * this.hexSize,
-      pos.y + home.y * this.hexSize - Math.abs(Math.sin(this.time0 * 3)) * 3 * this.u,
-    );
+    this.marker.setPosition(pos.x, pos.y - Math.abs(Math.sin(this.time0 * 3)) * 3 * this.u);
   }
 
   // ---------------------------------------------------------------- first quest
