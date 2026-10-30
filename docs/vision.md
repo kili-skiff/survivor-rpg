@@ -125,6 +125,10 @@ One character for everyone; weapons are the build, in the spirit of Hades (decid
 - **Special skill per weapon:** each main weapon brings its own active skill (e.g. Frost Nova on the
   staff). The dash stays universal.
 - **During a run:** level-up cards still offer extra weapons and upgrades, as today.
+- **The standard attack fires where you look** (built, `logic/aim.ts`, `BOLT_AIM`): Arcane Bolt only targets
+  enemies in a cone in front of the player (the last direction of movement), so you aim by how you
+  move. Enemies behind you have to be handled by the other weapons or
+  by turning around.
 - **Permanent:** ores upgrade your main weapons at the blacksmith.
 - **New weapons:** weapon fragments dropped by elites, bosses and special places. Brought home, the
   blacksmith forges them into new weapons or variants (like weapon aspects in Hades).

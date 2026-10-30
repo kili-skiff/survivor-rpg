@@ -3,6 +3,7 @@ import { BALANCE, CHARGE_COOLDOWN_MS, ELITE, MAX_CHARGERS_AT_ONCE } from '../con
 import { COLORS } from '../ui/theme';
 import { eliteChance, ringModifiers, type RingModifiers } from '../logic/difficulty';
 import { ENEMIES } from '../config/enemies';
+import { inCone } from '../logic/aim';
 import { ChargeGate, isLocked, leapAt, REST_SPEED, stepCharge, windupProgress } from '../logic/charge';
 import { dieAnim } from '../config/sprites';
 import {
@@ -117,8 +118,11 @@ export class EnemySystem {
     }
   }
 
-  /** Up to `count` living enemies within `range` of the player, nearest first. */
-  nearest(count: number, range: number): Enemy[] {
+  /**
+   * Up to `count` living enemies within `range` of the player, nearest first. With `cone` only those
+   * within that angle of the direction (dirX, dirY); `cosHalf` comes from `coneCos`.
+   */
+  nearest(count: number, range: number, cone?: { dirX: number; dirY: number; cosHalf: number }): Enemy[] {
     const { x: px, y: py } = this.target;
     const best: { e: Enemy; d: number }[] = [];
     const r2 = range * range;
@@ -126,6 +130,7 @@ export class EnemySystem {
       if (e.airborne) continue;
       const d = (e.x - px) ** 2 + (e.y - py) ** 2;
       if (d > r2) continue;
+      if (cone && !inCone(e.x - px, e.y - py, cone.dirX, cone.dirY, cone.cosHalf)) continue;
       if (best.length < count) {
         best.push({ e, d });
         best.sort((a, b) => a.d - b.d);
