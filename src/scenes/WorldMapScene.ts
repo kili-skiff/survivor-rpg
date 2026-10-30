@@ -13,7 +13,15 @@ import {
   toggleTracking,
 } from '../logic/quests';
 import { BIOME_TILES, POI_TILES, TILESET } from '../config/tiles';
-import { hexEquals, hexKey, hexToPixelFlat, parseHexKey, pixelToHexFlat, type Hex } from '../logic/hex';
+import {
+  hexEquals,
+  hexKey,
+  hexToPixelFlat,
+  ORIGIN,
+  parseHexKey,
+  pixelToHexFlat,
+  type Hex,
+} from '../logic/hex';
 import { hash32 } from '../logic/rng';
 import { formatTime } from '../logic/progression';
 import { loadSave, safeStorage, writeSave, type SaveData } from '../logic/save';
@@ -94,7 +102,7 @@ export class WorldMapScene extends Phaser.Scene {
   private poiLabels: { hex: WorldHex; text: Phaser.GameObjects.Text }[] = [];
   /** A small herb in each hex that shows which herb grows there */
   private herbIcons: { hex: WorldHex; icon: Phaser.GameObjects.Image }[] = [];
-  /** Night fog drifting over the whole map; lit watchfires glow through it */
+  /** Night fog drifting over the whole map; the village and lit watchfires glow through it */
   private fog!: MapFog;
   private marker!: Phaser.GameObjects.Image;
   private hud: Phaser.GameObjects.GameObject[] = [];
@@ -182,6 +190,7 @@ export class WorldMapScene extends Phaser.Scene {
     this.fog = new MapFog(
       this,
       [...this.world.hexes.values()].filter((h) => h.poi === 'watchfire').map((h) => h.key),
+      hexKey(ORIGIN),
     );
     // The watchman stands on the map, or the placeholder when the sprite sheet is missing.
     const playerSheet = CHARACTER_SPRITES.player;
@@ -333,7 +342,7 @@ export class WorldMapScene extends Phaser.Scene {
       bounds.minY = Math.min(bounds.minY, p.y);
       bounds.maxX = Math.max(bounds.maxX, p.x);
       bounds.maxY = Math.max(bounds.maxY, p.y);
-      if (h.poi === 'watchfire') fires.set(h.key, p);
+      if (h.poi === 'watchfire' || h.poi === 'village') fires.set(h.key, p);
     }
     this.fog.layout(this.hexSize, bounds, fires);
   }

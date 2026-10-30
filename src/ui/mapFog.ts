@@ -47,8 +47,12 @@ export class MapFog {
   private readonly outside: Phaser.GameObjects.Graphics;
   private hexSize = 1;
 
-  /** `fires` are the hex keys of all watchfires on the map. */
-  constructor(scene: Phaser.Scene, fires: readonly string[]) {
+  /** `fires` are the hex keys of all watchfires on the map, `village` is the village's hex key. */
+  constructor(
+    scene: Phaser.Scene,
+    fires: readonly string[],
+    private readonly village: string,
+  ) {
     MAP_FOG.layers.forEach((def, i) => {
       this.ensureTexture(scene, def);
       const sprite = scene.add
@@ -60,7 +64,7 @@ export class MapFog {
     this.cover = scene.add.graphics().setDepth(COVER_DEPTH);
     this.outside = scene.add.graphics().setDepth(COVER_DEPTH);
     if (scene.textures.exists(LIGHT_TEXTURE)) {
-      fires.forEach((key, i) => {
+      [...fires, village].forEach((key, i) => {
         const image = scene.add
           .image(0, 0, LIGHT_TEXTURE)
           .setDepth(GLOW_DEPTH)
@@ -95,9 +99,10 @@ export class MapFog {
       sprite.setPosition(cx, cy).setSize(w, h).setTileScale(scale, scale);
     }
     this.drawOutside(hexSize);
-    const radius = WORLD.watchfireRevealRadius * 1.5 + MAP_FOG.fireGlow.extraHexes;
+    const fireRadius = WORLD.watchfireRevealRadius * 1.5 + MAP_FOG.fireGlow.extraHexes;
     for (const [key, glow] of this.glows) {
       const p = fires.get(key);
+      const radius = key === this.village ? MAP_FOG.villageGlow.radiusHexes : fireRadius;
       if (p) glow.image.setPosition(p.x, p.y).setDisplaySize(radius * 2 * hexSize, radius * 2 * hexSize);
     }
   }
@@ -147,7 +152,7 @@ export class MapFog {
   }
 
   /**
-   * Moves the fog on. `lit` tells which watchfires burn; `showFog` switches the clouds off
+   * Moves the fog on. `lit` tells which watchfires burn (the village always glows); `showFog` switches the clouds off
    * (dev reveal), the firelight stays.
    */
   update(deltaSec: number, time: number, lit: (key: string) => boolean, showFog: boolean): void {
@@ -167,11 +172,12 @@ export class MapFog {
     this.outside.setVisible(showFog);
     const { strength, flicker } = MAP_FOG.fireGlow;
     for (const [key, glow] of this.glows) {
-      const on = lit(key);
+      const isVillage = key === this.village;
+      const on = isVillage || lit(key);
       glow.image.setVisible(on);
       if (!on) continue;
       const wobble = Math.sin(time * 7 + glow.phase) * 0.5 + Math.sin(time * 13 + glow.phase * 2) * 0.5;
-      glow.image.setAlpha(strength * (1 + wobble * flicker));
+      glow.image.setAlpha((isVillage ? MAP_FOG.villageGlow.strength : strength) * (1 + wobble * flicker));
     }
   }
 

@@ -73,6 +73,13 @@ export const MAP_FOG = {
     /** Flicker share of the strength */
     flicker: 0.12,
   },
+  /** The village glows like a lit watchfire, always: the Nest never goes out */
+  villageGlow: {
+    /** Radius of the glow in hexes */
+    radiusHexes: 3.2,
+    /** Strength (additive, 0..1) */
+    strength: 0.42,
+  },
   /** How much of the fog over unexplored hexes and outside the map is covered up again (0 = none, 1 = fully black) */
   unexploredCover: 0.82,
   /** The fog stops this far (in hexes) beyond the outermost hex; beyond it only background */
