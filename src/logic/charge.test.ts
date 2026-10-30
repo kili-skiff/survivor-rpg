@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { ENEMIES } from '../config/enemies';
-import { isLocked, leapAt, newChargeState, stepCharge, windupProgress, type ChargeParams } from './charge';
+import {
+  ChargeGate,
+  isLocked,
+  leapAt,
+  newChargeState,
+  stepCharge,
+  windupProgress,
+  type ChargeParams,
+} from './charge';
 
 const P: ChargeParams = {
   kind: 'charge',
@@ -73,6 +81,44 @@ describe('pounce', () => {
     expect(s.readyAt).toBe(500);
     stepCharge(s, P, 0, 0, 900, 0, 100);
     expect(s.readyAt).toBe(-1);
+  });
+});
+
+describe('the pounce gate', () => {
+  it('lets the first one start at once', () => {
+    expect(new ChargeGate(2, 3000).canStart(0, 0)).toBe(true);
+  });
+
+  it('holds everyone back for the global cooldown after a start', () => {
+    const g = new ChargeGate(5, 3000);
+    g.started(1000);
+    expect(g.canStart(1000, 0)).toBe(false);
+    expect(g.canStart(3999, 0)).toBe(false);
+    expect(g.canStart(4000, 0)).toBe(true);
+  });
+
+  it('limits how many are busy at once, even without a cooldown', () => {
+    const g = new ChargeGate(2, 0);
+    g.started(0);
+    expect(g.canStart(10, 1)).toBe(true);
+    expect(g.canStart(10, 2)).toBe(false);
+  });
+
+  it('spaces out a group of chargers that are all ready', () => {
+    const g = new ChargeGate(2, 3000);
+    const group = [newChargeState(), newChargeState(), newChargeState()];
+    const starts: number[] = [];
+    for (let now = 0; now < 9000; now += 100) {
+      for (const s of group) {
+        const busy = group.filter((c) => c.phase === 'windup' || c.phase === 'leap').length;
+        const was = s.phase;
+        if (stepCharge(s, P, 0, 0, 100, 0, now, g.canStart(now, busy)) === 'windup' && was === 'approach') {
+          g.started(now);
+          starts.push(now);
+        }
+      }
+    }
+    expect(starts).toEqual([0, 3000, 6000]);
   });
 });
 

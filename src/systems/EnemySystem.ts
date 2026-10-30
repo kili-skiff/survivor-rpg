@@ -1,8 +1,8 @@
 import * as Phaser from 'phaser';
-import { BALANCE, ELITE, MAX_CHARGERS_AT_ONCE } from '../config/balance';
+import { BALANCE, CHARGE_COOLDOWN_MS, ELITE, MAX_CHARGERS_AT_ONCE } from '../config/balance';
 import { eliteChance, ringModifiers, type RingModifiers } from '../logic/difficulty';
 import { ENEMIES } from '../config/enemies';
-import { isLocked, leapAt, REST_SPEED, stepCharge, windupProgress } from '../logic/charge';
+import { ChargeGate, isLocked, leapAt, REST_SPEED, stepCharge, windupProgress } from '../logic/charge';
 import { dieAnim } from '../config/sprites';
 import type { EnemyDef } from '../config/types';
 import { Enemy } from '../entities/Enemy';
@@ -40,6 +40,8 @@ export class EnemySystem {
   private readonly targetVelocity = new VelocityEstimator();
   /** The ring of this fight's hex: some enemies only appear further out */
   private ringNumber = 1;
+  /** Decides when a pounce may start, for all chargers together (how many at once, global cooldown) */
+  private readonly chargeGate = new ChargeGate(MAX_CHARGERS_AT_ONCE, CHARGE_COOLDOWN_MS);
   /** The enemies that move this frame; reused every frame */
   private readonly live: Enemy[] = [];
   /** Pool of death animations, so killing never creates new objects */
@@ -182,7 +184,7 @@ export class EnemySystem {
     const rings = this.eliteRings;
     rings.clear();
     const pulse = 0.6 + Math.sin(now / 160) * 0.3;
-    // How many chargers are busy (warning or dash) right now; only a few at a time, so it stays readable.
+    // How many chargers are busy (warning or dash) right now; the gate keeps it to a few, with breathers between.
     let chargers = 0;
     for (const e of this.active()) {
       if (e.charge.phase === 'windup' || e.charge.phase === 'leap') chargers++;
@@ -207,8 +209,20 @@ export class EnemySystem {
       const behavior = e.def.behavior;
       if (behavior?.kind === 'charge') {
         const was = e.charge.phase;
-        const phase = stepCharge(e.charge, behavior, e.x, e.y, px, py, now, chargers < MAX_CHARGERS_AT_ONCE);
-        if (was === 'approach' && phase === 'windup') chargers++;
+        const phase = stepCharge(
+          e.charge,
+          behavior,
+          e.x,
+          e.y,
+          px,
+          py,
+          now,
+          this.chargeGate.canStart(now, chargers),
+        );
+        if (was === 'approach' && phase === 'windup') {
+          chargers++;
+          this.chargeGate.started(now);
+        }
         if (was === 'leap' && phase === 'rest') this.land(e, behavior.landRadius, now);
         e.flies = phase === 'leap' || (e.def.flies ?? false); // in the air it is not part of the crowd
         if (phase === 'windup' || phase === 'leap') {

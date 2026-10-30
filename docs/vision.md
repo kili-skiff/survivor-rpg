@@ -153,7 +153,8 @@ Ideas collected so far (nothing decided beyond the "wanted" list):
   New enemy types per ring should differ in behaviour, not only in numbers.
   **Built so far** (`logic/behaviors.ts`, `logic/charge.ts`, set per type in `config/enemies.ts`): the bat
   flies nearly straight over the crowd, the ghoul is a pouncer (runs up, crouches over a landing circle
-  that follows you until just before the jump, leaps in an arc and lands stunned; at most two at a time),
+  that follows you until just before the jump, leaps in an arc and lands stunned; all ghouls share a
+  cooldown, so pounces come one after another with breathers, `CHARGE_COOLDOWN_MS`),
   the zombie and the colossus still chase straight. A type can be limited to rings (`minRing`). The
   flank behaviour (arc, aiming ahead) exists in the code but no type uses it yet. Still to do: a charger
   for the colossus, ranged, orbiters, runners, bat flocks that sweep from side to side.

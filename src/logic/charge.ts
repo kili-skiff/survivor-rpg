@@ -32,8 +32,32 @@ export function newChargeState(delay = 0): ChargeState {
 export const REST_SPEED = 0.35;
 
 /**
+ * Decides for all chargers together whether a pounce may start: only so many at once, and a global
+ * cooldown after each start, so a group of chargers pounces one after another with breathers
+ * instead of constantly.
+ */
+export class ChargeGate {
+  private nextAt = 0;
+
+  constructor(
+    private readonly maxAtOnce: number,
+    private readonly cooldownMs: number,
+  ) {}
+
+  /** `busy`: how many chargers are in their warning or leap right now. */
+  canStart(now: number, busy: number): boolean {
+    return busy < this.maxAtOnce && now >= this.nextAt;
+  }
+
+  /** Call when a charger starts its warning. */
+  started(now: number): void {
+    this.nextAt = now + this.cooldownMs;
+  }
+}
+
+/**
  * Advances the pounce at game time `now` (ms) for an enemy at (x, y) and a player at (tx, ty).
- * `slotFree` says whether another one may start now (the scene limits how many pounce at once).
+ * `slotFree` says whether another one may start now (the ChargeGate of the scene decides).
  * Returns the phase it is in afterwards.
  */
 export function stepCharge(

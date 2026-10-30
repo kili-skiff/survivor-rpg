@@ -47,6 +47,8 @@ export const ELITE = {
 
 /** At most this many chargers are in their warning or dash at the same time; the others wait. */
 export const MAX_CHARGERS_AT_ONCE = 2;
+/** Global cooldown (ms): after any charger starts its warning, none of them may start another for this long. */
+export const CHARGE_COOLDOWN_MS = 3000;
 /** A charger hesitates a random time up to this (ms) once the player is in range. */
 export const CHARGE_MAX_DELAY_MS = 1500;
 
