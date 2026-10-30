@@ -1,3 +1,4 @@
+import { ITEMS } from '../config/balance';
 import { BASE_PLAYER_STATS, PASSIVES } from '../config/passives';
 import { SKILLS } from '../config/skills';
 import type {
@@ -54,6 +55,10 @@ export function computePlayerStats(loadout: Loadout, bonus: Partial<PlayerStats>
     stats = addPartial(stats, PASSIVES[id].perLevel, level);
   }
   stats.haste = Math.max(0.4, stats.haste);
+  stats.skillHaste = Math.max(ITEMS.minSkillHaste, stats.skillHaste);
+  stats.crit = Math.min(ITEMS.maxCrit, Math.max(0, stats.crit));
+  stats.dodge = Math.min(ITEMS.maxDodge, Math.max(0, stats.dodge));
+  stats.area = Math.max(0.3, stats.area);
   return stats;
 }
 
@@ -64,6 +69,13 @@ export function computeWeaponStats(id: WeaponId, level: number, player: PlayerSt
     ...raw,
     damage: raw.damage * player.might,
     cooldown: Math.max(80, raw.cooldown * player.haste),
+    area: raw.area * player.area,
+    count: raw.count + player.multishot,
+    // Only weapons that pierce at all get more of it.
+    pierce: raw.pierce > 0 ? raw.pierce + player.pierce : raw.pierce,
+    knockback: raw.knockback + player.force,
+    splash: raw.splash + player.blast,
+    percent: raw.percent + player.rend,
   };
 }
 
@@ -73,7 +85,8 @@ export function computeSkillStats(id: SkillId, level: number, player: PlayerStat
   return {
     ...raw,
     damage: raw.damage * player.might,
-    cooldown: Math.max(500, raw.cooldown * player.haste),
+    cooldown: Math.max(500, raw.cooldown * player.haste * player.skillHaste),
+    radius: raw.radius * player.area,
   };
 }
 

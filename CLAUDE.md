@@ -23,6 +23,7 @@ The world, story and in-game terms (Embers, the Nest, watchfires) are in [docs/l
   Test helpers: "+herbs +gold" in the village; "reveal" (fog off on screen only) and "jump here" on the
   map; in a fight a foldable "DEV" panel (tap its header; it also names the active modes and hides while a
   menu is open) with "clear area", "god mode" (no damage, much stronger, whole screen lit), "spawn elite" and
+  "level up" (opens a level-up menu), "wild build" (every weapon and item at its highest level) and
   "invincible" (no damage taken or dealt, whole screen lit; for watching a horde in peace; replaces god mode),
   and a readout that is always visible: FPS (average, worst frame of the last half second; lights up below 50 FPS),
   living enemies and kills per minute (last 30 s); "reset save" in the
@@ -133,7 +134,8 @@ describe the game as built; some of it changes in Milestone 2 (gold, camps).
 - [ ] Elites with a mechanic, their own movement and fair health (target fight length)
 - [ ] Varied fight goals (kill N enemies, find the light or the dungeon, ... see `docs/vision.md`)
 - [x] Tools against a crowd that piles up, as level steps of the weapons (`logic/hitEffects.ts`): knockback with a push that slows down, bolt bursts, damage as a share of health (aura, blades), earlier pierce
-- [ ] Follow-ups: a weapon built around crowd control (e.g. a mortar), a passive for area, XP that keeps up with enemy health (check in play first)
+- [x] Wild builds, a first test batch: 19 new items without a limit (`config/passives.ts`), one-time cards (`config/boons.ts`) and the weapon Chain Lightning; values to be tuned by playing (see "Wild builds" in `docs/vision.md`)
+- [ ] Follow-ups: a weapon built around crowd control (e.g. a mortar), XP that keeps up with enemy health (check in play first), tune or drop what does not feel good from the wild-build batch, more weapons
 
 ### Milestone 2: new core loop
 

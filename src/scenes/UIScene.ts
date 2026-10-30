@@ -69,6 +69,8 @@ export class UIScene extends Phaser.Scene {
   private skillButtons: SkillButton[] = [];
   private potionButtons: PotionButton[] = [];
   private loadoutIcons: Phaser.GameObjects.GameObject[] = [];
+  /** DEV: left edge of the dev panel, and where the icon rows end (set by the layout) */
+  private devPanelLeft = 0;
   private loadoutSignature = '';
 
   private keys!: Record<string, Phaser.Input.Keyboard.Key>;
@@ -157,6 +159,8 @@ export class UIScene extends Phaser.Scene {
               run: () => this.gs.devToggleGodMode(),
             },
             { label: () => 'spawn elite', run: () => this.gs.devSpawnElite() },
+            { label: () => 'level up', run: () => this.gs.devLevelUp() },
+            { label: () => 'wild build', run: () => this.gs.devWildBuild() },
             {
               label: () => (this.gs.devInvincible() ? 'invincible on' : 'invincible off'),
               active: () => this.gs.devInvincible(),
@@ -380,7 +384,9 @@ export class UIScene extends Phaser.Scene {
       .setFontSize(Math.round(16 * u))
       .setPadding(Math.round(12 * u), Math.round(6 * u))
       .setPosition(right, top);
-    this.devPanel?.layout(left, top + 84 * u, u); // DEV: below the weapon icons on the left
+    this.devPanelLeft = left; // DEV: the panel sits below the icon rows on the left
+    this.loadoutSignature = ''; // the icon rows follow the new size
+    this.updateLoadoutIcons();
     this.killsText
       .setFontSize(Math.round(14 * u))
       .setPosition(right - this.pauseBtn.width - 10 * u, top + 6 * u);
@@ -616,9 +622,19 @@ export class UIScene extends Phaser.Scene {
     const u = this.u;
     const size = 26 * u;
     const gap = 4 * u;
-    let x = this.sa.left + 12 * u;
-    const y = this.sa.top + 10 * u + 46 * u;
+    const startX = this.sa.left + 12 * u;
+    const startY = this.sa.top + 10 * u + 46 * u;
+    // Without a limit on items the row gets long: it wraps before it reaches the timer in the middle.
+    const perRow = Math.max(4, Math.floor((this.scale.width / 2 - 36 * u - startX + gap) / (size + gap)));
+    let col = 0;
+    let row = 0;
     const add = (texture: string, level: number) => {
+      if (col >= perRow) {
+        col = 0;
+        row += 1;
+      }
+      const x = startX + col * (size + gap);
+      const y = startY + row * (size + gap);
       const img = this.add.image(x, y, texture).setOrigin(0, 0).setDisplaySize(size, size);
       const lv = this.add
         .text(x + size, y + size, String(level), {
@@ -631,11 +647,16 @@ export class UIScene extends Phaser.Scene {
         })
         .setOrigin(1, 1);
       this.loadoutIcons.push(img, lv);
-      x += size + gap;
+      col += 1;
     };
     for (const id of Object.keys(weapons) as WeaponId[]) add(WEAPONS[id].texture, weapons[id]!);
-    x += gap * 2;
+    // Items start on a row of their own.
+    if (col > 0) {
+      col = perRow;
+    }
     for (const id of Object.keys(passives) as PassiveId[]) add(PASSIVES[id].texture, passives[id]!);
+    const bottom = startY + (row + 1) * (size + gap);
+    this.devPanel?.layout(this.devPanelLeft, bottom + 4 * u, u); // DEV: below the icon rows
   }
 
   // ---------------------------------------------------------------- Menus

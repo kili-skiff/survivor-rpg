@@ -141,7 +141,21 @@ One character for everyone; weapons are the build, in the spirit of Hades (decid
   - _Pierce:_ bolts already pierce; its steps come earlier now.
 
   These are the first answer to "I cannot kill them fast enough". Still open: a weapon that is built
-  around them (e.g. a mortar), a passive that widens every weapon's area, and scaling XP with enemy health.
+  around them (e.g. a mortar) and scaling XP with enemy health (Wisdom helps for now).
+
+- **Wild builds** (built as a test batch, to be tuned by playing): level-up cards are meant to let a run
+  grow absurdly strong, and the game may scale a lot. There is no limit on items; they stack and combine.
+  - _Items_ (`config/passives.ts`): area (Far Reach), push, damage as a share of health, XP, health per
+    kill, chest luck, extra projectiles, crits and crit damage, executing weak enemies, damage against
+    elites, faster skills, damage while moving or at low health, thorns, dodge, extra pierce, bursts on
+    every hit, and a Blood Pact that trades tougher enemies for damage. The item bonuses are folded into the
+    weapons' numbers in `logic/stats.ts`; the situational ones in `logic/hitEffects.ts`.
+  - _One-time cards_ (`config/boons.ts`): act at once and are not part of the build (gold, all gems fly
+    to you, full health, a shockwave, wiping the screen, a revive, a short damage surge). They are
+    offered next to the other cards but never come out of chests.
+  - _Chain Lightning_ is a new weapon: a strike that jumps from enemy to enemy; later levels add strikes,
+    jumps and a search for the biggest crowd.
+  - The dev panel has "level up" and "wild build" to try combinations quickly.
 
 ## Swarms, enemy behaviour and elites
 

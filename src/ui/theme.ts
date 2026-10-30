@@ -12,6 +12,7 @@ export const COLORS = {
   blade: 0xe5e7eb,
   aura: 0xfb923c,
   nova: 0x93c5fd,
+  chain: 0xa5f3fc,
   heal: 0xf87171,
   panel: 0x221c30,
   panelEdge: 0x4c3f6b,

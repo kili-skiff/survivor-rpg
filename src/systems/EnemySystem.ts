@@ -9,10 +9,13 @@ import {
   addPush,
   decayPush,
   inBurst,
+  neutralMods,
   percentDamage,
   pushSpeed,
+  resolveHit,
   splashDamage,
   type HitEffects,
+  type HitMods,
 } from '../logic/hitEffects';
 import type { EnemyDef } from '../config/types';
 import { Enemy } from '../entities/Enemy';
@@ -77,6 +80,11 @@ export class EnemySystem {
     this.bursts = new BurstFx(scene, now, COLORS.bolt);
   }
 
+  /** What items and the moment do to every weapon hit; the scene keeps it up to date */
+  readonly mods: HitMods = neutralMods();
+  /** Enemies spawn with this many times their health (Blood Pact) */
+  hpMul = 1;
+
   /** DEV: while true, nothing hurts enemies (invincible mode); set by the scene. */
   devNoDamage = false;
 
@@ -89,7 +97,7 @@ export class EnemySystem {
       def,
       pos.x,
       pos.y,
-      enemyHpMultiplier(runTime) * this.ring.hp * ELITE.hp,
+      enemyHpMultiplier(runTime) * this.ring.hp * ELITE.hp * this.hpMul,
       this.ring.damage * ELITE.damage,
       true,
     );
@@ -129,13 +137,13 @@ export class EnemySystem {
     return best.map((b) => b.e);
   }
 
-  damage(e: Enemy, amount: number, knockX = 0, knockY = 0): void {
+  damage(e: Enemy, amount: number, knockX = 0, knockY = 0, color = '#ffffff'): void {
     if (!e.active || e.airborne || this.devNoDamage) return; // DEV: invincible mode deals no damage
     e.hp -= amount;
     e.flashUntil = this.now() + 70;
     e.x += knockX;
     e.y += knockY;
-    this.numbers.show(e.x, e.y - e.def.radius - 4, String(Math.round(amount)));
+    this.numbers.show(e.x, e.y - e.def.radius - 4, String(Math.round(amount)), color);
     if (e.hp <= 0) {
       this.onKilled(e);
       this.showCorpse(e);
@@ -152,13 +160,15 @@ export class EnemySystem {
     if (!e.active || e.airborne || this.devNoDamage) return; // DEV: invincible mode deals no damage
     const x = e.x;
     const y = e.y;
+    const result = resolveHit(damage, this.mods, e, Math.random);
     const bonus = percentDamage(fx.percent ?? 0, e.maxHp, e.elite);
-    this.damage(e, damage + bonus, knockX, knockY);
+    const color = result.executed ? '#f87171' : result.crit ? '#fde047' : '#ffffff';
+    this.damage(e, result.damage + bonus, knockX, knockY, color);
     if (e.active && fx.knockback) {
       const speed = pushSpeed(fx.knockback, e.def.knockResist ?? 0, e.elite);
       addPush(e.push, speed, fromX, fromY, e.x, e.y);
     }
-    if (fx.splash) this.burst(x, y, fx.splash, splashDamage(damage), e);
+    if (fx.splash) this.burst(x, y, fx.splash, splashDamage(result.damage), e);
   }
 
   /** Hurts every enemy near (x, y) except `skip`, with a ring to show where. */
@@ -212,7 +222,7 @@ export class EnemySystem {
       const e = this.group.get(pos.x, pos.y, def.texture) as Enemy | null;
       if (!e) break;
       const elite = Math.random() < this.elites;
-      const hp = enemyHpMultiplier(runTime) * this.ring.hp * (elite ? ELITE.hp : 1);
+      const hp = enemyHpMultiplier(runTime) * this.ring.hp * (elite ? ELITE.hp : 1) * this.hpMul;
       e.spawn(def, pos.x, pos.y, hp, this.ring.damage * (elite ? ELITE.damage : 1), elite);
       alive += 1;
     }

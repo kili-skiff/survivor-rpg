@@ -63,6 +63,51 @@ export const HIT_EFFECTS = {
   burstFxMs: 260,
 } as const;
 
+/** Chain Lightning (systems/weapons/ChainWeapon.ts, logic/chain.ts). Distances in px, times in ms. */
+export const CHAIN = {
+  /** How far from the player a strike may start */
+  range: 340,
+  /** How far a strike jumps on from one enemy to the next (times the weapon's area) */
+  jumpRange: 150,
+  /** Each jump deals this share of the damage of the one before */
+  falloff: 0.92,
+  /** Radius in which "seek" counts the neighbours of a possible target */
+  crowdRadius: 110,
+  /** How long a bolt of lightning stays visible */
+  fxMs: 240,
+} as const;
+
+/** Item effects that need a number of their own (config/passives.ts holds the per-level values). */
+export const ITEMS = {
+  /** The most that dodge, crit chance and the like can reach */
+  maxDodge: 0.75,
+  maxCrit: 1,
+  /** Skill cooldowns never drop below this share of their base through items */
+  minSkillHaste: 0.25,
+  /** Executioner: elites are finished off at this share of the threshold */
+  executeVsElite: 0.25,
+} as const;
+
+/** One-time cards (config/boons.ts). */
+export const BOONS = {
+  /** Hidden Cache: gold in normal drops (see goldPerDrop) */
+  cacheDrops: 12,
+  /** Shockwave: radius, damage, share of health and push */
+  shockRadius: 420,
+  shockDamage: 90,
+  shockPercent: 0.2,
+  shockPush: 520,
+  /** Judgement: elites lose this share of their current health; everybody else on screen dies */
+  judgementRadius: 520,
+  judgementElite: 0.4,
+  /** Second Wind: health restored on the revive (share of maximum), then this long without damage (ms) */
+  windHeal: 0.5,
+  windProtectMs: 2500,
+  /** Ember Surge: damage bonus and how long it lasts (ms) */
+  surgeBonus: 0.5,
+  surgeMs: 45000,
+} as const;
+
 /** At most this many chargers are in their warning or dash at the same time; the others wait. */
 export const MAX_CHARGERS_AT_ONCE = 2;
 /** Global cooldown (ms): after any charger starts its warning, none of them may start another for this long. */
