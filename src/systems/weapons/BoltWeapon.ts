@@ -50,6 +50,8 @@ export class BoltWeapon implements Weapon {
       this.timer = 0;
       return;
     }
+    // The player turns toward the first target; while moving, the movement direction wins again.
+    player.faceToward(targets[0].x - player.x, targets[0].y - player.y);
     for (let i = 0; i < stats.count; i++) {
       const target = targets[i % targets.length];
       const spread = i >= targets.length ? (i - targets.length + 1) * SPREAD : 0;

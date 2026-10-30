@@ -67,6 +67,16 @@ export class PlayerController {
     return this.facing;
   }
 
+  /**
+   * Turns the player toward (dx, dy), e.g. to the enemy a weapon fires at. While moving, the direction
+   * of movement takes over again at once.
+   */
+  faceToward(dx: number, dy: number): void {
+    if (Math.hypot(dx, dy) < 0.001) return;
+    this.facing.set(dx, dy).normalize();
+    if (!this.look) this.sprite.setFlipX(dx < 0);
+  }
+
   /** Walk animation in the facing direction, or the standing pose. */
   private animate(moving: boolean): void {
     if (!this.look) return;

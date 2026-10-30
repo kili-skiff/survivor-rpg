@@ -129,7 +129,8 @@ One character for everyone; weapons are the build, in the spirit of Hades (decid
   `BOLT_AIM`): while you move, Arcane Bolt only targets enemies in a cone in front of you (the last
   direction of movement), so you cannot shoot while running away. Standing still it hits the nearest enemy in
   any direction. That makes kiting possible: step back, stop, shoot, step back again. Enemies behind you
-  have to be handled by the other weapons or by stopping.
+  have to be handled by the other weapons or by stopping. Standing still, the character also turns toward
+  the enemy it shoots at.
 - **Permanent:** ores upgrade your main weapons at the blacksmith.
 - **New weapons:** weapon fragments dropped by elites, bosses and special places. Brought home, the
   blacksmith forges them into new weapons or variants (like weapon aspects in Hades).
