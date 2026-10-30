@@ -76,9 +76,9 @@ export const MAP_FOG = {
   /** The village glows like a lit watchfire, always: the Nest never goes out */
   villageGlow: {
     /** Radius of the glow in hexes */
-    radiusHexes: 3.2,
+    radiusHexes: 2.7,
     /** Strength (additive, 0..1) */
-    strength: 0.42,
+    strength: 0.3,
   },
   /** How much of the fog over unexplored hexes and outside the map is covered up again (0 = none, 1 = fully black) */
   unexploredCover: 0.82,
