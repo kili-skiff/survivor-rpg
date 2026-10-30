@@ -28,10 +28,11 @@ The sections below already describe the target; this list is the to-do for the c
 - **One character, no class and no skill tree.** Build identity comes from the **main weapon**,
   chosen before an expedition, each with its own special skill (see Weapons). Permanent bonuses are a
   flat list bought with embers.
-- **Phoenix Feather** instead of portal scrolls: bought with embers, takes you home from the middle
-  of a hex with everything you carry.
+- **Phoenix Feather** instead of portal scrolls: bought with embers, takes you home with everything
+  you carry after a cleared hex, away from a watchfire. It is no escape from a fight in progress.
 - **Event hexes** marked with "?" (see The world).
-- **Villagers you rescue** unlock core systems in the village (see Village).
+- **Core systems are in the village from the start** (blacksmith, herbalist, trader). Villagers you
+  rescue only bring special unlocks (see Village).
 
 ## Core loop
 
@@ -97,7 +98,9 @@ playable in the fight area (e.g. walking up to a shrine), or a mix.
 - Your in-run build keeps growing across segments, like one long Vampire Survivors run with breaks.
 - **Risk vs. reward:** after every cleared hex you choose to continue or go home. From a lit watchfire
   or next to the village going home is free; from anywhere else it takes a **Phoenix Feather**
-  (bought with embers), which brings you home with everything you carry.
+  (bought with embers), which brings you home with everything you carry. The feather only works
+  between hexes, after a fight is won: once a fight has started there is no way out but winning or
+  falling.
 - **Finds only count once you are home:** weapon fragments and seeds are the things worth bringing
   back, so turning back in time matters.
 - **Health carries over** between hexes; lit watchfires heal you fully.
@@ -227,13 +230,18 @@ rule set in `config/` plus its check in `logic/`; the fight only reports progres
   of ember upgrades (see Weapons and Progression).
 - **The Nest:** the undying fire in the middle of the village, where you wake up after a death. The
   village is a safe place: nothing bad happens while you are away.
-- **Villagers you rescue** (decided): three to five people wait at fixed places on the map. Rescuing
-  one brings them to the village, and each unlocks a **core system**, not just an extra:
-  - blacksmith (abandoned mine): weapon upgrades, new weapons from fragments, lanterns
-  - herbalist (hut in the mire): potions and the herb garden
-  - trader (trading post far out): Phoenix Feathers and other consumables
-  - maybe a cartographer: more map information
-- More villagers only come with new systems. Rescued villagers stay across seasons.
+- **Core systems from the start** (decided): the village has everything the core loop needs from
+  the first day:
+  - blacksmith: weapon upgrades, new weapons from fragments, lanterns
+  - herbalist (today the cauldron): potions and the herb garden
+  - trader (today the merchant): Phoenix Feathers, recipes and other consumables
+- **Villagers you rescue** (decided): a few people wait at fixed places on the map. Rescuing one
+  brings them to the village with a **special unlock** on top of the core systems, for example:
+  - a master smith in the abandoned mine: weapon variants or rare forging
+  - a herb witch in the mire: rare potion recipes and seeds
+  - a far trader from the trading post: rarer goods
+  - maybe a cartographer: more map information, e.g. what an event hex holds
+- Rescued villagers stay across seasons. New ones can come with a season.
 - Farming must feel like a reward, never like a chore you have to do before playing.
 - **Today** the village is a menu screen: the stash, what came home, and a button to set out.
 - **Later** it becomes a place you walk around in with your character: your house (stash),
@@ -259,7 +267,7 @@ up one by one.
   should be more of them (see The world).
 - **Places with a story in each direction**, each unlocking something in the village (the village
   grows by exploring; the villagers to rescue live here, see Village):
-  - an abandoned mine in the hills: the lost blacksmith, ores and the smithy
+  - an abandoned mine in the hills: a lost master smith, ores, weapon variants
   - a herb witch's hut in the mire: rare potion recipes
   - a crypt of fallen guardians in the graveyard: a boss and the first equipment
   - a trading post or second village far out: a better merchant, selling loot, a far waypoint
@@ -355,7 +363,7 @@ What a complete game could look like:
 | Area        | Scope                                                                                                         |
 | ----------- | ------------------------------------------------------------------------------------------------------------- |
 | World       | Hex map with 8–10 rings, three to four biomes (forest, mire, mountains, wasteland), the Old Tower at the edge |
-| Village     | The Nest plus three to five rescued villagers                                                                 |
+| Village     | The Nest, blacksmith, herbalist and trader from the start, plus a few rescued villagers with special unlocks  |
 | Weapons     | Six to eight main weapons, each with its own special skill and two to three variants                          |
 | Progression | Lantern tiers, weapon upgrades, ember upgrades as a list, herb garden                                         |
 | In a run    | Level-up cards, potions in the belt, elites, one boss per biome, event hexes                                  |
@@ -367,6 +375,6 @@ Suggested order for the new direction:
 1. The loop: one main weapon, lantern, ember upgrades as a list, waking up in the Nest.
 2. Ores and the blacksmith, a second main weapon.
 3. Herbs, potions and the belt (mostly built).
-4. Rescuing villagers as unlocks, weapon fragments and seeds.
+4. Rescuing villagers as special unlocks, weapon fragments and seeds.
 5. The large map with biomes, bosses, event hexes and the Old Tower.
 6. Seasons last.

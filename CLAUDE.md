@@ -132,7 +132,7 @@ A small but complete piece of the game from `docs/vision.md`. Each step is its o
 - [ ] Varied fight goals (kill N enemies, find the light or the dungeon, ... see `docs/vision.md`)
 - [ ] Herb garden: plant herbs and harvest more of them, growing in real time
 - [ ] Main weapons chosen in the village, each with its own special skill (replaces the planned class and skill tree)
-- [ ] Gold becomes Embers (kept on death); camps replaced by watchfires as waypoints; Phoenix Feather to return home (see vision)
+- [ ] Gold becomes Embers (kept on death); camps replaced by watchfires as waypoints; Phoenix Feather to return home after a won fight (see vision)
 - [ ] Ember upgrades: a flat list of permanent bonuses
 - [ ] A boss guarding a dungeon or the outer ring
 
@@ -144,7 +144,7 @@ A small but complete piece of the game from `docs/vision.md`. Each step is its o
 - [ ] Professions (e.g. herbalist) with skills such as faster gathering
 - [ ] Walkable village: house, garden, cauldron, merchant, blacksmith as places to walk to
 - [ ] Event hexes marked "?" (luck, choice, challenge, encounter)
-- [ ] Rescuing villagers who unlock village systems (blacksmith, herbalist, trader)
+- [ ] Rescuing villagers who bring special unlocks (core systems like blacksmith, herbalist and trader are in the village from the start)
 - [ ] Weapon fragments and seeds as finds that only count once you are home
 - [ ] Seasons with a shared seed (Diablo-style: map resets, village and weapons stay); a season ranking only maybe, later (needs a server)
 - [ ] More biomes, enemies, weapons and classes

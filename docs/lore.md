@@ -51,8 +51,9 @@ You always wake up in the Nest, like a phoenix rising from the embers. Your lant
 Nest's flame and stays bound to it, so when you fall, the fire takes you back. Nothing else needs
 explaining. The villagers greet you when you wake.
 
-A **Phoenix Feather** does the same without dying: it burns up, and you wake in the Nest with
-everything you carried.
+A **Phoenix Feather** does the same without dying: after a won fight it burns up, and you wake in
+the Nest with everything you carried. In the middle of a fight it does nothing; the darkness does
+not let go of you that easily.
 
 ## Embers
 
@@ -62,9 +63,12 @@ embers burn.
 
 ## Villagers
 
-You were found in the dark; now you find others. A few villagers wait at fixed places on the map
-(the lost blacksmith in the mine, the herbalist in the mire, a trader far out). Rescuing one brings
-them to the village, where they open a new part of the game. They speak in short lines only.
+The village already has a blacksmith, a herbalist and a trader when you arrive; everything you need
+to get started is there. They speak in short lines only.
+
+You were found in the dark; now you find others. A few more people wait at fixed places on the map
+(a master smith lost in the mine, a herb witch in the mire, a trader far out). Rescuing one brings
+them to the village, where they offer something special: rare recipes, rare goods, weapon variants.
 
 ## Seasons: the Long Night
 
@@ -75,19 +79,19 @@ village, the people you rescued and what you have built stay.
 
 The game is built in English first; a German version may follow later.
 
-| In game          | German (for reference) | Meaning                                         |
-| ---------------- | ---------------------- | ----------------------------------------------- |
-| Embers           | Glut                   | Currency                                        |
-| The Nest         | Das Nest               | The undying fire in the village, where you wake |
-| Phoenix          | Phönix                 | The legend behind the Nest                      |
-| Watchfires       | Wachfeuer              | Old fires: map reveal, rest and fast travel     |
-| Lantern          | Laterne                | Your light and sight radius                     |
-| Sunstone Lantern | Sonnenstein-Laterne    | Highest lantern tier                            |
-| Phoenix Feather  | Phönixfeder            | Return home from the middle of a hex            |
-| Weapon Fragment  | Waffenfragment         | Building block for new weapons                  |
-| Star Lily        | Sternlilie             | Rare herb                                       |
-| The Long Night   | Die Lange Nacht        | A season                                        |
-| The Old Tower    | Der Alte Turm          | Endgame                                         |
+| In game          | German (for reference) | Meaning                                              |
+| ---------------- | ---------------------- | ---------------------------------------------------- |
+| Embers           | Glut                   | Currency                                             |
+| The Nest         | Das Nest               | The undying fire in the village, where you wake      |
+| Phoenix          | Phönix                 | The legend behind the Nest                           |
+| Watchfires       | Wachfeuer              | Old fires: map reveal, rest and fast travel          |
+| Lantern          | Laterne                | Your light and sight radius                          |
+| Sunstone Lantern | Sonnenstein-Laterne    | Highest lantern tier                                 |
+| Phoenix Feather  | Phönixfeder            | Return home after a won fight, away from a watchfire |
+| Weapon Fragment  | Waffenfragment         | Building block for new weapons                       |
+| Star Lily        | Sternlilie             | Rare herb                                            |
+| The Long Night   | Die Lange Nacht        | A season                                             |
+| The Old Tower    | Der Alte Turm          | Endgame                                              |
 
 ## Sample lines
 
