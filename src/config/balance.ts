@@ -63,7 +63,7 @@ export const HIT_EFFECTS = {
   burstFxMs: 260,
 } as const;
 
-/** The standard attack (Arcane Bolt) only fires where the player looks, i.e. moves (logic/aim.ts). */
+/** On the move, the standard attack (Arcane Bolt) only fires where the player looks; standing still it fires all around (logic/aim.ts). */
 export const BOLT_AIM = {
   /** Enemies up to this angle (degrees) to either side of the looking direction can be targeted */
   halfAngleDeg: 55,

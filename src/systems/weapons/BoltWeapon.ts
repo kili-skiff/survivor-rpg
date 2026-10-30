@@ -15,7 +15,10 @@ const SPREAD = 0.18;
 /** Cosine of the aiming cone's half angle */
 const CONE_COS = coneCos(BOLT_AIM.halfAngleDeg);
 
-/** Arcane bolt: fires at the nearest enemies in front of the player, where they look. */
+/**
+ * Arcane bolt: fires at the nearest enemies in front of the player while they move (where they look),
+ * and at the nearest ones in any direction while they stand still, so kiting works but running away does not.
+ */
 export class BoltWeapon implements Weapon {
   private readonly projectiles: Phaser.Physics.Arcade.Group;
   private timer = FIRST_SHOT_DELAY;
@@ -39,8 +42,10 @@ export class BoltWeapon implements Weapon {
 
     const { player, enemies } = this.ctx;
     const range = this.ctx.visionRange();
+    // On the move it only fires where you look; standing still it picks the nearest enemy all around.
     const { x: dirX, y: dirY } = player.aim;
-    const targets = enemies.nearest(stats.count, range, { dirX, dirY, cosHalf: CONE_COS });
+    const cone = player.moving ? { dirX, dirY, cosHalf: CONE_COS } : undefined;
+    const targets = enemies.nearest(stats.count, range, cone);
     if (targets.length === 0) {
       this.timer = 0;
       return;

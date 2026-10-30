@@ -32,6 +32,7 @@ export class PlayerController {
   private dashDamage = 0;
   private lastGhostAt = 0;
   private invulnUntil = 0;
+  private isMoving = false;
   private hurtFlashUntil = 0;
 
   constructor(
@@ -54,6 +55,11 @@ export class PlayerController {
       this.sprite = scene.physics.add.sprite(0, 0, 'player').setDepth(3);
       this.sprite.body!.setCircle(12, 5, 4);
     }
+  }
+
+  /** True while the player moves or dashes, false while standing still. */
+  get moving(): boolean {
+    return this.isMoving;
   }
 
   /** Where the player looks: the last direction of movement, as a unit vector. */
@@ -111,6 +117,7 @@ export class PlayerController {
     const now = this.now();
     const dashing = this.isDashing();
 
+    this.isMoving = dashing;
     if (dashing) {
       p.setVelocity(this.dashDir.x * DASH_SPEED, this.dashDir.y * DASH_SPEED);
       this.spawnGhost(now);
@@ -118,6 +125,7 @@ export class PlayerController {
     } else {
       p.setVelocity(moveX * moveSpeed, moveY * moveSpeed);
       const moving = Math.hypot(moveX, moveY) > DIRECTION_DEADZONE;
+      this.isMoving = moving;
       if (moving) {
         this.facing.set(moveX, moveY).normalize();
         if (!this.look) p.setFlipX(moveX < 0);
