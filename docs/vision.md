@@ -170,6 +170,10 @@ and fits the identity of the game. Not decided.
 **Spawn director** (wanted, separate from the swarm steering): one place that decides when and how
 enemies come, instead of a constant stream. Waves with breathers, announced events (a ring closing
 in, a wall from one side), and pressure that rises and falls over a fight.
+Mind the ghouls: their pounces already run through a global cooldown (`ChargeGate`,
+`CHARGE_COOLDOWN_MS`), so a wave of ghouls pounces one after another instead of all at once. The
+director and the cooldown should not work against each other: either leave the pacing of pounces to the
+gate, or let the director set the cooldown per wave.
 
 **Other ideas on the table:** obstacles (trees, ruins) that break up the crowd, tools
 against blobs (area damage, pierce, knockback, percent-health damage), fewer but more varied
