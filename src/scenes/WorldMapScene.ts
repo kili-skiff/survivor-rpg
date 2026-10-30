@@ -501,6 +501,26 @@ export class WorldMapScene extends Phaser.Scene {
         g.fillStyle(0xfdba74, 0.8 * glow).fillCircle(p.x, p.y, s * 0.08);
       }
     }
+    this.drawNestFlame(g, hexToPixelFlat(ORIGIN, s));
+  }
+
+  /**
+   * The flame of the Nest, drawn over the fire bowl painted on the village tile. Drawn in code, above
+   * the fog, so it flickers and stays bright. Sizes are in pixels of the tile art (one tile pixel =
+   * `tileScale` screen pixels); the bowl's rim sits half a pixel below the hex centre.
+   */
+  private drawNestFlame(g: Phaser.GameObjects.Graphics, center: { x: number; y: number }): void {
+    const px = this.tiles.length > 0 ? this.tileScale : this.hexSize / 16;
+    const t = this.time0;
+    const flicker = 0.9 + Math.sin(t * 8) * 0.07 + Math.sin(t * 14 + 1) * 0.05;
+    const sway = Math.sin(t * 5) * 0.7 * px;
+    const x = center.x + px;
+    const base = center.y - 0.5 * px;
+    const h = 7.5 * px * flicker;
+    g.fillStyle(0xdc4a0b, 0.95).fillTriangle(x - 3.5 * px, base, x + 3.5 * px, base, x + sway, base - h);
+    g.fillStyle(0xf68c02, 1).fillTriangle(x - 2.6 * px, base, x + 2.6 * px, base, x + sway, base - h * 0.82);
+    g.fillStyle(0xf1b81a, 1).fillTriangle(x - 1.8 * px, base, x + 1.8 * px, base, x + sway, base - h * 0.6);
+    g.fillStyle(0xfbe7a2, 1).fillTriangle(x - 0.9 * px, base, x + 0.9 * px, base, x + sway, base - h * 0.34);
   }
 
   /** A stone brazier with a flame; `heat` 1 = burning, lower = embers only. */
