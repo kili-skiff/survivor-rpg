@@ -4,7 +4,9 @@ A survivors-like game in the spirit of Vampire Survivors, with RPG progression a
 Goal: web first, native apps later (Capacitor for Android/iOS, Tauri for desktop).
 
 **Read [docs/vision.md](docs/vision.md) before planning features.** It describes the target game
-(village, hex world, expeditions, herbs and potions, seasons) and its open questions.
+(village, hex world, expeditions, weapons, herbs and potions, seasons) and its open questions; its
+section "Decided, not built yet" lists where the code still differs from the target.
+The world, story and in-game terms (Embers, the Nest, watchfires) are in [docs/lore.md](docs/lore.md).
 
 ## Stack
 
@@ -129,7 +131,9 @@ A small but complete piece of the game from `docs/vision.md`. Each step is its o
 - [ ] Open idea: light as a combat rule (slows or hurts enemies in the lantern's light); to be thought through
 - [ ] Varied fight goals (kill N enemies, find the light or the dungeon, ... see `docs/vision.md`)
 - [ ] Herb garden: plant herbs and harvest more of them, growing in real time
-- [ ] One class with a small skill tree
+- [ ] Main weapons chosen in the village, each with its own special skill (replaces the planned class and skill tree)
+- [ ] Gold becomes Embers (kept on death); camps replaced by watchfires as waypoints; Phoenix Feather to return home (see vision)
+- [ ] Ember upgrades: a flat list of permanent bonuses
 - [ ] A boss guarding a dungeon or the outer ring
 
 ### Later
@@ -139,7 +143,10 @@ A small but complete piece of the game from `docs/vision.md`. Each step is its o
 - [ ] Richer expedition panel on the map: health bar and the collected weapons, items and skills
 - [ ] Professions (e.g. herbalist) with skills such as faster gathering
 - [ ] Walkable village: house, garden, cauldron, merchant, blacksmith as places to walk to
-- [ ] Seasons with a shared seed, then leaderboards (needs a server)
+- [ ] Event hexes marked "?" (luck, choice, challenge, encounter)
+- [ ] Rescuing villagers who unlock village systems (blacksmith, herbalist, trader)
+- [ ] Weapon fragments and seeds as finds that only count once you are home
+- [ ] Seasons with a shared seed (Diablo-style: map resets, village and weapons stay); a season ranking only maybe, later (needs a server)
 - [ ] More biomes, enemies, weapons and classes
 - [ ] Sound effects and music
 - [ ] Real art (sprite atlas) instead of placeholders
