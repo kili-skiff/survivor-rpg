@@ -12,6 +12,7 @@ import { formatTime, xpToNext } from '../logic/progression';
 import { safeStorage } from '../logic/save';
 import { isSegmentWarning, segmentRemaining } from '../logic/segment';
 import { loadSettings, otherSide, writeSettings, type Settings } from '../logic/settings';
+import { RARITIES } from '../config/rarity';
 import { describeUpgrade, type UpgradeOption } from '../logic/upgrades';
 import { DevPanel } from '../dev/DevPanel'; // DEV:
 import { isDevMode } from '../dev/devMode'; // DEV:
@@ -877,7 +878,10 @@ export class UIScene extends Phaser.Scene {
       const card = describeUpgrade(reward.upgrades[i]);
       reel.icon.setTexture(card.texture).setDisplaySize(size * 0.62, size * 0.62);
       reel.label.setVisible(true);
-      reel.frame.lineStyle(3 * u, COLORS.accent, 1).strokeRoundedRect(reel.x, rowY, size, size, 12 * u);
+      reel.frame
+        .lineStyle(3 * u, RARITIES[card.rarity].color, 1)
+        .strokeRoundedRect(reel.x, rowY, size, size, 12 * u);
+      reel.label.setColor(css(RARITIES[card.rarity].color));
       this.tweens.add({ targets: reel.icon, scale: reel.icon.scale * 1.25, duration: 120, yoyo: true });
     };
     for (let i = 0; i < this.chestRevealed; i++) reveal(i);
@@ -1171,12 +1175,26 @@ export class UIScene extends Phaser.Scene {
     const u = this.u;
     const card = describeUpgrade(option);
     const g = this.add.graphics().setDepth(51);
-    const edge = card.isNew ? COLORS.accent : COLORS.panelEdge;
+    const rarity = RARITIES[card.rarity];
+    const edge = rarity.color;
+    // Rarer cards get a thicker frame; legendary ones also a faint glow inside it.
+    const width = card.rarity === 'common' ? 2 : card.rarity === 'magic' ? 3 : 4;
     const draw = (hover: boolean) => {
       g.clear();
       g.fillStyle(hover ? 0x2e2642 : COLORS.panel, 0.97).fillRoundedRect(x, y, w, h, 14 * u);
-      g.lineStyle((hover ? 3 : 2) * u, hover ? 0xffffff : edge, 1).strokeRoundedRect(x, y, w, h, 14 * u);
+      if (card.rarity !== 'common') {
+        g.fillStyle(edge, hover ? 0.2 : 0.12).fillRoundedRect(x, y, w, h, 14 * u);
+      }
+      g.lineStyle((hover ? width + 1 : width) * u, hover ? 0xffffff : edge, 1).strokeRoundedRect(
+        x,
+        y,
+        w,
+        h,
+        14 * u,
+      );
     };
+    // Common cards carry no rarity word; the others name theirs.
+    const badge = card.rarity === 'common' ? card.badge : `${rarity.label} · ${card.badge}`;
     draw(false);
     this.overlay.push(g);
 
@@ -1189,8 +1207,8 @@ export class UIScene extends Phaser.Scene {
         .setDepth(52);
       this.overlay.push(icon);
       const ty = y + 26 * u + iconSize;
-      this.text(x + w / 2, ty, keyHint + card.badge, 10, {
-        color: css(edge === COLORS.accent ? COLORS.accent : 0xa78bfa),
+      this.text(x + w / 2, ty, keyHint + badge, 10, {
+        color: css(edge),
         fontStyle: 'bold',
       }).setOrigin(0.5, 0);
       this.text(x + w / 2, ty + 16 * u, card.title, 17, { fontStyle: 'bold' }).setOrigin(0.5, 0);
@@ -1206,8 +1224,8 @@ export class UIScene extends Phaser.Scene {
       this.overlay.push(icon);
       const tx = x + 28 * u + iconSize;
       const textW = w - (tx - x) - 12 * u;
-      this.text(tx, y + 10 * u, keyHint + card.badge, 10, {
-        color: css(edge === COLORS.accent ? COLORS.accent : 0xa78bfa),
+      this.text(tx, y + 10 * u, keyHint + badge, 10, {
+        color: css(edge),
         fontStyle: 'bold',
         align: 'left',
       }).setOrigin(0, 0);

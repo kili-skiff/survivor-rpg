@@ -4,13 +4,15 @@ import boot from '../scenes/BootScene.ts?raw';
 import { ITEMS } from '../config/balance';
 import { BOON_DEFS } from '../config/boons';
 import { BASE_PLAYER_STATS, PASSIVES } from '../config/passives';
+import { RARITIES } from '../config/rarity';
+import { SKILLS } from '../config/skills';
 import type { BoonId, PassiveId, WeaponId } from '../config/types';
 import { WEAPONS } from '../config/weapons';
 import { buildChain, chainDamage, pickChainStart, type ChainTarget } from './chain';
 import { dropsChest, rollChest } from './chest';
 import { neutralMods, resolveHit, situationalDamage } from './hitEffects';
 import { computePlayerStats, computeSkillStats, computeWeaponStats, createStartLoadout } from './stats';
-import { availableUpgrades, describeUpgrade } from './upgrades';
+import { availableUpgrades, describeUpgrade, rollUpgradeOptions } from './upgrades';
 import type { Loadout } from './stats';
 
 function loadoutWith(passives: Partial<Record<PassiveId, number>>): Loadout {
@@ -229,5 +231,51 @@ describe('icons', () => {
     for (const def of Object.values(PASSIVES)) if (!hasIcon(def.texture)) missing.push(def.texture);
     for (const def of Object.values(BOON_DEFS)) if (!hasIcon(def.texture)) missing.push(def.texture);
     expect(missing).toEqual([]);
+  });
+});
+
+describe('rarity', () => {
+  const defs = [
+    ...Object.values(WEAPONS),
+    ...Object.values(PASSIVES),
+    ...Object.values(SKILLS),
+    ...Object.values(BOON_DEFS),
+  ];
+
+  it('is set for every card and known', () => {
+    for (const def of defs) expect(Object.keys(RARITIES)).toContain(def.rarity);
+  });
+
+  it('has colours that differ and weights that fall with rarity', () => {
+    const { common, magic, legendary } = RARITIES;
+    expect(new Set([common.color, magic.color, legendary.color]).size).toBe(3);
+    expect(common.weight).toBeGreaterThan(magic.weight);
+    expect(magic.weight).toBeGreaterThan(legendary.weight);
+  });
+
+  it('every rarity is in use', () => {
+    for (const rarity of Object.keys(RARITIES)) expect(defs.some((d) => d.rarity === rarity)).toBe(true);
+  });
+
+  it('shows on the card', () => {
+    expect(describeUpgrade({ kind: 'boon', id: 'judgement' }).rarity).toBe('legendary');
+    expect(describeUpgrade({ kind: 'passive', id: 'might', toLevel: 2 }).rarity).toBe('common');
+    expect(describeUpgrade({ kind: 'heal' }).rarity).toBe('common');
+  });
+
+  it('makes legendary cards turn up less often than common ones', () => {
+    let s = 7;
+    const rng = () => {
+      s = (s * 1664525 + 1013904223) % 4294967296;
+      return s / 4294967296;
+    };
+    const seen = { common: 0, magic: 0, legendary: 0 };
+    for (let i = 0; i < 400; i++) {
+      for (const o of rollUpgradeOptions(createStartLoadout('bolt'), rng, 1)) {
+        seen[describeUpgrade(o).rarity] += 1;
+      }
+    }
+    expect(seen.common).toBeGreaterThan(seen.legendary);
+    expect(seen.legendary).toBeGreaterThan(0);
   });
 });

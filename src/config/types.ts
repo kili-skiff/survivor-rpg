@@ -3,6 +3,9 @@
 import type { CharacterSpriteId } from './sprites';
 
 export type WeaponId = 'bolt' | 'blades' | 'aura' | 'chain';
+/** How rare a card is: decides how often it is offered and the colour of its frame (config/rarity.ts) */
+export type Rarity = 'common' | 'magic' | 'legendary';
+
 export type PassiveId =
   | 'vitality'
   | 'swiftness'
@@ -128,6 +131,7 @@ export interface WeaponDef {
   name: string;
   description: string;
   texture: string;
+  rarity: Rarity;
   base: WeaponStats;
   /** Level 2, 3, … (level 1 = base) */
   levels: LevelStep<WeaponStats>[];
@@ -138,6 +142,7 @@ export interface BoonDef {
   name: string;
   description: string;
   texture: string;
+  rarity: Rarity;
 }
 
 export interface PassiveDef {
@@ -146,6 +151,7 @@ export interface PassiveDef {
   /** Text per level */
   description: string;
   texture: string;
+  rarity: Rarity;
   maxLevel: number;
   perLevel: Partial<PlayerStats>;
 }
@@ -166,6 +172,7 @@ export interface SkillDef {
   name: string;
   description: string;
   texture: string;
+  rarity: Rarity;
   base: SkillStats;
   levels: LevelStep<SkillStats>[];
 }
