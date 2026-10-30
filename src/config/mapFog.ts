@@ -73,10 +73,10 @@ export const MAP_FOG = {
     /** Flicker share of the strength */
     flicker: 0.12,
   },
-  /** How much of the fog over unexplored hexes is covered up again (0 = none, 1 = fully black) */
+  /** How much of the fog over unexplored hexes and outside the map is covered up again (0 = none, 1 = fully black) */
   unexploredCover: 0.82,
-  /** The fog stops this far (in hexes) beyond the outermost hex; further out is plain background */
+  /** The fog stops this far (in hexes) beyond the outermost hex; beyond it only background */
   edgeHexes: 0.6,
-  /** The fog sheets reach this far (in hexes) beyond the outermost hex; the part past the edge is wiped */
-  marginHexes: 6,
+  /** The fog sheets reach this far (in hexes) beyond the outermost hex; the part past the edge is covered up */
+  marginHexes: 16,
 } as const;

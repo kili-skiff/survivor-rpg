@@ -43,7 +43,7 @@ export class MapFog {
   private readonly sheets: Sheet[] = [];
   private readonly glows = new Map<string, Glow>();
   private readonly cover: Phaser.GameObjects.Graphics;
-  /** The land outside the map: plain background, no fog */
+  /** The land outside the map: the fog stays as faint as over unexplored hexes */
   private readonly outside: Phaser.GameObjects.Graphics;
   private hexSize = 1;
 
@@ -103,13 +103,13 @@ export class MapFog {
   }
 
   /**
-   * Wipes the fog from everything outside the map. The map is a big hexagon around the village;
-   * the outside is the ring between it and a much larger copy, drawn in the background colour.
+   * Keeps the fog faint outside the map. The map is a big hexagon around the village;
+   * the outside is the ring between it and a much larger copy, covered like the unexplored hexes.
    */
   private drawOutside(hexSize: number): void {
     const g = this.outside;
     g.clear();
-    g.fillStyle(COLORS.bg, 1);
+    g.fillStyle(COLORS.bg, MAP_FOG.unexploredCover);
     // Corner hexes sit 'sqrt(3) * radius' from the village; the straight edges are 1.5 * radius away.
     const apothem = 1.5 * WORLD.radius * hexSize + MAP_FOG.edgeHexes * hexSize;
     const reach = apothem / Math.cos(Math.PI / 6);
