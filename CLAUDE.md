@@ -109,7 +109,8 @@ scripts/ground/ Generates the ground tiles (Python + Pillow + numpy; our own art
 
 ### Milestone 1: vertical slice
 
-A small but complete piece of the game from `docs/vision.md`. Each step is its own PR.
+A small but complete piece of the game from `docs/vision.md`. Each step is its own PR. Done items
+describe the game as built; some of it changes in Milestone 2 (gold, camps).
 
 - [x] Segments with a goal (e.g. survive N minutes) and a result screen
 - [x] Hex world map from a seed: rings, biomes, fog of war; tap a neighbour hex to play it
@@ -125,29 +126,45 @@ A small but complete piece of the game from `docs/vision.md`. Each step is its o
 - [x] Intro quest: at the first start the elder hands over the lantern and points to the nearest watchfire; lighting it pays gold
 - [x] Deeds: exploration milestones (new rings, camps, watchfires, the tower) with small bonuses for good
 - [x] Spread the swarm: soft separation, sideways drift, reaction delay and varied speed, so enemies do not pile into one blob (`logic/swarm.ts`)
-- [ ] Finetune the swarm (work in progress): in tight crowds enemies seem to shove each other, so smooth their movement, soften the hard overlap push and maybe shrink the personal space; values in `SWARM`
+- [ ] Finetune the swarm (work in progress): in tight crowds enemies seem to shove each other, so smooth their movement, soften the hard overlap push and maybe shrink the personal space; values in `SWARM`. This is about how enemies move, not when they come.
+- [ ] Spawn director: pacing instead of a constant stream, e.g. waves with breathers and announced events (a ring closing in, a wall from one side); see "Other ideas" in `docs/vision.md`
 - [ ] New enemy types with different behaviour (flanker, ranged, charger, ...)
 - [ ] Elites with a mechanic, their own movement and fair health (target fight length)
-- [ ] Open idea: light as a combat rule (slows or hurts enemies in the lantern's light); to be thought through
 - [ ] Varied fight goals (kill N enemies, find the light or the dungeon, ... see `docs/vision.md`)
-- [ ] Herb garden: plant herbs and harvest more of them, growing in real time
-- [ ] Main weapons chosen in the village, each with its own special skill (replaces the planned class and skill tree)
-- [ ] Gold becomes Embers (kept on death); camps replaced by watchfires as waypoints; Phoenix Feather to return home after a won fight (see vision)
-- [ ] Ember upgrades: a flat list of permanent bonuses
-- [ ] A boss guarding a dungeon or the outer ring
+
+### Milestone 2: new core loop
+
+The decisions in "Decided, not built yet" in `docs/vision.md`. They change the economy, save data
+and the loop, so later content builds on them. Each step is its own PR.
+
+- [ ] Gold becomes Embers, kept on death (chests, elites, quests and merchant pay embers)
+- [ ] More watchfires on the map (one every two to three rings), so they can replace camps
+- [ ] Camps go away: lit watchfires are the waypoints (rest, healing, fast travel, setting out)
+- [ ] Phoenix Feather: bought with embers, takes you home after a won fight away from a watchfire
+- [ ] New death rules: keep embers and everything permanent, lose level-ups, ores, herbs and finds
+- [ ] Main weapons chosen in the village, each with its own special skill; the dash stays for all (replaces the planned class and skill tree)
+- [ ] Ember upgrades: a flat list of permanent bonuses (e.g. health, speed, pickup radius, faster gathering)
+- [ ] Ores and the blacksmith (in the village from the start): weapon upgrades and lanterns
+
+### Milestone 3: depth
+
+- [ ] Herb garden: plant herbs and harvest more of them, growing in real time, new plants from seeds
+- [ ] Weapon fragments and seeds as finds that only count once you are home; the blacksmith forges fragments into new weapons or variants
+- [ ] Event hexes marked "?" (luck, choice, challenge, encounter)
+- [ ] Rescuing villagers who bring special unlocks (core systems like blacksmith, herbalist and trader are in the village from the start)
+- [ ] A boss per biome, guarding a dungeon or an important place
+
+### Milestone 4: world and endgame
+
+- [ ] Bigger map (8–10 rings) with exciting places in every direction, not only on the way to the tower
+- [ ] More biomes, enemies and main weapons
+- [ ] Inside the tower: endgame mechanics still open (e.g. ever harder floors)
 
 ### Later
 
-- [ ] Inside the tower: endgame mechanics still open (e.g. ever harder floors)
-- [ ] Bigger map with exciting places in every direction, not only on the way to the tower
 - [ ] Richer expedition panel on the map: health bar and the collected weapons, items and skills
-- [ ] Professions (e.g. herbalist) with skills such as faster gathering
 - [ ] Walkable village: house, garden, cauldron, merchant, blacksmith as places to walk to
-- [ ] Event hexes marked "?" (luck, choice, challenge, encounter)
-- [ ] Rescuing villagers who bring special unlocks (core systems like blacksmith, herbalist and trader are in the village from the start)
-- [ ] Weapon fragments and seeds as finds that only count once you are home
-- [ ] Seasons with a shared seed (Diablo-style: map resets, village and weapons stay); a season ranking only maybe, later (needs a server)
-- [ ] More biomes, enemies, weapons and classes
 - [ ] Sound effects and music
 - [ ] Real art (sprite atlas) instead of placeholders
+- [ ] Seasons with a shared seed (Diablo-style: map resets, village and weapons stay); a season ranking only maybe, later (needs a server)
 - [ ] PWA (installable), then Capacitor (Android/iOS) and Tauri (desktop)

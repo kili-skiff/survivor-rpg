@@ -160,8 +160,11 @@ Ideas collected so far (nothing decided beyond the "wanted" list):
 light, faster in the dark; watchfires as safer zones). It would give lanterns a role against swarms
 and fits the identity of the game. Not decided.
 
-**Other ideas on the table:** waves with breathers instead of a constant stream, announced events
-(a ring closing in, a wall from one side), obstacles (trees, ruins) that break up the crowd, tools
+**Spawn director** (wanted, separate from the swarm steering): one place that decides when and how
+enemies come, instead of a constant stream. Waves with breathers, announced events (a ring closing
+in, a wall from one side), and pressure that rises and falls over a fight.
+
+**Other ideas on the table:** obstacles (trees, ruins) that break up the crowd, tools
 against blobs (area damage, pierce, knockback, percent-health damage), fewer but more varied
 enemies, and showing a "recommended strength" per ring on the map so hard rings are a choice.
 
