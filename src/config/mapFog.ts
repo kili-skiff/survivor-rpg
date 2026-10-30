@@ -75,6 +75,8 @@ export const MAP_FOG = {
   },
   /** How much of the fog over unexplored hexes is covered up again (0 = none, 1 = fully black) */
   unexploredCover: 0.82,
-  /** Fog is drawn this far (in hexes) beyond the outermost hex, so panning shows no edge nearby */
-  marginHexes: 10,
+  /** The fog stops this far (in hexes) beyond the outermost hex; further out is plain background */
+  edgeHexes: 0.6,
+  /** The fog sheets reach this far (in hexes) beyond the outermost hex; the part past the edge is wiped */
+  marginHexes: 6,
 } as const;

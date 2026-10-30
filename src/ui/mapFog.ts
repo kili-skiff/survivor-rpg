@@ -2,6 +2,7 @@ import * as Phaser from 'phaser';
 import { MAP_FOG, type FogLayer } from '../config/mapFog';
 import { WORLD } from '../config/world';
 import { fogDensity } from '../logic/fogNoise';
+import { COLORS } from './theme';
 
 /** Fog sits above the tiles and herbs but below travel targets, quest marks, fires and the player. */
 const FOG_DEPTH = 0.4;
@@ -42,6 +43,8 @@ export class MapFog {
   private readonly sheets: Sheet[] = [];
   private readonly glows = new Map<string, Glow>();
   private readonly cover: Phaser.GameObjects.Graphics;
+  /** The land outside the map: plain background, no fog */
+  private readonly outside: Phaser.GameObjects.Graphics;
   private hexSize = 1;
 
   /** `fires` are the hex keys of all watchfires on the map. */
@@ -55,6 +58,7 @@ export class MapFog {
       this.sheets.push({ def, sprite, phase: i * 2.1, x: i * 97, y: i * 53 });
     });
     this.cover = scene.add.graphics().setDepth(COVER_DEPTH);
+    this.outside = scene.add.graphics().setDepth(COVER_DEPTH);
     if (scene.textures.exists(LIGHT_TEXTURE)) {
       fires.forEach((key, i) => {
         const image = scene.add
@@ -70,7 +74,12 @@ export class MapFog {
 
   /** Everything the map camera draws for the fog (the HUD camera must ignore it). */
   objects(): Phaser.GameObjects.GameObject[] {
-    return [...this.sheets.map((s) => s.sprite), this.cover, ...[...this.glows.values()].map((g) => g.image)];
+    return [
+      ...this.sheets.map((s) => s.sprite),
+      this.cover,
+      this.outside,
+      ...[...this.glows.values()].map((g) => g.image),
+    ];
   }
 
   /** Sizes the fog to the map. `fires` maps a watchfire's hex key to its position on the map. */
@@ -85,10 +94,35 @@ export class MapFog {
       const scale = (def.tileHexes * hexSize) / MAP_FOG.textureSize;
       sprite.setPosition(cx, cy).setSize(w, h).setTileScale(scale, scale);
     }
+    this.drawOutside(hexSize);
     const radius = WORLD.watchfireRevealRadius * 1.5 + MAP_FOG.fireGlow.extraHexes;
     for (const [key, glow] of this.glows) {
       const p = fires.get(key);
       if (p) glow.image.setPosition(p.x, p.y).setDisplaySize(radius * 2 * hexSize, radius * 2 * hexSize);
+    }
+  }
+
+  /**
+   * Wipes the fog from everything outside the map. The map is a big hexagon around the village;
+   * the outside is the ring between it and a much larger copy, drawn in the background colour.
+   */
+  private drawOutside(hexSize: number): void {
+    const g = this.outside;
+    g.clear();
+    g.fillStyle(COLORS.bg, 1);
+    // Corner hexes sit 'sqrt(3) * radius' from the village; the straight edges are 1.5 * radius away.
+    const apothem = 1.5 * WORLD.radius * hexSize + MAP_FOG.edgeHexes * hexSize;
+    const reach = apothem / Math.cos(Math.PI / 6);
+    const corner = (k: number, scale: number) => {
+      const a = Math.PI / 6 + (Math.PI / 3) * k;
+      return { x: Math.cos(a) * reach * scale, y: Math.sin(a) * reach * scale };
+    };
+    for (let k = 0; k < 6; k++) {
+      const quad = [corner(k, 1), corner(k + 1, 1), corner(k + 1, 4), corner(k, 4)];
+      g.beginPath();
+      quad.forEach((p, i) => (i === 0 ? g.moveTo(p.x, p.y) : g.lineTo(p.x, p.y)));
+      g.closePath();
+      g.fillPath();
     }
   }
 
@@ -130,6 +164,7 @@ export class MapFog {
         .setVisible(showFog);
     }
     this.cover.setVisible(showFog);
+    this.outside.setVisible(showFog);
     const { strength, flicker } = MAP_FOG.fireGlow;
     for (const [key, glow] of this.glows) {
       const on = lit(key);
