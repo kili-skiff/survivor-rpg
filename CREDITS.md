@@ -7,6 +7,10 @@ Art and other assets made by others, with their source and licence.
 | World map hex tiles (`public/assets/tiles/hex-tiles.png`)                        | The Clover Patch (cuddlyclover)                                                                                                                                                                                                                                                                                                                                                          | [Fantasy Hex Tiles](https://cuddlyclover.itch.io/fantasy-hex-tiles)                                                                                                                             | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)       |
 | Fight characters: watchman, zombie, ghoul, brute (`public/assets/sprites/*.png`) | Stephen Challener (Redshrike), Johannes Sjölund (wulax), bluecarrot16, Benjamin K. Smith (BenCreating), JaidynReiman, Eliza Wyatt (ElizaWy), Sander Frenken (castelonia), Napsio, Nila122, Matthew Krohn (makrohn), Durrani, Evert, MuffinElZangano, TheraHedwig, dalonedrau, Tuomo Untinen (reemax), AntumDeluge; per layer in [LPC-CREDITS.csv](public/assets/sprites/LPC-CREDITS.csv) | [Liberated Pixel Cup](https://lpc.opengameart.org/) via the [Universal LPC Spritesheet Character Generator](https://github.com/LiberatedPixelCup/Universal-LPC-Spritesheet-Character-Generator) | [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/) |
 
+The village tile in the hex tileset was changed for this game: the well in the middle of the plaza
+is replaced by the Nest, a fire bowl with a flame, drawn by `scripts/tiles/build_nest.py`. The unchanged
+original tile is kept in `scripts/tiles/originals/village.png` (not part of the build).
+
 The fight characters are built from LPC layers by `scripts/lpc/build_sprites.py`: layers stacked,
 recoloured and darkened, arranged into one sheet per character. These sheets are shared under
 CC BY-SA 3.0 as well.

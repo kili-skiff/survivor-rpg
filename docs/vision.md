@@ -375,6 +375,9 @@ up one by one.
 ## Look and feel
 
 - **Mood:** dark fantasy in the spirit of Diablo 2. Night is the central theme.
+- **Fog over the map:** slow night fog drifts over the whole world map. Explored hexes stay readable
+  through it, unexplored hexes stay black, and the village and every lit watchfire add warm light
+  around them without clearing the fog away (`ui/mapFog.ts`, values in `config/mapFog.ts`).
 - **Light matters:** the player carries a light, torches and watchfires are islands of light in the dark.
   Light radius could become a stat (potions, lanterns, ember upgrades), and enemies could be more dangerous in darkness.
 - **Story in the background:** short lines, item texts and places instead of cutscenes (see lore.md).
