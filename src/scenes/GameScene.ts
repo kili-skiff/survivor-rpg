@@ -181,7 +181,14 @@ export class GameScene extends Phaser.Scene {
     const now = () => this.clock;
     this.numbers = new DamageNumbers(this, now);
     this.player = new PlayerController(this, now);
-    this.enemies = new EnemySystem(this, this.player, now, this.numbers, (e) => this.onEnemyKilled(e));
+    this.enemies = new EnemySystem(
+      this,
+      this.player,
+      now,
+      this.numbers,
+      (e) => this.onEnemyKilled(e),
+      (e) => this.onPlayerTouched(e, true),
+    );
     this.enemies.devNoDamage = this.devInvincible(); // DEV: invincible mode
     this.pickups = new PickupSystem(this, this.player, (p) => this.onPickup(p));
     this.ctx = {
@@ -586,9 +593,11 @@ export class GameScene extends Phaser.Scene {
 
   // ---------------------------------------------------------------- Events from the systems
 
-  private onPlayerTouched(e: Enemy): void {
+  /** `landing`: the hit of a leap that came down on the player; otherwise plain touching. */
+  private onPlayerTouched(e: Enemy, landing = false): void {
     if (
       !e.active ||
+      (e.airborne && !landing) ||
       !this.run.alive ||
       this.devGodMode() ||
       this.devInvincible() ||

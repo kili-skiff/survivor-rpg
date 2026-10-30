@@ -151,6 +151,13 @@ Ideas collected so far (nothing decided beyond the "wanted" list):
 - **Different behaviours:** flankers that come in an arc or aim ahead of you, runners that pass by,
   orbiters that keep their distance, ranged enemies that stop and shoot, chargers with a warning.
   New enemy types per ring should differ in behaviour, not only in numbers.
+  **Built so far** (`logic/behaviors.ts`, `logic/charge.ts`, set per type in `config/enemies.ts`): the bat
+  flies nearly straight over the crowd, the ghoul is a pouncer (runs up, crouches over a landing circle
+  that follows you until just before the jump, leaps in an arc and lands stunned; all ghouls share a
+  cooldown, so pounces come one after another with breathers, `CHARGE_COOLDOWN_MS`),
+  the zombie and the colossus still chase straight. A type can be limited to rings (`minRing`). The
+  flank behaviour (arc, aiming ahead) exists in the code but no type uses it yet. Still to do: a charger
+  for the colossus, ranged, orbiters, runners, bat flocks that sweep from side to side.
 - **Elites need a rethink,** but not necessarily "alone": give them a mechanic to react to
   (telegraphed charge, shield to break, summoned helpers), let them move on their own instead of
   hiding in the blob, let one weapon prefer them as a target, and set their health from a target
@@ -163,6 +170,10 @@ and fits the identity of the game. Not decided.
 **Spawn director** (wanted, separate from the swarm steering): one place that decides when and how
 enemies come, instead of a constant stream. Waves with breathers, announced events (a ring closing
 in, a wall from one side), and pressure that rises and falls over a fight.
+Mind the ghouls: their pounces already run through a global cooldown (`ChargeGate`,
+`CHARGE_COOLDOWN_MS`), so a wave of ghouls pounces one after another instead of all at once. The
+director and the cooldown should not work against each other: either leave the pacing of pounces to the
+gate, or let the director set the cooldown per wave.
 
 **Other ideas on the table:** obstacles (trees, ruins) that break up the crowd, tools
 against blobs (area damage, pierce, knockback, percent-health damage), fewer but more varied

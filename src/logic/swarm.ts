@@ -40,11 +40,20 @@ export interface SwarmAgent extends Point {
   moveSpeed: number;
   /** Fixed per enemy (0..2π): offsets its sideways drift from the others */
   phase: number;
+  /** Bend of its course while far away (radians); the sign is the side. 0 = straight at the player. */
+  arc: number;
+  /** Aims ahead by up to this many seconds of the player's movement. 0 = at the player. */
+  lead: number;
+  /** Sideways drift as a share of its speed, and how many swings per second */
+  wobble: number;
+  wobbleHz: number;
   /** Where it is heading while it does not look at the player */
   aimX: number;
   aimY: number;
   /** Game time (ms) at which it looks at the player again */
   nextAimAt: number;
+  /** Flies over the others: not part of the crowd, neither pushed nor pushing (default: false) */
+  flies?: boolean;
   /** Result: the velocity to move with (px/s) */
   steerX: number;
   steerY: number;
@@ -67,6 +76,36 @@ function cellKey(cx: number, cy: number): number {
   return cx * 92821 + cy;
 }
 
+const STILL: Point = { x: 0, y: 0 };
+
+/** Estimates how fast something moves from its positions over time, smoothed so that jitter does not matter. */
+export class VelocityEstimator implements Point {
+  x = 0;
+  y = 0;
+  private lastX = 0;
+  private lastY = 0;
+  private lastAt = 0;
+  private started = false;
+
+  constructor(private readonly smoothing = 0.25) {}
+
+  /** Feed the position at game time `nowMs`. A gap longer than a quarter second (pause, jump) starts over. */
+  update(x: number, y: number, nowMs: number): void {
+    const dt = (nowMs - this.lastAt) / 1000;
+    if (!this.started || dt <= 0 || dt > 0.25) {
+      this.x = 0;
+      this.y = 0;
+    } else {
+      this.x += ((x - this.lastX) / dt - this.x) * this.smoothing;
+      this.y += ((y - this.lastY) / dt - this.y) * this.smoothing;
+    }
+    this.started = true;
+    this.lastX = x;
+    this.lastY = y;
+    this.lastAt = nowMs;
+  }
+}
+
 export class Swarm<A extends SwarmAgent> {
   private readonly grid = new Map<number, A[]>();
   /** Emptied buckets, kept for the next frame so nothing is allocated in the game loop */
@@ -75,9 +114,9 @@ export class Swarm<A extends SwarmAgent> {
   constructor(readonly params: SwarmParams = SWARM) {}
 
   /** Sets `steerX`/`steerY` of every agent. Call `separate` afterwards if bodies should not overlap. */
-  steer(agents: readonly A[], target: Point, now: number, rng: Rng): void {
+  steer(agents: readonly A[], target: Point, now: number, rng: Rng, targetVelocity: Point = STILL): void {
     this.index(agents);
-    for (let i = 0; i < agents.length; i++) this.steerOne(agents[i], target, now, rng);
+    for (let i = 0; i < agents.length; i++) this.steerOne(agents[i], target, targetVelocity, now, rng);
   }
 
   /** Pushes bodies that overlap too much apart (uses the grid of the last `steer`). */
@@ -116,6 +155,7 @@ export class Swarm<A extends SwarmAgent> {
     const { cell, maxPerCell } = this.params;
     for (let i = 0; i < agents.length; i++) {
       const a = agents[i];
+      if (a.flies) continue; // flyers are not in the crowd: nobody avoids or pushes them
       const key = cellKey(Math.floor(a.x / cell), Math.floor(a.y / cell));
       let bucket = this.grid.get(key);
       if (!bucket) {
@@ -126,7 +166,7 @@ export class Swarm<A extends SwarmAgent> {
     }
   }
 
-  private steerOne(a: A, target: Point, now: number, rng: Rng): void {
+  private steerOne(a: A, target: Point, targetVelocity: Point, now: number, rng: Rng): void {
     const p = this.params;
     const dist = Math.hypot(target.x - a.x, target.y - a.y) || 1;
     // 0 right next to the player, 1 far away: the quirks below only apply when not in biting range.
@@ -138,20 +178,38 @@ export class Swarm<A extends SwarmAgent> {
       a.aimY = target.y;
       a.nextAimAt = now + p.aimLagMin + rng() * (p.aimLagMax - p.aimLagMin);
     }
-    let ux = a.aimX - a.x;
-    let uy = a.aimY - a.y;
+    // Lead: head for where the player will be, not where they are (less the closer it gets).
+    let aimX = a.aimX;
+    let aimY = a.aimY;
+    if (a.lead > 0) {
+      const t = Math.min(a.lead, Math.hypot(aimX - a.x, aimY - a.y) / Math.max(a.moveSpeed, 1));
+      aimX += targetVelocity.x * t;
+      aimY += targetVelocity.y * t;
+    }
+    let ux = aimX - a.x;
+    let uy = aimY - a.y;
     const ul = Math.hypot(ux, uy) || 1;
     ux /= ul;
     uy /= ul;
 
+    // Arc: bend the course to one side while far away; it straightens out on the way in.
+    if (a.arc !== 0) {
+      const angle = a.arc * far;
+      const cos = Math.cos(angle);
+      const sin = Math.sin(angle);
+      const rx = ux * cos - uy * sin;
+      uy = ux * sin + uy * cos;
+      ux = rx;
+    }
+
     // Drift to the side, swinging left and right.
-    const sway = Math.sin((now / 1000) * p.wobbleHz * Math.PI * 2 + a.phase) * p.wobble * far;
+    const sway = Math.sin((now / 1000) * a.wobbleHz * Math.PI * 2 + a.phase) * a.wobble * far;
     let vx = ux - uy * sway;
     let vy = uy + ux * sway;
 
     // Steer away from neighbours that come too close.
     const strength = p.separation * (p.separationNear + (1 - p.separationNear) * far);
-    if (strength > 0) {
+    if (strength > 0 && !a.flies) {
       const cx = Math.floor(a.x / p.cell);
       const cy = Math.floor(a.y / p.cell);
       let sx = 0;

@@ -45,7 +45,7 @@ src/
              deeds, segments, world, map tiles, character sprites, ground tiles, balancing (NO Phaser)
   logic/     Pure game logic (NO Phaser, tested): stats, XP, upgrades, spawning, segments, save data,
              hex math, seeded RNG, world generation, world progress, expeditions and journeys,
-             potions (brewing, belt, buffs), lantern pendulum physics, merchant (gold, lanterns, recipes), ring difficulty, horde steering (swarm), chests,
+             potions (brewing, belt, buffs), lantern pendulum physics, merchant (gold, lanterns, recipes), ring difficulty, horde steering and enemy behaviours (swarm, behaviors), chests,
              quests, deeds, device settings
   entities/  Pooled Phaser objects (Enemy, Projectile, Pickup)
   input/     InputState: one input layer for touch, keyboard, later gamepads
@@ -128,7 +128,8 @@ describe the game as built; some of it changes in Milestone 2 (gold, camps).
 - [x] Spread the swarm: soft separation, sideways drift, reaction delay and varied speed, so enemies do not pile into one blob (`logic/swarm.ts`)
 - [ ] Finetune the swarm (work in progress): in tight crowds enemies seem to shove each other, so smooth their movement, soften the hard overlap push and maybe shrink the personal space; values in `SWARM`. This is about how enemies move, not when they come.
 - [ ] Spawn director: pacing instead of a constant stream, e.g. waves with breathers and announced events (a ring closing in, a wall from one side); see "Other ideas" in `docs/vision.md`
-- [ ] New enemy types with different behaviour (flanker, ranged, charger, ...)
+- [x] Behaviour per enemy type, as data in `config/enemies.ts`: the bat flies nearly straight over the crowd (`flies`), the ghoul is a pouncer (runs up, crouches over a landing circle, leaps in an arc, lands stunned; `logic/charge.ts`), the zombie and the colossus chase; types can be limited to rings (`minRing`) (`logic/behaviors.ts`). The `flank` behaviour (arc, aiming ahead) stays in the code for later types
+- [ ] More behaviours and new enemy types: ranged, orbiters, runners that pass by; bat flocks that sweep from side to side (with the spawn director)
 - [ ] Elites with a mechanic, their own movement and fair health (target fight length)
 - [ ] Varied fight goals (kill N enemies, find the light or the dungeon, ... see `docs/vision.md`)
 

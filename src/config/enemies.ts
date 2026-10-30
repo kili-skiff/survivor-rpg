@@ -11,6 +11,10 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
     damage: 5,
     xp: 1,
     unlockAt: 0,
+    // Fast and nearly straight; it flies over the crowd instead of squeezing through it.
+    // (Flocks that sweep from side to side come with the wave system.)
+    behavior: { kind: 'flutter', sway: 0.2, swayHz: 0.7 },
+    flies: true,
     weight: 10,
   },
   zombie: {
@@ -24,6 +28,8 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
     damage: 9,
     xp: 2,
     unlockAt: 30,
+    // The plain, relentless chaser: slow and straight, so the others stand out next to it.
+    behavior: { kind: 'chase' },
     weight: 6,
   },
   ghoul: {
@@ -37,6 +43,17 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
     damage: 8,
     xp: 3,
     unlockAt: 90,
+    // Fast pouncer: runs up, crouches (circle follows you, then freezes), leaps there in an arc, lands stunned.
+    behavior: {
+      kind: 'charge',
+      range: 250,
+      windupSec: 0.7,
+      lockSec: 0.25,
+      leapSec: 0.55,
+      height: 46,
+      landRadius: 34,
+      restSec: 0.9,
+    },
     weight: 4,
   },
   brute: {
@@ -50,6 +67,8 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
     damage: 18,
     xp: 12,
     unlockAt: 180,
+    // For now a plain chaser; a charger with a warning is planned.
+    behavior: { kind: 'chase' },
     weight: 1,
   },
 };

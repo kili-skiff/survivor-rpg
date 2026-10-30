@@ -1,7 +1,9 @@
 import * as Phaser from 'phaser';
-import { ELITE, SWARM } from '../config/balance';
+import { CHARGE_MAX_DELAY_MS, ELITE, SWARM } from '../config/balance';
 import { CHARACTER_SPRITES, SHEET, walkAnim, type CharacterSprite, type Facing } from '../config/sprites';
 import type { EnemyDef } from '../config/types';
+import { steeringFor } from '../logic/behaviors';
+import { newChargeState } from '../logic/charge';
 import { facingFor } from '../logic/facing';
 import { speedFactor, type SwarmAgent } from '../logic/swarm';
 
@@ -19,12 +21,27 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite implements SwarmAgent {
   moveSpeed = 0;
   /** Offsets its sideways drift from the others (0..2π) */
   phase = 0;
+  // From its behaviour (config/enemies.ts, logic/behaviors.ts)
+  arc = 0;
+  lead = 0;
+  wobble = 0;
+  wobbleHz = 0;
   aimX = 0;
   aimY = 0;
   nextAimAt = 0;
   /** Velocity chosen by the swarm this frame (px/s) */
   steerX = 0;
   steerY = 0;
+  /** Flies over the others (see EnemyDef.flies) */
+  flies = false;
+  /** Where it is in its pounce; only used by chargers */
+  charge = newChargeState();
+  /** Its normal scale (sprite scale, elites bigger); chargers squash and stretch around it */
+  baseScale = 1;
+  /** Where and when it last landed from a leap (game time ms), for the dust ring */
+  landAt = -1e9;
+  landX = 0;
+  landY = 0;
   slowUntil = 0;
   slowFactor = 1;
   flashUntil = 0;
@@ -63,6 +80,8 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite implements SwarmAgent {
     if (this.look) this.setTexture(this.look.key, SHEET.rows.down * SHEET.columns);
     else this.setTexture(def.texture);
     this.setScale(scale);
+    this.baseScale = scale;
+    this.landAt = -1e9;
     this.enableBody(true, x, y, true, true);
     this.hp = def.hp * hpMultiplier;
     this.maxHp = this.hp;
@@ -74,6 +93,13 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite implements SwarmAgent {
     this.nextAimAt = 0;
     this.steerX = 0;
     this.steerY = 0;
+    const steering = steeringFor(def.behavior, Math.random);
+    this.arc = steering.arc;
+    this.lead = steering.lead;
+    this.wobble = steering.wobble;
+    this.wobbleHz = steering.wobbleHz;
+    this.flies = def.flies ?? false;
+    this.charge = newChargeState(Math.random() * CHARGE_MAX_DELAY_MS);
     this.slowUntil = 0;
     this.slowFactor = 1;
     this.flashUntil = 0;
@@ -91,6 +117,11 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite implements SwarmAgent {
       this.body!.setCircle(def.radius, size / 2 - def.radius, size / 2 - def.radius);
       this.eyesY = elite ? 8 : 4;
     }
+  }
+
+  /** In the air during a leap: cannot be hit and does not hurt by touching */
+  get airborne(): boolean {
+    return this.charge.phase === 'leap';
   }
 
   /** Walks in the direction of (dx, dy); the animation slows down with the enemy. */

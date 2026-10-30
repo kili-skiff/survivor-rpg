@@ -86,6 +86,49 @@ export interface SkillDef {
   levels: LevelStep<SkillStats>[];
 }
 
+/** How an enemy moves toward the player. The movement itself lives in logic/behaviors.ts and logic/swarm.ts. */
+export type EnemyBehavior =
+  /** Straight at the player (the default) */
+  | { kind: 'chase' }
+  /** Comes in an arc from one side (chosen per enemy) and aims where the player is going, not where they are */
+  | {
+      kind: 'flank';
+      /** How far the course bends away from a straight line while far away (degrees); it straightens out when close */
+      arcDeg: number;
+      /** Aims at where the player will be in this many seconds at most (less when close) */
+      leadSec: number;
+    }
+  /** Swings left and right on the way (a small share of its speed; the usual drift is smaller still) */
+  | {
+      kind: 'flutter';
+      /** Sideways swing as a share of its speed */
+      sway: number;
+      /** Swings per second */
+      swayHz: number;
+    }
+  /**
+   * Runs up, crouches (the warning, with a circle on the ground where it will land), then leaps
+   * there in an arc and is stunned for a moment. The circle follows the player and freezes shortly before
+   * the jump, so it can be dodged by changing direction at the last moment. It cannot be hit in the air and hurts only where it lands.
+   */
+  | {
+      kind: 'charge';
+      /** Starts the warning when the player is this close (px); also the longest leap */
+      range: number;
+      /** How long the warning (the crouch) lasts (s) */
+      windupSec: number;
+      /** The circle follows the player during the warning, but stands still for the last this many seconds (s) */
+      lockSec: number;
+      /** How long the leap lasts (s) */
+      leapSec: number;
+      /** Height of the arc at its peak (px) */
+      height: number;
+      /** Hurts the player if they stand within this radius of the landing spot (px) */
+      landRadius: number;
+      /** How long it is slow after landing (s) */
+      restSec: number;
+    };
+
 export interface EnemyDef {
   id: EnemyId;
   name: string;
@@ -100,6 +143,12 @@ export interface EnemyDef {
   xp: number;
   /** The enemy can spawn from this second onwards */
   unlockAt: number;
+  /** The enemy only appears in hexes of this ring or further out (default 1: everywhere) */
+  minRing?: number;
+  /** How it moves toward the player (default: chase) */
+  behavior?: EnemyBehavior;
+  /** Flies over the others: never pushed by them, never pushes them, and drawn above them */
+  flies?: boolean;
   /** Relative spawn weight */
   weight: number;
 }
