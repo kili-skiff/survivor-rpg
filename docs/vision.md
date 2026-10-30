@@ -125,12 +125,11 @@ One character for everyone; weapons are the build, in the spirit of Hades (decid
 - **Special skill per weapon:** each main weapon brings its own active skill (e.g. Frost Nova on the
   staff). The dash stays universal.
 - **During a run:** level-up cards still offer extra weapons and upgrades, as today.
-- **The standard attack fires where you look, or all around when you stand still** (built, `logic/aim.ts`,
-  `BOLT_AIM`): while you move, Arcane Bolt only targets enemies in a cone in front of you (the last
-  direction of movement), so you cannot shoot while running away. Standing still it hits the nearest enemy in
-  any direction. That makes kiting possible: step back, stop, shoot, step back again. Enemies behind you
-  have to be handled by the other weapons or by stopping. Standing still, the character also turns toward
-  the enemy it shoots at.
+- **The standard attack fires forward** (built, `logic/aim.ts`, `BOLT_AIM`): Arcane Bolt shoots at regular
+  intervals in the direction you look (the last direction of movement), whether it hits or not, like the
+  knife in Vampire Survivors. A light aim assist bends a shot toward the nearest enemy within a narrow
+  angle of the line of fire. It never shoots backwards, so you aim by how you move, and enemies behind you
+  have to be handled by the other weapons or by turning around.
 - **Permanent:** ores upgrade your main weapons at the blacksmith.
 - **New weapons:** weapon fragments dropped by elites, bosses and special places. Brought home, the
   blacksmith forges them into new weapons or variants (like weapon aspects in Hades).

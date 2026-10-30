@@ -1,6 +1,6 @@
 import * as Phaser from 'phaser';
 import { BALANCE, BOLT_AIM } from '../../config/balance';
-import { coneCos } from '../../logic/aim';
+import { coneCos, fanOffset } from '../../logic/aim';
 import { shotLifetimeMs } from '../../logic/vision';
 import type { WeaponStats } from '../../config/types';
 import type { HitEffects } from '../../logic/hitEffects';
@@ -9,15 +9,16 @@ import { Projectile } from '../../entities/Projectile';
 import type { CombatContext } from '../CombatContext';
 import { FIRST_SHOT_DELAY, type Weapon } from './Weapon';
 
-/** Angle offset for extra bolts when there are fewer targets than bolts (radians) */
+/** Angle between the extra bolts that fan out in front of the player (radians) */
 const SPREAD = 0.18;
 
-/** Cosine of the aiming cone's half angle */
-const CONE_COS = coneCos(BOLT_AIM.halfAngleDeg);
+/** Cosine of the aim assist's half angle */
+const ASSIST_COS = coneCos(BOLT_AIM.assistHalfAngleDeg);
 
 /**
- * Arcane bolt: fires at the nearest enemies in front of the player while they move (where they look),
- * and at the nearest ones in any direction while they stand still, so kiting works but running away does not.
+ * Arcane bolt: fires forward, where the player looks, at regular intervals, whether it hits or not.
+ * A light aim assist bends bolts toward the nearest enemies close to the line of fire; extra bolts
+ * fan out in front.
  */
 export class BoltWeapon implements Weapon {
   private readonly projectiles: Phaser.Physics.Arcade.Group;
@@ -42,20 +43,15 @@ export class BoltWeapon implements Weapon {
 
     const { player, enemies } = this.ctx;
     const range = this.ctx.visionRange();
-    // On the move it only fires where you look; standing still it picks the nearest enemy all around.
     const { x: dirX, y: dirY } = player.aim;
-    const cone = player.moving ? { dirX, dirY, cosHalf: CONE_COS } : undefined;
-    const targets = enemies.nearest(stats.count, range, cone);
-    if (targets.length === 0) {
-      this.timer = 0;
-      return;
-    }
-    // The player turns toward the first target; while moving, the movement direction wins again.
-    player.faceToward(targets[0].x - player.x, targets[0].y - player.y);
+    const forward = Math.atan2(dirY, dirX);
+    const targets = enemies.nearest(stats.count, range, { dirX, dirY, cosHalf: ASSIST_COS });
+    // Bolts with a target go to it; the rest fan out around the line of fire.
     for (let i = 0; i < stats.count; i++) {
-      const target = targets[i % targets.length];
-      const spread = i >= targets.length ? (i - targets.length + 1) * SPREAD : 0;
-      const angle = Math.atan2(target.y - player.y, target.x - player.x) + spread;
+      const target = targets[i];
+      const angle = target
+        ? Math.atan2(target.y - player.y, target.x - player.x)
+        : forward + fanOffset(i - targets.length, SPREAD);
       const p = this.projectiles.get(player.x, player.y, 'bolt') as Projectile | null;
       if (!p) break;
       p.fire(

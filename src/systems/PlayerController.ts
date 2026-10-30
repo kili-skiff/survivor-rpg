@@ -32,7 +32,6 @@ export class PlayerController {
   private dashDamage = 0;
   private lastGhostAt = 0;
   private invulnUntil = 0;
-  private isMoving = false;
   private hurtFlashUntil = 0;
 
   constructor(
@@ -57,24 +56,9 @@ export class PlayerController {
     }
   }
 
-  /** True while the player moves or dashes, false while standing still. */
-  get moving(): boolean {
-    return this.isMoving;
-  }
-
   /** Where the player looks: the last direction of movement, as a unit vector. */
   get aim(): { readonly x: number; readonly y: number } {
     return this.facing;
-  }
-
-  /**
-   * Turns the player toward (dx, dy), e.g. to the enemy a weapon fires at. While moving, the direction
-   * of movement takes over again at once.
-   */
-  faceToward(dx: number, dy: number): void {
-    if (Math.hypot(dx, dy) < 0.001) return;
-    this.facing.set(dx, dy).normalize();
-    if (!this.look) this.sprite.setFlipX(dx < 0);
   }
 
   /** Walk animation in the facing direction, or the standing pose. */
@@ -127,7 +111,6 @@ export class PlayerController {
     const now = this.now();
     const dashing = this.isDashing();
 
-    this.isMoving = dashing;
     if (dashing) {
       p.setVelocity(this.dashDir.x * DASH_SPEED, this.dashDir.y * DASH_SPEED);
       this.spawnGhost(now);
@@ -135,7 +118,6 @@ export class PlayerController {
     } else {
       p.setVelocity(moveX * moveSpeed, moveY * moveSpeed);
       const moving = Math.hypot(moveX, moveY) > DIRECTION_DEADZONE;
-      this.isMoving = moving;
       if (moving) {
         this.facing.set(moveX, moveY).normalize();
         if (!this.look) p.setFlipX(moveX < 0);

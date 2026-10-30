@@ -63,10 +63,13 @@ export const HIT_EFFECTS = {
   burstFxMs: 260,
 } as const;
 
-/** On the move, the standard attack (Arcane Bolt) only fires where the player looks; standing still it fires all around (logic/aim.ts). */
+/**
+ * The standard attack (Arcane Bolt) fires forward, where the player looks, at regular intervals, hit or
+ * not. A light aim assist bends a shot toward the nearest enemy close to the line of fire (logic/aim.ts).
+ */
 export const BOLT_AIM = {
-  /** Enemies up to this angle (degrees) to either side of the looking direction can be targeted */
-  halfAngleDeg: 55,
+  /** Enemies up to this angle (degrees) to either side of the line of fire pull a shot toward them */
+  assistHalfAngleDeg: 25,
 } as const;
 
 /** Chain Lightning (systems/weapons/ChainWeapon.ts, logic/chain.ts). Distances in px, times in ms. */
