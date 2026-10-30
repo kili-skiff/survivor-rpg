@@ -57,6 +57,8 @@ const MIN_ZOOM = 0.5;
 const MAX_ZOOM = 2.5;
 /** Darkens hexes cleared on this expedition */
 const USED_TINT = 0x4d4d57;
+/** Where the watchman stands on the village hex, in hex sizes from its centre: beside the Nest */
+const HOME_STAND = { x: 0.55, y: 0.3 };
 /** Ring and pin colour for quest goals on the map */
 const QUEST_COLOR = 0xc084fc;
 
@@ -235,7 +237,12 @@ export class WorldMapScene extends Phaser.Scene {
     // DEV: "fog off" also clears the drifting clouds, so the tiles can be checked unobscured.
     this.fog.update(deltaMs / 1000, this.time0, (key) => isLit(this.save.world, key), !this.devReveal());
     const pos = hexToPixelFlat(parseHexKey(this.save.world.position), this.hexSize);
-    this.marker.setPosition(pos.x, pos.y - Math.abs(Math.sin(this.time0 * 3)) * 3 * this.u);
+    // At home the watchman stands beside the Nest instead of in front of its flame.
+    const home = isAtHome(this.save.world) ? HOME_STAND : { x: 0, y: 0 };
+    this.marker.setPosition(
+      pos.x + home.x * this.hexSize,
+      pos.y + home.y * this.hexSize - Math.abs(Math.sin(this.time0 * 3)) * 3 * this.u,
+    );
   }
 
   // ---------------------------------------------------------------- first quest
@@ -501,6 +508,26 @@ export class WorldMapScene extends Phaser.Scene {
         g.fillStyle(0xfdba74, 0.8 * glow).fillCircle(p.x, p.y, s * 0.08);
       }
     }
+    this.drawNestFlame(g, hexToPixelFlat(ORIGIN, s));
+  }
+
+  /**
+   * The flame of the Nest, drawn over the fire bowl painted on the village tile. Drawn in code, above
+   * the fog, so it flickers and stays bright. Sizes are in pixels of the tile art (one tile pixel =
+   * `tileScale` screen pixels); the bowl's rim sits half a pixel below the hex centre.
+   */
+  private drawNestFlame(g: Phaser.GameObjects.Graphics, center: { x: number; y: number }): void {
+    const px = this.tiles.length > 0 ? this.tileScale : this.hexSize / 16;
+    const t = this.time0;
+    const flicker = 0.9 + Math.sin(t * 8) * 0.07 + Math.sin(t * 14 + 1) * 0.05;
+    const sway = Math.sin(t * 5) * 0.7 * px;
+    const x = center.x + px;
+    const base = center.y - 0.5 * px;
+    const h = 7.5 * px * flicker;
+    g.fillStyle(0xdc4a0b, 0.95).fillTriangle(x - 3.5 * px, base, x + 3.5 * px, base, x + sway, base - h);
+    g.fillStyle(0xf68c02, 1).fillTriangle(x - 2.6 * px, base, x + 2.6 * px, base, x + sway, base - h * 0.82);
+    g.fillStyle(0xf1b81a, 1).fillTriangle(x - 1.8 * px, base, x + 1.8 * px, base, x + sway, base - h * 0.6);
+    g.fillStyle(0xfbe7a2, 1).fillTriangle(x - 0.9 * px, base, x + 0.9 * px, base, x + sway, base - h * 0.34);
   }
 
   /** A stone brazier with a flame; `heat` 1 = burning, lower = embers only. */
