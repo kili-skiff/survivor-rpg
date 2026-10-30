@@ -42,11 +42,11 @@ The world, story and in-game terms (Embers, the Nest, watchfires) are in [docs/l
 ```
 src/
   config/    Game data: weapons, items, skills, enemies, herbs, potions, merchant, villagers and quests,
-             deeds, segments, world, map tiles, character sprites, ground tiles, balancing (NO Phaser)
+             deeds, segments, world, map tiles, map fog, character sprites, ground tiles, balancing (NO Phaser)
   logic/     Pure game logic (NO Phaser, tested): stats, XP, upgrades, spawning, segments, save data,
              hex math, seeded RNG, world generation, world progress, expeditions and journeys,
              potions (brewing, belt, buffs), lantern pendulum physics, merchant (gold, lanterns, recipes), ring difficulty, horde steering and enemy behaviours (swarm, behaviors), chests,
-             quests, deeds, device settings
+             quests, deeds, device settings, fog noise
   entities/  Pooled Phaser objects (Enemy, Projectile, Pickup)
   input/     InputState: one input layer for touch, keyboard, later gamepads
   systems/   Gameplay behaviour, one job per file:
@@ -58,7 +58,7 @@ src/
              logic lives in logic/
   scenes/    Boot (placeholder graphics), WorldMap (hex map, travel), Village (stash, belt, panels),
              Game (one fight, owns run state, wires systems), UI (HUD, touch, menus during a fight)
-  ui/        Display helpers (pixel density, safe area), colors
+  ui/        Display helpers (pixel density, safe area), colors, the drifting night fog on the world map (mapFog)
   dev/       Dev-only test helpers behind one switch (DEV_TOOLS); calls are marked `// DEV:`
 public/assets/  Art files served as they are (tiles/ for the world map, sprites/ for fight characters,
                 ground/ for the fight ground, one seamless tile per biome)
