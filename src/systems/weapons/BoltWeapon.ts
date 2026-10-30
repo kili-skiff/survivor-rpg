@@ -1,7 +1,6 @@
 import * as Phaser from 'phaser';
 import { BALANCE, BOLT_AIM } from '../../config/balance';
 import { coneCos } from '../../logic/aim';
-import { COLORS } from '../../ui/theme';
 import { shotLifetimeMs } from '../../logic/vision';
 import type { WeaponStats } from '../../config/types';
 import type { HitEffects } from '../../logic/hitEffects';
@@ -20,14 +19,11 @@ const CONE_COS = coneCos(BOLT_AIM.halfAngleDeg);
 export class BoltWeapon implements Weapon {
   private readonly projectiles: Phaser.Physics.Arcade.Group;
   private timer = FIRST_SHOT_DELAY;
-  /** A small marker in front of the player that shows where the bolts will go */
-  private readonly marker: Phaser.GameObjects.Graphics;
   /** What a hit does besides damage; follows the weapon's level */
   private readonly effects: HitEffects = {};
 
   constructor(private readonly ctx: CombatContext) {
     this.projectiles = ctx.scene.physics.add.group({ classType: Projectile, maxSize: 150 });
-    this.marker = ctx.scene.add.graphics().setDepth(4.4);
     ctx.scene.physics.add.overlap(this.projectiles, ctx.enemies.group, (a, b) =>
       this.onHit(a as Projectile, b as Enemy),
     );
@@ -38,7 +34,6 @@ export class BoltWeapon implements Weapon {
     this.effects.splash = stats.splash * stats.area;
     this.effects.percent = stats.percent;
     this.expireProjectiles();
-    this.drawMarker();
     this.timer -= dms;
     if (this.timer > 0) return;
 
@@ -68,23 +63,6 @@ export class BoltWeapon implements Weapon {
       );
     }
     this.timer = stats.cooldown;
-  }
-
-  /** A faint chevron in the direction the player looks. */
-  private drawMarker(): void {
-    const { player } = this.ctx;
-    const { x: dx, y: dy } = player.aim;
-    const cx = player.x + dx * BOLT_AIM.markerDistance;
-    const cy = player.y + dy * BOLT_AIM.markerDistance;
-    const s = BOLT_AIM.markerSize;
-    const g = this.marker;
-    g.clear();
-    g.lineStyle(2, COLORS.bolt, 0.55);
-    g.beginPath();
-    g.moveTo(cx - dx * s - dy * s, cy - dy * s + dx * s);
-    g.lineTo(cx + dx * s, cy + dy * s);
-    g.lineTo(cx - dx * s + dy * s, cy - dy * s - dx * s);
-    g.strokePath();
   }
 
   private onHit(p: Projectile, e: Enemy): void {

@@ -67,9 +67,6 @@ export const HIT_EFFECTS = {
 export const BOLT_AIM = {
   /** Enemies up to this angle (degrees) to either side of the looking direction can be targeted */
   halfAngleDeg: 55,
-  /** The aim marker in front of the player: distance from the player and size (px) */
-  markerDistance: 34,
-  markerSize: 7,
 } as const;
 
 /** Chain Lightning (systems/weapons/ChainWeapon.ts, logic/chain.ts). Distances in px, times in ms. */
