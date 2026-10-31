@@ -3,7 +3,7 @@
 // Plain "run straight at the player" makes everyone converge on one point and pile into a blob.
 // Here each enemy also
 //  - keeps a soft personal space and steers around neighbours (a force on the course, not a hard shove),
-//  - drifts a little to the side on its own rhythm,
+//  - drifts a little to the side on its own rhythm (its own speed of swinging, too),
 //  - far away aims at where the player was a moment ago (a reaction delay that differs per enemy).
 // All of it fades out next to the player, so a crowd can still close in and bite.
 
@@ -25,6 +25,7 @@ export interface SwarmParams {
   aimLagMax: number;
   speedJitter: number;
   bodyOverlap: number;
+  rhythmJitter: number;
 }
 
 export interface Point {
@@ -52,7 +53,10 @@ export interface SwarmAgent extends Point {
   aimY: number;
   /** Game time (ms) at which it looks at the player again */
   nextAimAt: number;
-  /** Flies over the others: not part of the crowd, neither pushed nor pushing (default: false) */
+  /**
+   * Flies over the others (default: false): walkers and flyers neither avoid nor push each other, but
+   * flyers keep their distance among themselves, so a flock does not stack into one point.
+   */
   flies?: boolean;
   /** Result: the velocity to move with (px/s) */
   steerX: number;
@@ -62,6 +66,14 @@ export interface SwarmAgent extends Point {
 /** A random speed factor around 1, e.g. 0.75..1.25 for a jitter of 0.25. */
 export function speedFactor(params: Pick<SwarmParams, 'speedJitter'>, rng: Rng): number {
   return 1 - params.speedJitter + rng() * 2 * params.speedJitter;
+}
+
+/**
+ * A random factor around 1 for an enemy's own rhythm (how fast it sways and steps), e.g. 0.7..1.3 for a
+ * jitter of 0.3, so a horde does not move in one beat.
+ */
+export function rhythmFactor(params: Pick<SwarmParams, 'rhythmJitter'>, rng: Rng): number {
+  return 1 - params.rhythmJitter + rng() * 2 * params.rhythmJitter;
 }
 
 /** 0 up to `from`, 1 from `to` on, smooth in between. */
@@ -108,6 +120,8 @@ export class VelocityEstimator implements Point {
 
 export class Swarm<A extends SwarmAgent> {
   private readonly grid = new Map<number, A[]>();
+  /** Flyers have a grid of their own: they only keep their distance among themselves */
+  private readonly airGrid = new Map<number, A[]>();
   /** Emptied buckets, kept for the next frame so nothing is allocated in the game loop */
   private readonly spare: A[][] = [];
 
@@ -121,8 +135,13 @@ export class Swarm<A extends SwarmAgent> {
 
   /** Pushes bodies that overlap too much apart (uses the grid of the last `steer`). */
   separate(): void {
+    this.separateIn(this.grid);
+    this.separateIn(this.airGrid);
+  }
+
+  private separateIn(grid: Map<number, A[]>): void {
     const overlap = this.params.bodyOverlap;
-    for (const bucket of this.grid.values()) {
+    for (const bucket of grid.values()) {
       for (let i = 0; i < bucket.length; i++) {
         for (let j = i + 1; j < bucket.length; j++) {
           const a = bucket[i];
@@ -147,20 +166,23 @@ export class Swarm<A extends SwarmAgent> {
   }
 
   private index(agents: readonly A[]): void {
-    for (const bucket of this.grid.values()) {
-      bucket.length = 0;
-      this.spare.push(bucket);
+    for (const grid of [this.grid, this.airGrid]) {
+      for (const bucket of grid.values()) {
+        bucket.length = 0;
+        this.spare.push(bucket);
+      }
+      grid.clear();
     }
-    this.grid.clear();
     const { cell, maxPerCell } = this.params;
     for (let i = 0; i < agents.length; i++) {
       const a = agents[i];
-      if (a.flies) continue; // flyers are not in the crowd: nobody avoids or pushes them
+      // Flyers are not in the crowd: walkers never see them, only other flyers do.
+      const grid = a.flies ? this.airGrid : this.grid;
       const key = cellKey(Math.floor(a.x / cell), Math.floor(a.y / cell));
-      let bucket = this.grid.get(key);
+      let bucket = grid.get(key);
       if (!bucket) {
         bucket = this.spare.pop() ?? [];
-        this.grid.set(key, bucket);
+        grid.set(key, bucket);
       }
       if (bucket.length < maxPerCell) bucket.push(a);
     }
@@ -209,14 +231,15 @@ export class Swarm<A extends SwarmAgent> {
 
     // Steer away from neighbours that come too close.
     const strength = p.separation * (p.separationNear + (1 - p.separationNear) * far);
-    if (strength > 0 && !a.flies) {
+    if (strength > 0) {
+      const grid = a.flies ? this.airGrid : this.grid;
       const cx = Math.floor(a.x / p.cell);
       const cy = Math.floor(a.y / p.cell);
       let sx = 0;
       let sy = 0;
       for (let i = -1; i <= 1; i++) {
         for (let j = -1; j <= 1; j++) {
-          const bucket = this.grid.get(cellKey(cx + i, cy + j));
+          const bucket = grid.get(cellKey(cx + i, cy + j));
           if (!bucket) continue;
           for (let k = 0; k < bucket.length; k++) {
             const b = bucket[k];

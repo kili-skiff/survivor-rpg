@@ -5,7 +5,7 @@ import type { EnemyDef } from '../config/types';
 import { steeringFor } from '../logic/behaviors';
 import { newChargeState } from '../logic/charge';
 import { facingFor } from '../logic/facing';
-import { speedFactor, type SwarmAgent } from '../logic/swarm';
+import { rhythmFactor, speedFactor, type SwarmAgent } from '../logic/swarm';
 
 /** Pooled enemy: reused instead of created anew. */
 export class Enemy extends Phaser.Physics.Arcade.Sprite implements SwarmAgent {
@@ -104,7 +104,8 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite implements SwarmAgent {
     this.arc = steering.arc;
     this.lead = steering.lead;
     this.wobble = steering.wobble;
-    this.wobbleHz = steering.wobbleHz;
+    // Its own pace, so a horde does not sway in one beat.
+    this.wobbleHz = steering.wobbleHz * rhythmFactor(SWARM, Math.random);
     this.flies = def.flies ?? false;
     this.charge = newChargeState(Math.random() * CHARGE_MAX_DELAY_MS);
     this.slowUntil = 0;
@@ -145,7 +146,8 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite implements SwarmAgent {
       // Start somewhere in the cycle, so a horde does not step in sync.
       if (first) this.anims.setProgress(Math.random());
     }
-    this.anims.timeScale = timeScale;
+    // A faster enemy also steps faster, so the horde does not walk in one rhythm.
+    this.anims.timeScale = timeScale * this.speedJitter;
   }
 
   despawn(): void {

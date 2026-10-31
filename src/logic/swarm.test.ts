@@ -1,7 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { SWARM } from '../config/balance';
 import { createRng } from './rng';
-import { speedFactor, Swarm, VelocityEstimator, type SwarmAgent, type SwarmParams } from './swarm';
+import {
+  rhythmFactor,
+  speedFactor,
+  Swarm,
+  VelocityEstimator,
+  type SwarmAgent,
+  type SwarmParams,
+} from './swarm';
 
 function agent(x: number, y: number, over: Partial<SwarmAgent> = {}): SwarmAgent {
   return {
@@ -125,6 +132,30 @@ describe('flyers', () => {
     const before = [walker.x, walker.y, flyer.x, flyer.y];
     swarm.separate();
     expect([walker.x, walker.y, flyer.x, flyer.y]).toEqual(before);
+  });
+});
+
+describe('flocks', () => {
+  it('flyers keep their distance among themselves', () => {
+    const swarm = new Swarm<SwarmAgent>({ ...SWARM, wobble: 0 });
+    // Both in the same grid cell, a few px apart.
+    const a = agent(10, 20, { aimX: 2000, aimY: 20, nextAimAt: 1e9, flies: true });
+    const b = agent(10, 24, { aimX: 2000, aimY: 24, nextAimAt: 1e9, flies: true });
+    swarm.steer([a, b], { x: 2000, y: 0 }, 0, createRng(3));
+    expect(a.steerY).toBeLessThan(0);
+    expect(b.steerY).toBeGreaterThan(0);
+    swarm.separate();
+    expect(b.y - a.y).toBeGreaterThan(4);
+  });
+});
+
+describe('rhythm', () => {
+  it('varies around 1 within the jitter', () => {
+    const rng = createRng(5);
+    const values = Array.from({ length: 200 }, () => rhythmFactor(SWARM, rng));
+    expect(Math.min(...values)).toBeGreaterThanOrEqual(1 - SWARM.rhythmJitter);
+    expect(Math.max(...values)).toBeLessThanOrEqual(1 + SWARM.rhythmJitter);
+    expect(Math.max(...values) - Math.min(...values)).toBeGreaterThan(SWARM.rhythmJitter);
   });
 });
 
