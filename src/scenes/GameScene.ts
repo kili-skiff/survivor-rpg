@@ -55,6 +55,7 @@ import { HerbSystem, type EdgeIndicator, type HerbIndicator, type HerbSlot } fro
 import { EnemySystem } from '../systems/EnemySystem';
 import { PickupSystem } from '../systems/PickupSystem';
 import { PlayerController } from '../systems/PlayerController';
+import { PlayerHealthBar } from '../systems/PlayerHealthBar';
 import { PotionSystem } from '../systems/PotionSystem';
 import { visionRange } from '../logic/vision';
 import { LanternSystem } from '../systems/LanternSystem';
@@ -123,6 +124,7 @@ export class GameScene extends Phaser.Scene {
 
   private ctx!: CombatContext;
   private player!: PlayerController;
+  private healthBar!: PlayerHealthBar;
   private enemies!: EnemySystem;
   private pickups!: PickupSystem;
   private numbers!: DamageNumbers;
@@ -195,6 +197,7 @@ export class GameScene extends Phaser.Scene {
     const now = () => this.clock;
     this.numbers = new DamageNumbers(this, now);
     this.player = new PlayerController(this, now);
+    this.healthBar = new PlayerHealthBar(this);
     this.enemies = new EnemySystem(
       this,
       this.player,
@@ -546,6 +549,7 @@ export class GameScene extends Phaser.Scene {
     this.handlePotionInput();
     if (this.potions.update()) this.refreshStats();
     this.player.update(this.controls.moveX, this.controls.moveY, this.run.stats.moveSpeed, this.enemies);
+    this.healthBar.update(this.player.x, this.player.y, this.run.hp / this.run.stats.maxHp);
     this.updateGround();
     this.lantern.update(dt);
     this.lighting.update(this.time.now);
