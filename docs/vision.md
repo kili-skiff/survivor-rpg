@@ -252,6 +252,7 @@ next; the map itself does not change.
   edge. By then the horde has grown. Standing next to it lights it in 6 s; away from it, the progress drains
   (all of it in 8 s); hits do not interrupt it. Once it burns the hex is cleared, and on later expeditions
   the hex rolls an ordinary goal.
+  Idea for later: while you light it, its glow keeps enemies at bay (they slow down near the fire).
   Lanterns or beacons could work the same way later.
 - **Find the dungeon** entrance (or another place) in the area.
 - Perhaps: protect something, gather herbs, defeat an elite or a boss.
