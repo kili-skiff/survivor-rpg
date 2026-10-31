@@ -26,7 +26,7 @@ export type DirectorPhase = 'build' | 'warning' | 'surge' | 'breather';
 export interface DirectorInput {
   /** Fight time in seconds, including the difficulty offset */
   time: number;
-  /** Enemies per second at full strength (the old constant stream, already scaled by the ring) */
+  /** Enemies per second at full strength (the stream from logic/spawning.ts, already scaled by the ring) */
   rate: number;
   /** How many more enemies fit in before the enemy cap */
   room: number;

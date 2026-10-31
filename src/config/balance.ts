@@ -31,8 +31,23 @@ export const RINGS = {
   hpPerRing: 0.3,
   /** Enemy damage +12% per ring beyond the first */
   damagePerRing: 0.12,
-  /** Waves come 4% more often per ring beyond the first */
-  spawnRatePerRing: 0.04,
+  /** Enemies come 20% faster per ring beyond the first (see SPAWN) */
+  spawnRatePerRing: 0.2,
+} as const;
+
+/**
+ * How many enemies come (logic/spawning.ts): a smooth curve without jumps. Per second
+ * `baseRate` x the ring's `spawnRate` x (1 + fight time / `growthSec`); the spawn director shapes this
+ * into build-ups, surges and breathers. At most `capBase` + `capPerRing` per ring beyond the first +
+ * `capPerSec` per second of the fight are alive at once. Only the time of this fight counts, not the
+ * ring's difficulty offset (that only decides which enemy types come).
+ */
+export const SPAWN = {
+  baseRate: 0.9,
+  growthSec: 120,
+  capBase: 30,
+  capPerRing: 12,
+  capPerSec: 0.8,
 } as const;
 
 /** Elite enemies: rare, big and tough, with a golden shimmer; they always leave a treasure chest. */
