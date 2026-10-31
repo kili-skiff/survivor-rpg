@@ -280,7 +280,7 @@ export class EnemySystem {
       }
 
       const slowed = now < e.slowUntil;
-      e.moveSpeed = e.def.speed * e.speedJitter * (slowed ? e.slowFactor : 1);
+      e.moveSpeed = e.def.speed * BALANCE.enemySpeed * e.speedJitter * (slowed ? e.slowFactor : 1);
       // Lower on screen = in front; the player (3) always stays on top. Flyers pass over the crowd.
       e.setDepth((e.flies ? 2.5 : 2) + Phaser.Math.Clamp((e.y - py) / 4000, -0.4, 0.4) * (e.flies ? 0.2 : 1));
       const behavior = e.def.behavior;

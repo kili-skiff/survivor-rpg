@@ -18,6 +18,11 @@ export const BALANCE = {
   lootKeptOnDeath: 0,
   /** Hard cap on simultaneous enemies (performance) */
   maxEnemiesHardCap: 320,
+  /**
+   * All enemies walk this share of the speed in their config (config/enemies.ts); one knob for the pace of
+   * the whole horde. Leaps of pouncers are timed and not affected.
+   */
+  enemySpeed: 0.8,
 } as const;
 
 /** Further rings are harder: enemies get more health and damage and come in denser waves. */
