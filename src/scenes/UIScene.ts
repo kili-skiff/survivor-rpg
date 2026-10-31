@@ -1006,12 +1006,20 @@ export class UIScene extends Phaser.Scene {
     return t;
   }
 
-  private button(x: number, y: number, label: string, onClick: () => void, primary = true): void {
+  /**
+   * A button of an overlay. A press has to start on the button itself, so a finger that is still
+   * on the stick and lifts over the button does not trigger it. With `holdMs` the button fires only
+   * after being held that long (a fill shows the progress); for buttons that are costly to hit by accident.
+   */
+  private button(x: number, y: number, label: string, onClick: () => void, primary = true, holdMs = 0): void {
     const u = this.u;
     const w = 210 * u;
     const h = 50 * u;
     const g = this.add.graphics().setDepth(51);
-    const draw = (hover: boolean) => {
+    let hover = false;
+    let hold = 0;
+    const draw = () => {
+      if (!g.active) return;
       g.clear();
       g.fillStyle(primary ? COLORS.accent : COLORS.panel, hover ? 1 : 0.92).fillRoundedRect(
         x - w / 2,
@@ -1020,6 +1028,10 @@ export class UIScene extends Phaser.Scene {
         h,
         12 * u,
       );
+      if (hold > 0) {
+        // Hold progress: a lighter bar that fills from the left.
+        g.fillStyle(0xffffff, 0.28).fillRoundedRect(x - w / 2, y - h / 2, w * hold, h, 12 * u);
+      }
       g.lineStyle(2 * u, primary ? 0xffffff : COLORS.panelEdge, primary ? 0.5 : 1).strokeRoundedRect(
         x - w / 2,
         y - h / 2,
@@ -1028,13 +1040,52 @@ export class UIScene extends Phaser.Scene {
         12 * u,
       );
     };
-    draw(false);
+    draw();
     this.text(x, y, label, 17, { fontStyle: 'bold', color: primary ? '#1c1917' : '#ffffff' });
     const zone = this.add.zone(x, y, w, h).setDepth(53).setInteractive({ useHandCursor: true });
-    zone.on('pointerover', () => draw(true));
-    zone.on('pointerout', () => draw(false));
+    let pressed = false;
+    let holdTween: Phaser.Tweens.Tween | undefined;
+    const cancelHold = () => {
+      pressed = false;
+      holdTween?.stop();
+      holdTween = undefined;
+      hold = 0;
+      draw();
+    };
+    zone.on('pointerover', () => {
+      hover = true;
+      draw();
+    });
+    zone.on('pointerout', () => {
+      hover = false;
+      cancelHold();
+    });
+    zone.on('pointerdown', () => {
+      if (this.time.now - this.overlayOpenedAt <= 250) return;
+      pressed = true;
+      if (holdMs <= 0) return;
+      holdTween = this.tweens.addCounter({
+        from: 0,
+        to: 1,
+        duration: holdMs,
+        onUpdate: (tween) => {
+          hold = tween.getValue() ?? 0;
+          draw();
+        },
+        onComplete: () => {
+          holdTween = undefined;
+          pressed = false;
+          onClick();
+        },
+      });
+    });
     zone.on('pointerup', () => {
-      if (this.time.now - this.overlayOpenedAt > 250) onClick();
+      if (holdMs > 0) {
+        cancelHold();
+        return;
+      }
+      if (pressed) onClick();
+      pressed = false;
     });
     this.overlay.push(g, zone);
   }
@@ -1442,16 +1493,24 @@ export class UIScene extends Phaser.Scene {
       return;
     }
     // Won on an expedition: move on, or go home with all the loot.
-    const homeLabel = 'Return to village';
+    const homeLabel = 'Hold to go home';
+    const homeHoldMs = 600;
     if (wide) {
       const buttonY = Math.min(Math.max(y + 46 * u, H * 0.72), H - this.sa.bottom - 34 * u);
       this.button(W / 2 - 115 * u, buttonY, mapLabel, () => this.gs.returnToMap());
-      this.button(W / 2 + 115 * u, buttonY, homeLabel, () => this.gs.returnHomeFromFight(), false);
+      this.button(
+        W / 2 + 115 * u,
+        buttonY,
+        homeLabel,
+        () => this.gs.returnHomeFromFight(),
+        false,
+        homeHoldMs,
+      );
     } else {
       const gap = 62 * u;
       const buttonY = Math.min(Math.max(y + 50 * u, H * 0.68), H - this.sa.bottom - 34 * u - gap);
       this.button(W / 2, buttonY, mapLabel, () => this.gs.returnToMap());
-      this.button(W / 2, buttonY + gap, homeLabel, () => this.gs.returnHomeFromFight(), false);
+      this.button(W / 2, buttonY + gap, homeLabel, () => this.gs.returnHomeFromFight(), false, homeHoldMs);
     }
   }
 }
