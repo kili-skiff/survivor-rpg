@@ -127,7 +127,7 @@ describe the game as built; some of it changes in Milestone 2 (gold, camps).
 - [x] Intro quest: at the first start the elder hands over the lantern and points to the nearest watchfire; lighting it pays gold
 - [x] Deeds: exploration milestones (new rings, camps, watchfires, the tower) with small bonuses for good
 - [x] Spread the swarm: soft separation, sideways drift, reaction delay and varied speed, so enemies do not pile into one blob (`logic/swarm.ts`)
-- [ ] Finetune the swarm (work in progress): in tight crowds enemies seem to shove each other, so smooth their movement, soften the hard overlap push and maybe shrink the personal space; values in `SWARM`. This is about how enemies move, not when they come.
+- [ ] Finetune the swarm (work in progress): in tight crowds enemies seem to shove each other, so smooth their movement, soften the hard overlap push and maybe shrink the personal space; values in `SWARM`. This is about how enemies move, not when they come. Done so far: flyers (bats) keep their distance among themselves instead of stacking into one point, and each enemy sways and steps at its own pace (`rhythmJitter`). A loose blob around the player is fine, it belongs to the genre.
 - [x] Spawn director: pacing instead of a constant stream: build-up, announced surge (a swarm from one side, later a ring or a wall) and a breather; the strength of the stream is still the old curve (`logic/director.ts`, values in `config/director.ts`)
 - [x] Behaviour per enemy type, as data in `config/enemies.ts`: the bat flies nearly straight over the crowd (`flies`), the ghoul is a pouncer (runs up, crouches over a landing circle, leaps in an arc, lands stunned; `logic/charge.ts`), the zombie and the colossus chase; types can be limited to rings (`minRing`) (`logic/behaviors.ts`). The `flank` behaviour (arc, aiming ahead) stays in the code for later types
 - [ ] More behaviours and new enemy types: ranged, orbiters, runners that pass by; bat flocks that sweep from side to side (a surge kind of the spawn director)
@@ -135,6 +135,8 @@ describe the game as built; some of it changes in Milestone 2 (gold, camps).
 - [ ] Varied fight goals (kill N enemies, find the light or the dungeon, ... see `docs/vision.md`)
 - [x] Tools against a crowd that piles up, as level steps of the weapons (`logic/hitEffects.ts`): knockback with a push that slows down, bolt bursts, damage as a share of health (aura, blades), earlier pierce
 - [x] Wild builds, a first test batch: 19 new items without a limit (`config/passives.ts`), one-time cards (`config/boons.ts`) and the weapon Chain Lightning; values to be tuned by playing (see "Wild builds" in `docs/vision.md`)
+- [x] Card rarity (common, magic, legendary: frame colour and how often offered, `config/rarity.ts`) and weapon level steps in a random order (`weaponSteps`)
+- [x] Fight scaling: enemy health from the ring, only a gentle rise within a fight; Arcane Bolt focus fire with a target lock that lets a very close enemy take over (`logic/focus.ts`)
 - [ ] Follow-ups: a weapon built around crowd control (e.g. a mortar), XP that keeps up with enemy health (check in play first), tune or drop what does not feel good from the wild-build batch, more weapons
 
 ### Milestone 2: new core loop

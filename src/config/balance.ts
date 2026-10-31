@@ -151,6 +151,8 @@ export const SWARM = {
   speedJitter: 0.25,
   /** Bodies may overlap this much (share of the sum of both radii) before they are pushed apart */
   bodyOverlap: 0.9,
+  /** Each enemy sways and steps at its own pace: this share faster or slower than its type */
+  rhythmJitter: 0.3,
 } as const;
 
 /** Treasure chests from elites: rewards are rolled like a slot machine. */
