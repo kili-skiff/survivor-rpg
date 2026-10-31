@@ -15,6 +15,7 @@ import {
 import { BIOME_TILES, POI_TILES, TILESET } from '../config/tiles';
 import {
   hexEquals,
+  hexDistance,
   hexKey,
   hexToPixelFlat,
   ORIGIN,
@@ -486,9 +487,12 @@ export class WorldMapScene extends Phaser.Scene {
     for (const { hex, icon } of this.herbIcons) {
       icon.setVisible(this.isVisible(hex.key) && !isUsedUp(progress, hex.key));
     }
-    // Goals change with every expedition, so the symbols follow the current one.
+    // Goals change with every expedition, so the symbols follow the current one. They only show next to
+    // the player, the village and lit watchfires.
+    const anchors = [parseHexKey(progress.position), ORIGIN, ...progress.litWatchfires.map(parseHexKey)];
     for (const { hex, icon } of this.goalIcons) {
-      const shown = this.isVisible(hex.key) && !isUsedUp(progress, hex.key);
+      const near = anchors.some((a) => hexDistance(a, hex.hex) <= GOALS.iconReach);
+      const shown = near && this.isVisible(hex.key) && !isUsedUp(progress, hex.key);
       icon.setVisible(shown);
       if (shown) icon.setTexture(GOALS.icons[segmentForHex(hex, progress.expeditions).goal.kind]);
     }
