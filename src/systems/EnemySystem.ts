@@ -19,7 +19,15 @@ import {
 } from '../logic/hitEffects';
 import type { EnemyDef } from '../config/types';
 import { Enemy } from '../entities/Enemy';
-import { forEachSpawnPoint, SpawnDirector, type Announcement, type DirectorPhase } from '../logic/director';
+import { DIRECTOR } from '../config/director';
+import {
+  forEachSpawnPoint,
+  headingOf,
+  recycleAngle,
+  SpawnDirector,
+  type Announcement,
+  type DirectorPhase,
+} from '../logic/director';
 import { baseSpawnRate, enemyHpMultiplier, maxEnemies, pickEnemy } from '../logic/spawning';
 import { Swarm, VelocityEstimator } from '../logic/swarm';
 import { BurstFx } from './BurstFx';
@@ -231,8 +239,15 @@ export class EnemySystem {
     });
     const dist = this.viewDiag / 2 + 40;
     for (const order of step.orders) {
-      forEachSpawnPoint(order, this.target.x, this.target.y, dist, Math.random, (x, y) =>
-        this.spawnAt(x, y, runTime, fightTime),
+      forEachSpawnPoint(
+        order,
+        this.target.x,
+        this.target.y,
+        dist,
+        Math.random,
+        (x, y) => this.spawnAt(x, y, runTime, fightTime),
+        DIRECTOR,
+        headingOf(this.targetVelocity.x, this.targetVelocity.y),
       );
     }
     if (step.announce) this.onAnnounce(step.announce);
@@ -246,6 +261,7 @@ export class EnemySystem {
     const elite = Math.random() < this.elites;
     const hp = enemyHpMultiplier(fightTime) * this.ring.hp * (elite ? ELITE.hp : 1) * this.hpMul;
     e.spawn(def, x, y, hp, this.ring.damage * (elite ? ELITE.damage : 1), elite);
+    e.placedAt = this.now();
   }
 
   update(): void {
@@ -255,7 +271,11 @@ export class EnemySystem {
     this.lastUpdateMs = now;
     this.bursts.update();
     const { x: px, y: py } = this.target;
-    const recycleDist = this.viewDiag * 0.8;
+    const spawnDist = this.viewDiag / 2 + 40;
+    const recycleDist = this.viewDiag / 2 + DIRECTOR.recycleMargin;
+    const farDist = this.viewDiag * 0.8;
+    const graceMs = DIRECTOR.recycleGraceSec * 1000;
+    const heading = headingOf(this.targetVelocity.x, this.targetVelocity.y);
     const live = this.live;
     live.length = 0;
     const rings = this.eliteRings;
@@ -272,10 +292,14 @@ export class EnemySystem {
       const dy = py - e.y;
       const d = Math.hypot(dx, dy) || 1;
 
-      // Too far away? Move it to the other side instead of despawning (keeps the horde dense).
-      if (d > recycleDist) {
-        const pos = this.spawnPoint();
-        e.setPosition(pos.x, pos.y);
+      // Fell behind, out of view? Move it ahead of the player instead of despawning: the horde stays
+      // dense, and there is no long tail of enemies trailing behind.
+      if (d > farDist || (d > recycleDist && now - e.placedAt > graceMs)) {
+        const a = recycleAngle(Math.random, heading);
+        e.placedAt = now;
+        e.setPosition(px + Math.cos(a) * spawnDist, py + Math.sin(a) * spawnDist);
+        e.push.x = 0;
+        e.push.y = 0;
         continue;
       }
 

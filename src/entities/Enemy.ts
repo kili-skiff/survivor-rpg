@@ -57,6 +57,8 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite implements SwarmAgent {
   elite = false;
   /** Counts up on every spawn, so a pooled enemy that died and came back is not mistaken for the old one */
   generation = 0;
+  /** Game time (ms) it was spawned or moved ahead of the player; set by the enemy system */
+  placedAt = 0;
   /** The animated sheet, or null when the placeholder texture is shown */
   look: CharacterSprite | null = null;
   /** Where the walk animation faces; null until the first move */

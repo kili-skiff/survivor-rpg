@@ -193,6 +193,28 @@ export class SpawnDirector {
  * Calls `place` with the spot of every enemy of an order, around the centre (cx, cy) at distance
  * `dist` (just outside the view).
  */
+/**
+ * The direction (radians) the player is heading, from their velocity, or null while standing.
+ */
+export function headingOf(vx: number, vy: number, params: DirectorParams = DIRECTOR): number | null {
+  return Math.hypot(vx, vy) >= params.minHeadingSpeed ? Math.atan2(vy, vx) : null;
+}
+
+/**
+ * Where around the player a scattered enemy appears: while the player moves, a share of them comes from
+ * ahead (`aheadShare` within `aheadSpread`); the others, and all while standing, from any side.
+ */
+export function scatterAngle(rng: Rng, heading: number | null, params: DirectorParams = DIRECTOR): number {
+  if (heading !== null && rng() < params.aheadShare) return heading + (rng() - 0.5) * params.aheadSpread;
+  return rng() * Math.PI * 2;
+}
+
+/** Where an enemy that fell behind is moved to: ahead of a moving player, anywhere around a standing one. */
+export function recycleAngle(rng: Rng, heading: number | null, params: DirectorParams = DIRECTOR): number {
+  return heading !== null ? heading + (rng() - 0.5) * params.recycleSpread : rng() * Math.PI * 2;
+}
+
+/** `heading`: where the player is heading (see `headingOf`), so scattered enemies can come from ahead. */
 export function forEachSpawnPoint(
   order: SpawnOrder,
   cx: number,
@@ -201,13 +223,14 @@ export function forEachSpawnPoint(
   rng: Rng,
   place: (x: number, y: number) => void,
   params: DirectorParams = DIRECTOR,
+  heading: number | null = null,
 ): void {
   const { count, pattern, angle } = order;
   const turn = Math.PI * 2;
   switch (pattern) {
     case 'scatter':
       for (let i = 0; i < count; i++) {
-        const a = rng() * turn;
+        const a = scatterAngle(rng, heading, params);
         place(cx + Math.cos(a) * dist, cy + Math.sin(a) * dist);
       }
       break;
