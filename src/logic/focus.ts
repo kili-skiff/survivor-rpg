@@ -37,3 +37,12 @@ export function lockFirst<T>(candidates: readonly T[], locked: T | null, keep: b
   if (!locked || !keep) return [...candidates];
   return [locked, ...candidates.filter((c) => c !== locked)];
 }
+
+/**
+ * Whether the bolt stays on its locked target, by distances to the player (px): it lets go when another
+ * enemy has come within `danger` while the locked one is further away. In a crowd that is close all
+ * around, the lock is then on a close enemy too and stays, so it does not flicker.
+ */
+export function keepsLock(lockedDist: number, nearestDist: number, danger: number): boolean {
+  return !(nearestDist <= danger && lockedDist > danger);
+}

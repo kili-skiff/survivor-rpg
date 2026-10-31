@@ -137,8 +137,8 @@ One character for everyone; weapons are the build, in the spirit of Hades (decid
     time. Big enemies (the colossus) and elites resist it. (aura, bolt, blades)
   - _Bursts:_ a bolt explodes on impact and hurts the enemies around it for a share of the damage. It is
     the bolt's first level step, so there is something against a crowd early on. (bolt)
-  - _Focus fire:_ the bolt locks on to the nearest enemy and stays on it until it dies or gets out of
-    reach; all bolts of a volley go to it until the damage on its way will kill it, then to the next one
+  - _Focus fire:_ the bolt locks on to the nearest enemy and stays on it until it dies, gets out of
+    reach or another enemy comes very close (`BOLT_FOCUS.dangerRadius`); all bolts of a volley go to it until the damage on its way will kill it, then to the next one
     (`logic/focus.ts`). Enemies fall one after another instead of all of them
     taking a little. (bolt)
   - _Damage as a share of health:_ a hit also takes a few percent of the target's maximum health, so it

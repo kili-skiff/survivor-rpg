@@ -1,6 +1,6 @@
 import * as Phaser from 'phaser';
-import { BALANCE } from '../../config/balance';
-import { assignShots, lockFirst } from '../../logic/focus';
+import { BALANCE, BOLT_FOCUS } from '../../config/balance';
+import { assignShots, keepsLock, lockFirst } from '../../logic/focus';
 import { shotLifetimeMs } from '../../logic/vision';
 import type { WeaponStats } from '../../config/types';
 import type { HitEffects } from '../../logic/hitEffects';
@@ -15,7 +15,8 @@ const SPREAD = 0.05;
 const FOCUS_CANDIDATES = 8;
 
 /**
- * Arcane bolt: locks on to the nearest enemy and keeps firing at it until it dies or gets out of reach;
+ * Arcane bolt: locks on to the nearest enemy and keeps firing at it until it dies, gets out of reach
+ * or another enemy comes very close;
  * all bolts of a volley go to it until the damage on its way will kill it (focus fire).
  */
 export class BoltWeapon implements Weapon {
@@ -53,7 +54,12 @@ export class BoltWeapon implements Weapon {
       !locked.airborne &&
       locked.generation === this.lockedGeneration &&
       (locked.x - player.x) ** 2 + (locked.y - player.y) ** 2 <= range * range;
-    const targets = lockFirst(enemies.nearest(FOCUS_CANDIDATES, range), locked, keep);
+    const nearest = enemies.nearest(FOCUS_CANDIDATES, range);
+    // An enemy that comes very close takes over from a target further off.
+    const dist = (e: Enemy) => Math.hypot(e.x - player.x, e.y - player.y) - e.def.radius;
+    const stay =
+      keep && (nearest.length === 0 || keepsLock(dist(locked), dist(nearest[0]), BOLT_FOCUS.dangerRadius));
+    const targets = lockFirst(nearest, locked, stay);
     if (targets.length === 0) {
       this.timer = 0;
       return;
