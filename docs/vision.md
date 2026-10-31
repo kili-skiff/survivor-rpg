@@ -155,6 +155,9 @@ One character for everyone; weapons are the build, in the spirit of Hades (decid
     offered next to the other cards but never come out of chests.
   - _Chain Lightning_ is a new weapon: a strike that jumps from enemy to enemy; later levels add strikes,
     jumps and a search for the biggest crowd.
+  - _Rarity:_ every card is common (grey), magic (blue) or legendary (orange); the frame and badge show
+    it. Rarer cards are offered less often (`RARITIES` in `config/rarity.ts`; set a weight to 1 to
+    turn that off).
   - The dev panel has "level up" and "wild build" to try combinations quickly.
 
 ## Swarms, enemy behaviour and elites

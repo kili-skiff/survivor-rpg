@@ -9,6 +9,7 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
     name: 'Arcane Bolt',
     description: 'Automatically fires at the nearest enemies.',
     texture: 'icon-bolt',
+    rarity: 'common',
     base: {
       damage: 12,
       cooldown: 900,
@@ -39,6 +40,7 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
     name: 'Blade Vortex',
     description: 'Blades orbit you and hit everything in their path.',
     texture: 'icon-blades',
+    rarity: 'common',
     base: {
       damage: 9,
       cooldown: 400,
@@ -68,6 +70,7 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
     name: 'Ember Aura',
     description: 'Burns nearby enemies at a steady interval.',
     texture: 'icon-aura',
+    rarity: 'common',
     base: {
       damage: 6,
       cooldown: 700,
@@ -97,6 +100,7 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
     name: 'Chain Lightning',
     description: 'Lightning strikes an enemy and jumps on to the ones around it.',
     texture: 'icon-chain',
+    rarity: 'magic',
     base: {
       damage: 14,
       cooldown: 1300,
