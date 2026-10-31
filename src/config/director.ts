@@ -36,6 +36,13 @@ export interface DirectorParams {
   maxBank: number;
   maxPerFrame: number;
   sideSpread: number;
+  aheadShare: number;
+  aheadSpread: number;
+  minHeadingSpeed: number;
+  spawnMargin: number;
+  recycleMargin: number;
+  recycleSpread: number;
+  recycleGraceSec: number;
   wallSpacing: number;
   wallMax: number;
   surges: Record<SurgeKind, SurgeDef>;
@@ -61,6 +68,28 @@ export const DIRECTOR: DirectorParams = {
   maxPerFrame: 6,
   /** A swarm surge comes from one side: enemies spread over this angle (radians, total) */
   sideSpread: 1.1,
+  /**
+   * While the player moves, this share of the scattered enemies appears ahead of them, within this angle
+   * (radians, total), so the player runs into enemies instead of only dragging a crowd behind them.
+   */
+  aheadShare: 0.5,
+  aheadSpread: 2.1,
+  /** Below this speed (px/s) the player counts as standing: enemies come from all sides */
+  minHeadingSpeed: 30,
+  /** Scattered enemies and enemies coming from one side appear this far outside the edge of the view (px) */
+  spawnMargin: 40,
+  /**
+   * An enemy further than this outside the edge of the view (px) is moved ahead of the player, spread
+   * over this angle (radians, total). It thins out the tail of enemies that fell behind.
+   */
+  recycleMargin: 60,
+  recycleSpread: 2.6,
+  /**
+   * Freshly placed enemies are left alone this long (s), so rings and the far ends of a wall (they are
+   * placed on a circle, further out than the edge of the view) are not moved away before they arrive.
+   * Beyond 0.8 of the view's diagonal an enemy is always moved.
+   */
+  recycleGraceSec: 6,
   /** Space between enemies in a wall (px) and the most a wall holds */
   wallSpacing: 34,
   wallMax: 26,

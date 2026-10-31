@@ -702,6 +702,8 @@ export class GameScene extends Phaser.Scene {
     this.viewW = width / zoom;
     this.viewH = height / zoom;
     this.enemies.viewDiag = Math.hypot(this.viewW, this.viewH);
+    this.enemies.viewW = this.viewW;
+    this.enemies.viewH = this.viewH;
     this.ground.setSize(this.viewW + GROUND_TILE * 2, this.viewH + GROUND_TILE * 2);
     this.lighting.resize(this.viewW, this.viewH);
   }

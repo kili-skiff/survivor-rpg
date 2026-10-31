@@ -8,6 +8,11 @@ import {
   pressure,
   SpawnDirector,
   type SpawnOrder,
+  headingOf,
+  scatterAngle,
+  recycleAngle,
+  edgeDistance,
+  outsideView,
 } from './director';
 import { createRng } from './rng';
 import { baseSpawnRate } from './spawning';
@@ -288,5 +293,86 @@ describe('against the old stream', () => {
     }
     expect(spawned / old).toBeGreaterThan(0.7);
     expect(spawned / old).toBeLessThan(1.25);
+  });
+});
+
+describe('spawning ahead of a moving player', () => {
+  const seq = (...values: number[]) => {
+    let i = 0;
+    return () => values[i++ % values.length];
+  };
+
+  it('has no heading while the player stands', () => {
+    expect(headingOf(5, 5)).toBeNull();
+    expect(headingOf(120, 0)).toBe(0);
+    expect(headingOf(0, -120)).toBeCloseTo(-Math.PI / 2);
+  });
+
+  it('puts a share of scattered enemies ahead, within the spread', () => {
+    const heading = 0;
+    // First roll below aheadShare: ahead; the second decides where within the spread.
+    const a = scatterAngle(seq(0.1, 1), heading);
+    expect(Math.abs(a)).toBeLessThanOrEqual(DIRECTOR.aheadSpread / 2 + 1e-9);
+    // First roll above aheadShare: anywhere.
+    expect(scatterAngle(seq(0.9, 0.75), heading)).toBeCloseTo(0.75 * Math.PI * 2);
+  });
+
+  it('scatters evenly around a standing player', () => {
+    expect(scatterAngle(seq(0.25), null)).toBeCloseTo(0.5 * Math.PI);
+  });
+
+  it('about half of many scattered enemies come from ahead', () => {
+    let s = 3;
+    const rng = () => {
+      s = (s * 1664525 + 1013904223) % 4294967296;
+      return s / 4294967296;
+    };
+    let ahead = 0;
+    for (let i = 0; i < 2000; i++) if (Math.cos(scatterAngle(rng, 0)) > 0) ahead += 1;
+    // Half come from ahead on purpose, and half of the rest by chance.
+    expect(ahead / 2000).toBeGreaterThan(0.65);
+    expect(ahead / 2000).toBeLessThan(0.85);
+  });
+
+  it('moves enemies that fell behind ahead of a moving player', () => {
+    for (const r of [0, 0.5, 0.999]) {
+      const a = recycleAngle(seq(r), Math.PI);
+      expect(Math.cos(a)).toBeLessThan(0); // heading west: they come back in the west
+    }
+  });
+});
+
+describe('the edge of the view', () => {
+  it('is half the width to the side and half the height up and down, plus the margin', () => {
+    expect(edgeDistance(0, 400, 200, 40)).toBeCloseTo(440);
+    expect(edgeDistance(Math.PI / 2, 400, 200, 40)).toBeCloseTo(240);
+    expect(edgeDistance(Math.PI, 400, 200, 0)).toBeCloseTo(400);
+  });
+
+  it('reaches the corner on the diagonal', () => {
+    const a = Math.atan2(200, 400);
+    expect(edgeDistance(a, 400, 200, 0)).toBeCloseTo(Math.hypot(400, 200));
+  });
+
+  it('tells what lies outside the view and its margin', () => {
+    expect(outsideView(390, 0, 400, 200, 50)).toBe(false);
+    expect(outsideView(0, 260, 400, 200, 50)).toBe(true);
+    expect(outsideView(-460, 0, 400, 200, 50)).toBe(true);
+  });
+
+  it('places scattered enemies on the edge it is given', () => {
+    const points: number[] = [];
+    forEachSpawnPoint(
+      { count: 20, pattern: 'scatter', angle: 0 },
+      0,
+      0,
+      999,
+      createRng(4),
+      (x, y) => points.push(Math.hypot(x, y) - edgeDistance(Math.atan2(y, x), 400, 200, 40)),
+      DIRECTOR,
+      null,
+      (a) => edgeDistance(a, 400, 200, 40),
+    );
+    for (const p of points) expect(Math.abs(p)).toBeLessThan(1e-6);
   });
 });
