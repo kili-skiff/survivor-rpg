@@ -135,10 +135,21 @@ One character for everyone; weapons are the build, in the spirit of Hades (decid
   fight. Four tools help, and each weapon gets some of them by its fifth level:
   - _Knockback:_ a hit pushes the enemy away; the push slows down by itself. It spreads a blob and buys
     time. Big enemies (the colossus) and elites resist it. (aura, bolt, blades)
-  - _Bursts:_ a bolt explodes on impact and hurts the enemies around it for a share of the damage. (bolt)
+  - _Bursts:_ a bolt explodes on impact and hurts the enemies around it for a share of the damage. It is
+    the bolt's first level step, so there is something against a crowd early on. (bolt)
+  - _Focus fire:_ the bolt locks on to the nearest enemy and stays on it until it dies, gets out of
+    reach or another enemy comes very close (`BOLT_FOCUS.dangerRadius`); all bolts of a volley go to it until the damage on its way will kill it, then to the next one
+    (`logic/focus.ts`). Enemies fall one after another instead of all of them
+    taking a little. (bolt)
   - _Damage as a share of health:_ a hit also takes a few percent of the target's maximum health, so it
     keeps up with the health that grows over time. Elites take only a quarter of it. (aura, blades)
   - _Pierce:_ bolts already pierce; its steps come earlier now.
+
+  How tough enemies are comes from the ring of the hex (`RINGS.hpPerRing`); within a fight they only get
+  a little tougher (+50% over 100 s, `enemyHpMultiplier`), and pressure comes from more enemies (the
+  spawn rate) instead. The ring's difficulty offset only decides which enemies come and how many,
+  not their health. (Before, ring, time and offset all raised health, so from ring 3 on enemies were
+  nearly twice as tough as intended.)
 
   These are the first answer to "I cannot kill them fast enough". Still open: a weapon that is built
   around them (e.g. a mortar) and scaling XP with enemy health (Wisdom helps for now).

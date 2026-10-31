@@ -89,7 +89,7 @@ export class EnemySystem {
   devNoDamage = false;
 
   // DEV: spawns one elite of the given type at the edge of the view.
-  devSpawnElite(def: EnemyDef, runTime: number): void {
+  devSpawnElite(def: EnemyDef, fightTime: number): void {
     const pos = this.spawnPoint();
     const e = this.group.get(pos.x, pos.y, def.texture) as Enemy | null;
     if (!e) return;
@@ -97,7 +97,7 @@ export class EnemySystem {
       def,
       pos.x,
       pos.y,
-      enemyHpMultiplier(runTime) * this.ring.hp * ELITE.hp * this.hpMul,
+      enemyHpMultiplier(fightTime) * this.ring.hp * ELITE.hp * this.hpMul,
       this.ring.damage * ELITE.damage,
       true,
     );
@@ -208,8 +208,12 @@ export class EnemySystem {
     });
   }
 
-  /** Spawns new waves based on the run time in seconds. */
-  spawn(dms: number, runTime: number): void {
+  /**
+   * Spawns new waves. `runTime` is the difficulty time (fight time plus the ring's offset) and decides
+   * which enemies come and how many; `fightTime` is the time of this fight only and decides how tough
+   * they are.
+   */
+  spawn(dms: number, runTime: number, fightTime: number): void {
     this.spawnTimer -= dms;
     if (this.spawnTimer > 0) return;
     this.spawnTimer += spawnIntervalMs(runTime) / this.ring.spawnRate;
@@ -222,7 +226,7 @@ export class EnemySystem {
       const e = this.group.get(pos.x, pos.y, def.texture) as Enemy | null;
       if (!e) break;
       const elite = Math.random() < this.elites;
-      const hp = enemyHpMultiplier(runTime) * this.ring.hp * (elite ? ELITE.hp : 1) * this.hpMul;
+      const hp = enemyHpMultiplier(fightTime) * this.ring.hp * (elite ? ELITE.hp : 1) * this.hpMul;
       e.spawn(def, pos.x, pos.y, hp, this.ring.damage * (elite ? ELITE.damage : 1), elite);
       alive += 1;
     }

@@ -24,9 +24,9 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
       seek: 0,
     },
     levels: [
+      { text: 'Bolts burst on impact and hurt the enemies around', mods: { splash: 48 } },
       { text: '+6 damage', mods: { damage: 6 } },
       { text: '+1 bolt', mods: { count: 1 } },
-      { text: 'Bolts burst on impact and hurt the enemies around', mods: { splash: 48 } },
       { text: '+1 pierce, +6 damage', mods: { pierce: 1, damage: 6 } },
       { text: 'Faster (−150 ms)', mods: { cooldown: -150 } },
       { text: 'Bolts push enemies back', mods: { knockback: 140 } },

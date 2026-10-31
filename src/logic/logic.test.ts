@@ -51,10 +51,13 @@ describe('progression', () => {
 describe('stats', () => {
   it('applies weapon levels cumulatively', () => {
     const lv1 = applyLevels(WEAPONS.bolt.base, WEAPONS.bolt.levels, 1);
-    const lv3 = applyLevels(WEAPONS.bolt.base, WEAPONS.bolt.levels, 3);
+    const lv2 = applyLevels(WEAPONS.bolt.base, WEAPONS.bolt.levels, 2);
+    const lv4 = applyLevels(WEAPONS.bolt.base, WEAPONS.bolt.levels, 4);
     expect(lv1.damage).toBe(12);
-    expect(lv3.damage).toBe(18);
-    expect(lv3.count).toBe(2);
+    // The burst comes first, so there is something against a crowd early on.
+    expect(lv2.splash).toBeGreaterThan(0);
+    expect(lv4.damage).toBe(18);
+    expect(lv4.count).toBe(2);
   });
 
   it('caps levels at max', () => {
@@ -141,6 +144,9 @@ describe('spawning', () => {
   it('gets harder over time', () => {
     expect(spawnIntervalMs(300)).toBeLessThan(spawnIntervalMs(0));
     expect(enemyHpMultiplier(300)).toBeGreaterThan(enemyHpMultiplier(0));
+    // Gentle: a long fight of 150 s makes enemies 75% tougher, not three times as tough.
+    expect(enemyHpMultiplier(0)).toBe(1);
+    expect(enemyHpMultiplier(150)).toBeCloseTo(1.75);
   });
 
   it('only picks unlocked enemies', () => {

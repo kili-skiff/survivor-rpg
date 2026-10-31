@@ -548,7 +548,7 @@ export class GameScene extends Phaser.Scene {
       desperation: this.run.stats.desperation,
       surge: this.clock < this.surgeUntil ? BOONS.surgeBonus : 0,
     });
-    this.enemies.spawn(dms, this.run.time + this.run.segment.difficultyOffsetSec);
+    this.enemies.spawn(dms, this.run.time + this.run.segment.difficultyOffsetSec, this.run.time);
     this.enemies.update();
     for (const [id, weapon] of this.weapons) weapon.update(this.weaponStats[id]!, dms, dt);
     this.pickups.update(dt, this.run.stats.magnet);
