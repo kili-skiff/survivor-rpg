@@ -130,6 +130,18 @@ One character for everyone; weapons are the build, in the spirit of Hades (decid
   blacksmith forges them into new weapons or variants (like weapon aspects in Hades).
 - **Lanterns carry no skills.** A lantern only gives light and sight; a better lantern must always be
   the better choice.
+- **Tools against a crowd that piles up** (built, `logic/hitEffects.ts`, as level steps of the weapons):
+  enemies get tougher over time while the player's damage is capped, so a horde stacks up late in a
+  fight. Four tools help, and each weapon gets some of them by its fifth level:
+  - _Knockback:_ a hit pushes the enemy away; the push slows down by itself. It spreads a blob and buys
+    time. Big enemies (the colossus) and elites resist it. (aura, bolt, blades)
+  - _Bursts:_ a bolt explodes on impact and hurts the enemies around it for a share of the damage. (bolt)
+  - _Damage as a share of health:_ a hit also takes a few percent of the target's maximum health, so it
+    keeps up with the health that grows over time. Elites take only a quarter of it. (aura, blades)
+  - _Pierce:_ bolts already pierce; its steps come earlier now.
+
+  These are the first answer to "I cannot kill them fast enough". Still open: a weapon that is built
+  around them (e.g. a mortar), a passive that widens every weapon's area, and scaling XP with enemy health.
 
 ## Swarms, enemy behaviour and elites
 
@@ -176,7 +188,7 @@ director and the cooldown should not work against each other: either leave the p
 gate, or let the director set the cooldown per wave.
 
 **Other ideas on the table:** obstacles (trees, ruins) that break up the crowd, tools
-against blobs (area damage, pierce, knockback, percent-health damage), fewer but more varied
+against blobs (first set built, see Weapons; more weapons for it later), fewer but more varied
 enemies, and showing a "recommended strength" per ring on the map so hard rings are a choice.
 
 Reference: Vampire Survivors mixes straight lines, sine-wave flyers, walls and rings; Brotato uses

@@ -132,6 +132,8 @@ describe the game as built; some of it changes in Milestone 2 (gold, camps).
 - [ ] More behaviours and new enemy types: ranged, orbiters, runners that pass by; bat flocks that sweep from side to side (with the spawn director)
 - [ ] Elites with a mechanic, their own movement and fair health (target fight length)
 - [ ] Varied fight goals (kill N enemies, find the light or the dungeon, ... see `docs/vision.md`)
+- [x] Tools against a crowd that piles up, as level steps of the weapons (`logic/hitEffects.ts`): knockback with a push that slows down, bolt bursts, damage as a share of health (aura, blades), earlier pierce
+- [ ] Follow-ups: a weapon built around crowd control (e.g. a mortar), a passive for area, XP that keeps up with enemy health (check in play first)
 
 ### Milestone 2: new core loop
 

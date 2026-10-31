@@ -1,13 +1,24 @@
 import * as Phaser from 'phaser';
 import { BALANCE, CHARGE_COOLDOWN_MS, ELITE, MAX_CHARGERS_AT_ONCE } from '../config/balance';
+import { COLORS } from '../ui/theme';
 import { eliteChance, ringModifiers, type RingModifiers } from '../logic/difficulty';
 import { ENEMIES } from '../config/enemies';
 import { ChargeGate, isLocked, leapAt, REST_SPEED, stepCharge, windupProgress } from '../logic/charge';
 import { dieAnim } from '../config/sprites';
+import {
+  addPush,
+  decayPush,
+  inBurst,
+  percentDamage,
+  pushSpeed,
+  splashDamage,
+  type HitEffects,
+} from '../logic/hitEffects';
 import type { EnemyDef } from '../config/types';
 import { Enemy } from '../entities/Enemy';
 import { enemyHpMultiplier, maxEnemies, pickEnemy, spawnBatchSize, spawnIntervalMs } from '../logic/spawning';
 import { Swarm, VelocityEstimator } from '../logic/swarm';
+import { BurstFx } from './BurstFx';
 import type { DamageNumbers } from './DamageNumbers';
 
 const ENEMY_LIST: EnemyDef[] = Object.values(ENEMIES);
@@ -46,6 +57,10 @@ export class EnemySystem {
   private readonly live: Enemy[] = [];
   /** Pool of death animations, so killing never creates new objects */
   private readonly corpses: Phaser.GameObjects.Group;
+  /** The rings of bursts around hit enemies */
+  private readonly bursts: BurstFx;
+  /** Game time (ms) of the last update, for the push that slows down; -1 before the first */
+  private lastUpdateMs = -1;
 
   constructor(
     scene: Phaser.Scene,
@@ -59,6 +74,7 @@ export class EnemySystem {
     this.group = scene.physics.add.group({ classType: Enemy, maxSize: BALANCE.maxEnemiesHardCap });
     this.eliteRings = scene.add.graphics().setDepth(1.9);
     this.corpses = scene.add.group({ classType: Phaser.GameObjects.Sprite, maxSize: MAX_CORPSES });
+    this.bursts = new BurstFx(scene, now, COLORS.bolt);
   }
 
   /** DEV: while true, nothing hurts enemies (invincible mode); set by the scene. */
@@ -127,6 +143,33 @@ export class EnemySystem {
     }
   }
 
+  /**
+   * A weapon hit: damage plus what the weapon does besides, the tools against a crowd that piles up
+   * (see logic/hitEffects.ts): extra damage as a share of health, a push away from (fromX, fromY)
+   * and a burst that hurts the neighbours. `knockX`/`knockY` is a small instant nudge.
+   */
+  hit(e: Enemy, damage: number, fx: HitEffects, fromX: number, fromY: number, knockX = 0, knockY = 0): void {
+    if (!e.active || e.airborne || this.devNoDamage) return; // DEV: invincible mode deals no damage
+    const x = e.x;
+    const y = e.y;
+    const bonus = percentDamage(fx.percent ?? 0, e.maxHp, e.elite);
+    this.damage(e, damage + bonus, knockX, knockY);
+    if (e.active && fx.knockback) {
+      const speed = pushSpeed(fx.knockback, e.def.knockResist ?? 0, e.elite);
+      addPush(e.push, speed, fromX, fromY, e.x, e.y);
+    }
+    if (fx.splash) this.burst(x, y, fx.splash, splashDamage(damage), e);
+  }
+
+  /** Hurts every enemy near (x, y) except `skip`, with a ring to show where. */
+  private burst(x: number, y: number, radius: number, amount: number, skip: Enemy): void {
+    this.bursts.add(x, y, radius);
+    for (const n of this.active()) {
+      if (n === skip || n.airborne) continue;
+      if (inBurst(Math.hypot(n.x - x, n.y - y), n.radius, radius)) this.damage(n, amount);
+    }
+  }
+
   /** The enemy falls (death animation), lies still for a moment and fades away. */
   private showCorpse(e: Enemy): void {
     if (!e.look) return;
@@ -177,6 +220,10 @@ export class EnemySystem {
 
   update(): void {
     const now = this.now();
+    // The push of hits slows down with the time that really passed (the game clock stops while paused).
+    const dt = this.lastUpdateMs < 0 ? 0 : Math.min(0.05, (now - this.lastUpdateMs) / 1000);
+    this.lastUpdateMs = now;
+    this.bursts.update();
     const { x: px, y: py } = this.target;
     const recycleDist = this.viewDiag * 0.8;
     const live = this.live;
@@ -281,6 +328,8 @@ export class EnemySystem {
         // Stands still and crouches: the animation freezes.
         e.steerX = 0;
         e.steerY = 0;
+        e.push.x = 0;
+        e.push.y = 0;
         e.setVelocity(0, 0);
         e.walk(e.charge.targetX - e.x, e.charge.targetY - e.y, 0);
         continue;
@@ -297,7 +346,8 @@ export class EnemySystem {
         e.steerX *= REST_SPEED;
         e.steerY *= REST_SPEED;
       }
-      e.setVelocity(e.steerX, e.steerY);
+      e.setVelocity(e.steerX + e.push.x, e.steerY + e.push.y);
+      decayPush(e.push, dt);
       e.walk(e.steerX, e.steerY, slow);
     }
     // Bodies never sit inside each other.
