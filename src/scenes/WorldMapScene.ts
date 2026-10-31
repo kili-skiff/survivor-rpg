@@ -488,10 +488,10 @@ export class WorldMapScene extends Phaser.Scene {
       icon.setVisible(this.isVisible(hex.key) && !isUsedUp(progress, hex.key));
     }
     // Goals change with every expedition, so the symbols follow the current one. They only show next to
-    // the player, the village and lit watchfires.
-    const anchors = [parseHexKey(progress.position), ORIGIN, ...progress.litWatchfires.map(parseHexKey)];
+    // the player.
+    const at = parseHexKey(progress.position);
     for (const { hex, icon } of this.goalIcons) {
-      const near = anchors.some((a) => hexDistance(a, hex.hex) <= GOALS.iconReach);
+      const near = hexDistance(at, hex.hex) <= GOALS.iconReach;
       const shown = near && this.isVisible(hex.key) && !isUsedUp(progress, hex.key);
       icon.setVisible(shown);
       if (shown) icon.setTexture(GOALS.icons[segmentForHex(hex, progress.expeditions).goal.kind]);

@@ -7,8 +7,8 @@ export const GOALS = {
   /** How often each goal is rolled for an ordinary hex (relative weights) */
   weights: { survive: 0.65, hunt: 0.35 } satisfies Record<GoalKind, number>,
   /**
-   * The map shows a hex's goal only this many hexes away from the player, the village or a lit watchfire:
-   * what lies further out stays a surprise.
+   * The map shows a hex's goal only this many hexes away from the player: what lies further out stays a
+   * surprise.
    */
   iconReach: 1,
   /** Symbol of each goal on the map, in the hex panel and next to the counter in a fight (BootScene) */
