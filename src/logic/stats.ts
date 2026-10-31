@@ -15,6 +15,11 @@ import { WEAPONS } from '../config/weapons';
 /** What the player owns in this run: id -> level (starting at 1). */
 export interface Loadout {
   weapons: Partial<Record<WeaponId, number>>;
+  /**
+   * The level steps each weapon has taken, in the order they came (indices into its `levels`). They are
+   * drawn at random; missing (older saves) means the first steps in order.
+   */
+  weaponSteps?: Partial<Record<WeaponId, number[]>>;
   passives: Partial<Record<PassiveId, number>>;
   skills: Record<SkillId, number>;
 }
@@ -62,9 +67,40 @@ export function computePlayerStats(loadout: Loadout, bonus: Partial<PlayerStats>
   return stats;
 }
 
-export function computeWeaponStats(id: WeaponId, level: number, player: PlayerStats): WeaponStats {
+/** Applies the given level steps (indices into `levels`) to the base values. */
+export function applySteps<T extends object>(base: T, levels: LevelStep<T>[], steps: readonly number[]): T {
+  let result = { ...base };
+  for (const i of steps) if (levels[i]) result = addPartial(result, levels[i].mods);
+  return result;
+}
+
+/** The level steps a weapon has taken; without a record, the first ones in order (one per level above 1). */
+export function weaponSteps(loadout: Loadout, id: WeaponId): number[] {
+  const level = loadout.weapons[id] ?? 0;
+  const n = Math.max(0, Math.min(level - 1, WEAPONS[id].levels.length));
+  const taken = loadout.weaponSteps?.[id];
+  if (taken && taken.length === n) return [...taken];
+  return Array.from({ length: n }, (_, i) => i);
+}
+
+/** The level steps a weapon can still take. */
+export function remainingSteps(loadout: Loadout, id: WeaponId): number[] {
+  const taken = new Set(weaponSteps(loadout, id));
+  return WEAPONS[id].levels.map((_, i) => i).filter((i) => !taken.has(i));
+}
+
+/**
+ * A weapon's stats at `level` for the player. `steps` are the level steps it has taken (see
+ * `weaponSteps`); without them, the first ones in order.
+ */
+export function computeWeaponStats(
+  id: WeaponId,
+  level: number,
+  player: PlayerStats,
+  steps?: readonly number[],
+): WeaponStats {
   const def = WEAPONS[id];
-  const raw = applyLevels(def.base, def.levels, level);
+  const raw = steps ? applySteps(def.base, def.levels, steps) : applyLevels(def.base, def.levels, level);
   return {
     ...raw,
     damage: raw.damage * player.might,

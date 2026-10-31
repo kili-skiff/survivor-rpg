@@ -87,17 +87,43 @@ function parseLevels<T extends string>(raw: unknown, known: readonly T[]): Parti
   return out;
 }
 
+/**
+ * The level steps each weapon took (added in save version 12). A list that does not fit the weapon's level
+ * is dropped, and the weapon then counts its first steps in order, as before.
+ */
+function parseWeaponSteps(
+  raw: unknown,
+  weapons: Partial<Record<WeaponId, number>>,
+): Partial<Record<WeaponId, number[]>> {
+  const out: Partial<Record<WeaponId, number[]>> = {};
+  if (!raw || typeof raw !== 'object') return out;
+  for (const id of Object.keys(weapons) as WeaponId[]) {
+    const list = (raw as Record<string, unknown>)[id];
+    if (!Array.isArray(list)) continue;
+    const max = WEAPONS[id].levels.length;
+    const steps = list.filter((v): v is number => Number.isInteger(v) && v >= 0 && v < max);
+    const expected = Math.min((weapons[id] ?? 1) - 1, max);
+    if (steps.length === list.length && new Set(steps).size === steps.length && steps.length === expected) {
+      out[id] = steps;
+    }
+  }
+  return out;
+}
+
 function parseLoadout(raw: unknown): Loadout | null {
   if (!raw || typeof raw !== 'object') return null;
   const d = raw as Record<string, unknown>;
   const weapons = parseLevels(d.weapons, Object.keys(WEAPONS) as WeaponId[]);
   if (Object.keys(weapons).length === 0) return null;
   const skills = parseLevels(d.skills, Object.keys(SKILLS) as SkillId[]);
-  return {
+  const loadout: Loadout = {
     weapons,
     passives: parseLevels(d.passives, Object.keys(PASSIVES) as PassiveId[]),
     skills: { dash: skills.dash ?? 1, nova: skills.nova ?? 1 },
   };
+  const steps = parseWeaponSteps(d.weaponSteps, weapons);
+  if (Object.keys(steps).length > 0) loadout.weaponSteps = steps;
+  return loadout;
 }
 
 export function parseExpedition(raw: unknown): Expedition | null {
