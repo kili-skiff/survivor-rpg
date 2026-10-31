@@ -82,7 +82,7 @@ export const DIRECTOR: DirectorParams = {
    * An enemy further than this outside the edge of the view (px) is moved ahead of the player, spread
    * over this angle (radians, total). It thins out the tail of enemies that fell behind.
    */
-  recycleMargin: 110,
+  recycleMargin: 60,
   recycleSpread: 2.6,
   /**
    * Freshly placed enemies are left alone this long (s), so rings and the far ends of a wall (they are
