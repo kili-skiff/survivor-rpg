@@ -61,6 +61,7 @@ import { LanternSystem } from '../systems/LanternSystem';
 import { LightingSystem } from '../systems/LightingSystem';
 import { godModeStats } from '../dev/devLogic'; // DEV:
 import { isDevMode } from '../dev/devMode'; // DEV:
+import type { DevFightStats } from '../dev/DevPanel'; // DEV:
 import { castFrostNova } from '../systems/skills/frostNova';
 import { createWeapon, type Weapon } from '../systems/weapons';
 import { viewportSize } from '../ui/display';
@@ -201,6 +202,7 @@ export class GameScene extends Phaser.Scene {
       this.numbers,
       (e) => this.onEnemyKilled(e),
       (e) => this.onPlayerTouched(e, true),
+      (a) => this.events.emit('surge', a),
     );
     this.enemies.devNoDamage = this.devInvincible(); // DEV: invincible mode
     this.pickups = new PickupSystem(this, this.player, (p) => this.onPickup(p));
@@ -442,8 +444,13 @@ export class GameScene extends Phaser.Scene {
   }
 
   // DEV: numbers for the dev panel (the game clock stops while paused).
-  devStats(): { enemies: number; kills: number; nowMs: number } {
-    return { enemies: this.enemies.group.countActive(true), kills: this.run.kills, nowMs: this.clock };
+  devStats(): DevFightStats {
+    return {
+      enemies: this.enemies.group.countActive(true),
+      kills: this.run.kills,
+      nowMs: this.clock,
+      director: this.enemies.directorState,
+    };
   }
 
   // DEV: spawns an elite at the edge of the view.

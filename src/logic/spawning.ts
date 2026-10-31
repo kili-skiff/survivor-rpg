@@ -12,6 +12,14 @@ export function spawnBatchSize(t: number): number {
   return 1 + Math.floor(t / 40);
 }
 
+/**
+ * Enemies per second the horde grows by at fight time t: the strength of the old constant stream.
+ * The spawn director shapes this into build-ups, surges and breathers (logic/director.ts).
+ */
+export function baseSpawnRate(t: number): number {
+  return (spawnBatchSize(t) * 1000) / spawnIntervalMs(t);
+}
+
 /** Maximum number of enemies alive at once. */
 export function maxEnemies(t: number, hardCap: number): number {
   return Math.min(hardCap, Math.round(30 + t * 1.6));
@@ -20,7 +28,7 @@ export function maxEnemies(t: number, hardCap: number): number {
 /**
  * Enemies get a little tougher during a fight. `t` is the time of this fight only (seconds), without
  * the ring's difficulty offset: how tough enemies are overall comes from the ring (logic/difficulty.ts).
- * Pressure within a fight comes from more enemies (the spawn rate), not from tougher ones.
+ * Pressure within a fight comes from more enemies (the spawn director), not from tougher ones.
  */
 export function enemyHpMultiplier(t: number): number {
   return 1 + Math.max(0, t) / 200;

@@ -20,12 +20,14 @@ export interface DevFightStats {
   enemies: number;
   kills: number;
   nowMs: number;
+  /** The spawn director's phase and the strength of the stream */
+  director?: { phase: string; pressure: number };
 }
 
 /**
  * Dev only: one small "DEV" header in the corner. Under it a readout (frame rate, worst frame, enemies,
- * kills per minute) that is always there, and the dev buttons, which fold out when the header is tapped.
- * Folded in, it needs only three short lines; it hides while a menu is open.
+ * kills per minute, the spawn director's phase) that is always there, and the dev buttons, which fold out when the header is tapped.
+ * Folded in, it needs only four short lines; it hides while a menu is open.
  */
 export class DevPanel {
   private readonly items: Phaser.GameObjects.Text[] = [];
@@ -81,7 +83,12 @@ export class DevPanel {
     this.fps = reading;
     const s = this.stats();
     this.readout.setText(
-      readoutLabel({ fps: reading, enemies: s.enemies, killsPerMinute: this.kills.update(s.kills, s.nowMs) }),
+      readoutLabel({
+        fps: reading,
+        enemies: s.enemies,
+        killsPerMinute: this.kills.update(s.kills, s.nowMs),
+        director: s.director,
+      }),
     );
     this.layout(this.left, this.top, this.u);
   }
