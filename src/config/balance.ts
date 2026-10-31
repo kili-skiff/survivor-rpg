@@ -63,6 +63,12 @@ export const HIT_EFFECTS = {
   burstFxMs: 260,
 } as const;
 
+/** Arcane Bolt's focus fire (logic/focus.ts). */
+export const BOLT_FOCUS = {
+  /** An enemy this close to the player (px, to its edge) pulls the bolt away from a target further off */
+  dangerRadius: 90,
+} as const;
+
 /** Chain Lightning (systems/weapons/ChainWeapon.ts, logic/chain.ts). Distances in px, times in ms. */
 export const CHAIN = {
   /** How far from the player a strike may start */

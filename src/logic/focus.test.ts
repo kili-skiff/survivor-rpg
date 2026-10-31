@@ -1,0 +1,80 @@
+import { describe, expect, it } from 'vitest';
+import { assignShots, keepsLock, lockFirst } from './focus';
+
+describe('assignShots', () => {
+  it('sends the whole volley at the nearest enemy while it is not dead yet', () => {
+    expect(
+      assignShots(
+        [
+          { hp: 40, pending: 0 },
+          { hp: 10, pending: 0 },
+        ],
+        3,
+        12,
+      ),
+    ).toEqual([0, 0, 0]);
+  });
+
+  it('moves on once the damage on its way covers the health', () => {
+    expect(
+      assignShots(
+        [
+          { hp: 20, pending: 0 },
+          { hp: 30, pending: 0 },
+        ],
+        3,
+        12,
+      ),
+    ).toEqual([0, 0, 1]);
+  });
+
+  it('skips enemies that bolts in flight will already kill', () => {
+    expect(
+      assignShots(
+        [
+          { hp: 20, pending: 24 },
+          { hp: 30, pending: 0 },
+        ],
+        2,
+        12,
+      ),
+    ).toEqual([1, 1]);
+  });
+
+  it('puts left-over bolts on the last enemy when all are covered', () => {
+    expect(assignShots([{ hp: 5, pending: 0 }], 3, 12)).toEqual([0, 0, 0]);
+  });
+
+  it('has no target without enemies', () => {
+    expect(assignShots([], 2, 12)).toEqual([-1, -1]);
+  });
+});
+
+describe('lockFirst', () => {
+  it('puts the locked target first, even when others are nearer', () => {
+    expect(lockFirst(['a', 'b', 'c'], 'c', true)).toEqual(['c', 'a', 'b']);
+  });
+
+  it('adds the locked target when it is not among the nearest', () => {
+    expect(lockFirst(['a', 'b'], 'z', true)).toEqual(['z', 'a', 'b']);
+  });
+
+  it('keeps the nearest-first order without a valid lock', () => {
+    expect(lockFirst(['a', 'b'], null, true)).toEqual(['a', 'b']);
+    expect(lockFirst(['a', 'b'], 'b', false)).toEqual(['a', 'b']);
+  });
+});
+
+describe('keepsLock', () => {
+  it('keeps the lock while nobody comes close', () => {
+    expect(keepsLock(250, 180, 90)).toBe(true);
+  });
+
+  it('lets go when another enemy comes close and the locked one is further away', () => {
+    expect(keepsLock(250, 60, 90)).toBe(false);
+  });
+
+  it('keeps a lock that is close itself, even if another is closer still', () => {
+    expect(keepsLock(80, 30, 90)).toBe(true);
+  });
+});

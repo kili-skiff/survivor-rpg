@@ -132,13 +132,23 @@ One character for everyone; weapons are the build, in the spirit of Hades (decid
   the better choice.
 - **Tools against a crowd that piles up** (built, `logic/hitEffects.ts`, as level steps of the weapons):
   enemies get tougher over time while the player's damage is capped, so a horde stacks up late in a
-  fight. Four tools help, and each weapon gets some of them by its fifth level:
+  fight. These tools help; they come as level steps of the weapons, in a random order:
   - _Knockback:_ a hit pushes the enemy away; the push slows down by itself. It spreads a blob and buys
     time. Big enemies (the colossus) and elites resist it. (aura, bolt, blades)
   - _Bursts:_ a bolt explodes on impact and hurts the enemies around it for a share of the damage. (bolt)
+  - _Focus fire:_ the bolt locks on to the nearest enemy and stays on it until it dies, gets out of
+    reach or another enemy comes very close (`BOLT_FOCUS.dangerRadius`); all bolts of a volley go to it until the damage on its way will kill it, then to the next one
+    (`logic/focus.ts`). Enemies fall one after another instead of all of them
+    taking a little. (bolt)
   - _Damage as a share of health:_ a hit also takes a few percent of the target's maximum health, so it
     keeps up with the health that grows over time. Elites take only a quarter of it. (aura, blades)
   - _Pierce:_ bolts already pierce; its steps come earlier now.
+
+  How tough enemies are comes from the ring of the hex (`RINGS.hpPerRing`); within a fight they only get
+  a little tougher (+50% over 100 s, `enemyHpMultiplier`), and pressure comes from more enemies through
+  the spawn director instead. The ring's difficulty offset only decides which enemies come and how many,
+  not their health. (Before, ring, time and offset all raised health, so from ring 3 on enemies were
+  nearly twice as tough as intended.)
 
   These are the first answer to "I cannot kill them fast enough". Still open: a weapon that is built
   around them (e.g. a mortar) and scaling XP with enemy health (Wisdom helps for now).
@@ -158,6 +168,9 @@ One character for everyone; weapons are the build, in the spirit of Hades (decid
   - _Rarity:_ every card is common (grey), magic (blue) or legendary (orange); the frame and badge show
     it. Rarer cards are offered less often (`RARITIES` in `config/rarity.ts`; set a weight to 1 to
     turn that off).
+  - _Random weapon steps:_ a weapon card brings one of the weapon's missing level steps at random, not the
+    next one in a fixed order, so no two runs grow the same way (`weaponSteps` in the loadout). At the
+    highest level a weapon has every step, whatever the order.
   - The dev panel has "level up" and "wild build" to try combinations quickly.
 
 ## Swarms, enemy behaviour and elites

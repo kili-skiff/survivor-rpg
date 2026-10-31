@@ -55,6 +55,8 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite implements SwarmAgent {
   damage = 0;
   /** Elite: big, tough, golden shimmer, always drops gold */
   elite = false;
+  /** Counts up on every spawn, so a pooled enemy that died and came back is not mistaken for the old one */
+  generation = 0;
   /** The animated sheet, or null when the placeholder texture is shown */
   look: CharacterSprite | null = null;
   /** Where the walk animation faces; null until the first move */
@@ -70,6 +72,7 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite implements SwarmAgent {
     damageMultiplier = 1,
     elite = false,
   ): void {
+    this.generation += 1;
     this.def = def;
     this.elite = elite;
     this.damage = def.damage * damageMultiplier;

@@ -1,5 +1,6 @@
 import type { WeaponDef, WeaponId } from './types';
 
+// Level steps come in a random order (logic/upgrades.ts), so write each text so it reads on its own.
 // New weapon = new entry here + its class in systems/weapons/ (registered in systems/weapons/index.ts).
 // `knockback`, `splash` and `percent` are the tools against a crowd that piles up (logic/hitEffects.ts):
 // they start at 0 and come in through level steps, so they show up as normal level-up cards.
@@ -24,14 +25,14 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
       seek: 0,
     },
     levels: [
+      { text: 'Bolts burst on impact and hurt the enemies around', mods: { splash: 48 } },
       { text: '+6 damage', mods: { damage: 6 } },
       { text: '+1 bolt', mods: { count: 1 } },
-      { text: 'Bolts burst on impact and hurt the enemies around', mods: { splash: 48 } },
       { text: '+1 pierce, +6 damage', mods: { pierce: 1, damage: 6 } },
       { text: 'Faster (−150 ms)', mods: { cooldown: -150 } },
       { text: 'Bolts push enemies back', mods: { knockback: 140 } },
       { text: '+1 bolt', mods: { count: 1 } },
-      { text: 'Wider bursts, +6 damage', mods: { splash: 28, damage: 6 } },
+      { text: '+6 damage, bursts 28 px wider', mods: { splash: 28, damage: 6 } },
       { text: '+12 damage, +1 pierce', mods: { damage: 12, pierce: 1 } },
     ],
   },
@@ -62,7 +63,10 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
       { text: 'Spins faster', mods: { speed: 60 } },
       { text: 'Hits throw enemies back harder', mods: { knockback: 90 } },
       { text: '+1 blade, +5 damage', mods: { count: 1, damage: 5 } },
-      { text: '+8 damage, wider orbit, rends 3%', mods: { damage: 8, area: 0.2, percent: 0.01 } },
+      {
+        text: '+8 damage, wider orbit, +1% of health per hit',
+        mods: { damage: 8, area: 0.2, percent: 0.01 },
+      },
     ],
   },
   aura: {
@@ -91,7 +95,7 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
       { text: 'Burns: each pulse also takes 2% of health', mods: { percent: 0.02 } },
       { text: 'Faster (−120 ms)', mods: { cooldown: -120 } },
       { text: '+20% area, +3 damage', mods: { area: 0.2, damage: 3 } },
-      { text: 'Stronger push, burns 3%', mods: { knockback: 100, percent: 0.01 } },
+      { text: 'Stronger push, +1% of health per pulse', mods: { knockback: 100, percent: 0.01 } },
       { text: '+6 damage', mods: { damage: 6 } },
     ],
   },

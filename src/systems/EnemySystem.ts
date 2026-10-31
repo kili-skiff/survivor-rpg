@@ -93,7 +93,7 @@ export class EnemySystem {
   devNoDamage = false;
 
   // DEV: spawns one elite of the given type at the edge of the view.
-  devSpawnElite(def: EnemyDef, runTime: number): void {
+  devSpawnElite(def: EnemyDef, fightTime: number): void {
     const pos = this.spawnPoint();
     const e = this.group.get(pos.x, pos.y, def.texture) as Enemy | null;
     if (!e) return;
@@ -101,7 +101,7 @@ export class EnemySystem {
       def,
       pos.x,
       pos.y,
-      enemyHpMultiplier(runTime) * this.ring.hp * ELITE.hp * this.hpMul,
+      enemyHpMultiplier(fightTime) * this.ring.hp * ELITE.hp * this.hpMul,
       this.ring.damage * ELITE.damage,
       true,
     );
@@ -217,8 +217,12 @@ export class EnemySystem {
     return { phase: this.director.phase, pressure: this.director.pressure };
   }
 
-  /** Spawns what the director orders, based on the fight time in seconds. */
-  spawn(dms: number, runTime: number): void {
+  /**
+   * Spawns what the director orders. `runTime` is the difficulty time (fight time plus the ring's offset)
+   * and decides which enemies come and how many; `fightTime` is the time of this fight only and decides
+   * how tough they are.
+   */
+  spawn(dms: number, runTime: number, fightTime: number): void {
     const room = maxEnemies(runTime, BALANCE.maxEnemiesHardCap) - this.group.countActive(true);
     const step = this.director.update(dms / 1000, {
       time: runTime,
@@ -228,19 +232,19 @@ export class EnemySystem {
     const dist = this.viewDiag / 2 + 40;
     for (const order of step.orders) {
       forEachSpawnPoint(order, this.target.x, this.target.y, dist, Math.random, (x, y) =>
-        this.spawnAt(x, y, runTime),
+        this.spawnAt(x, y, runTime, fightTime),
       );
     }
     if (step.announce) this.onAnnounce(step.announce);
   }
 
   /** One enemy of a type that fits the fight time and ring, normal or elite. */
-  private spawnAt(x: number, y: number, runTime: number): void {
+  private spawnAt(x: number, y: number, runTime: number, fightTime: number): void {
     const def = pickEnemy(runTime, ENEMY_LIST, Math.random, this.ringNumber);
     const e = this.group.get(x, y, def.texture) as Enemy | null;
     if (!e) return;
     const elite = Math.random() < this.elites;
-    const hp = enemyHpMultiplier(runTime) * this.ring.hp * (elite ? ELITE.hp : 1) * this.hpMul;
+    const hp = enemyHpMultiplier(fightTime) * this.ring.hp * (elite ? ELITE.hp : 1) * this.hpMul;
     e.spawn(def, x, y, hp, this.ring.damage * (elite ? ELITE.damage : 1), elite);
   }
 

@@ -1,5 +1,6 @@
 import * as Phaser from 'phaser';
-import { BALANCE } from '../../config/balance';
+import { BALANCE, BOLT_FOCUS } from '../../config/balance';
+import { assignShots, keepsLock, lockFirst } from '../../logic/focus';
 import { shotLifetimeMs } from '../../logic/vision';
 import type { WeaponStats } from '../../config/types';
 import type { HitEffects } from '../../logic/hitEffects';
@@ -8,13 +9,22 @@ import { Projectile } from '../../entities/Projectile';
 import type { CombatContext } from '../CombatContext';
 import { FIRST_SHOT_DELAY, type Weapon } from './Weapon';
 
-/** Angle offset for extra bolts when there are fewer targets than bolts (radians) */
-const SPREAD = 0.18;
+/** Angle between bolts fired at the same enemy (radians); small, so they still hit */
+const SPREAD = 0.05;
+/** How many of the nearest enemies focus fire looks at */
+const FOCUS_CANDIDATES = 8;
 
-/** Arcane bolt: fires at the nearest enemies. */
+/**
+ * Arcane bolt: locks on to the nearest enemy and keeps firing at it until it dies, gets out of reach
+ * or another enemy comes very close;
+ * all bolts of a volley go to it until the damage on its way will kill it (focus fire).
+ */
 export class BoltWeapon implements Weapon {
   private readonly projectiles: Phaser.Physics.Arcade.Group;
   private timer = FIRST_SHOT_DELAY;
+  /** The enemy the bolt is locked on to, and which life of that pooled enemy */
+  private locked: Enemy | null = null;
+  private lockedGeneration = 0;
   /** What a hit does besides damage; follows the weapon's level */
   private readonly effects: HitEffects = {};
 
@@ -35,14 +45,41 @@ export class BoltWeapon implements Weapon {
 
     const { player, enemies } = this.ctx;
     const range = this.ctx.visionRange();
-    const targets = enemies.nearest(stats.count, range);
+    // Focus fire: the bolt stays on the enemy it locked on to until that one dies or gets out of reach;
+    // without a lock it takes the nearest. A volley moves on once the damage on its way will kill it.
+    const locked = this.locked;
+    const keep =
+      locked !== null &&
+      locked.active &&
+      !locked.airborne &&
+      locked.generation === this.lockedGeneration &&
+      (locked.x - player.x) ** 2 + (locked.y - player.y) ** 2 <= range * range;
+    const nearest = enemies.nearest(FOCUS_CANDIDATES, range);
+    // An enemy that comes very close takes over from a target further off.
+    const dist = (e: Enemy) => Math.hypot(e.x - player.x, e.y - player.y) - e.def.radius;
+    const stay =
+      keep && (nearest.length === 0 || keepsLock(dist(locked), dist(nearest[0]), BOLT_FOCUS.dangerRadius));
+    const targets = lockFirst(nearest, locked, stay);
     if (targets.length === 0) {
       this.timer = 0;
       return;
     }
+    const pending = this.pendingDamage();
+    const plan = assignShots(
+      targets.map((e) => ({ hp: e.hp, pending: pending.get(e) ?? 0 })),
+      stats.count,
+      stats.damage,
+    );
+    const first = targets[plan[0]];
+    this.locked = first;
+    this.lockedGeneration = first.generation;
+    const perTarget = new Map<Enemy, number>();
     for (let i = 0; i < stats.count; i++) {
-      const target = targets[i % targets.length];
-      const spread = i >= targets.length ? (i - targets.length + 1) * SPREAD : 0;
+      const target = targets[plan[i]];
+      // Bolts at the same enemy fan out a little, so they read as several bolts.
+      const k = perTarget.get(target) ?? 0;
+      perTarget.set(target, k + 1);
+      const spread = k === 0 ? 0 : (k % 2 === 1 ? 1 : -1) * Math.ceil(k / 2) * SPREAD;
       const angle = Math.atan2(target.y - player.y, target.x - player.x) + spread;
       const p = this.projectiles.get(player.x, player.y, 'bolt') as Projectile | null;
       if (!p) break;
@@ -56,8 +93,19 @@ export class BoltWeapon implements Weapon {
         this.ctx.now(),
         shotLifetimeMs(range, stats.speed, BALANCE.boltLifetimeMs),
       );
+      p.target = target;
     }
     this.timer = stats.cooldown;
+  }
+
+  /** Damage of the bolts in flight, per enemy they were fired at. */
+  private pendingDamage(): Map<Enemy, number> {
+    const out = new Map<Enemy, number>();
+    for (const p of this.projectiles.getChildren() as Projectile[]) {
+      if (!p.active || !p.target?.active || p.hits.has(p.target)) continue;
+      out.set(p.target, (out.get(p.target) ?? 0) + p.damage);
+    }
+    return out;
   }
 
   private onHit(p: Projectile, e: Enemy): void {

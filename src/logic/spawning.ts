@@ -25,9 +25,13 @@ export function maxEnemies(t: number, hardCap: number): number {
   return Math.min(hardCap, Math.round(30 + t * 1.6));
 }
 
-/** Enemies get tougher over time. */
+/**
+ * Enemies get a little tougher during a fight. `t` is the time of this fight only (seconds), without
+ * the ring's difficulty offset: how tough enemies are overall comes from the ring (logic/difficulty.ts).
+ * Pressure within a fight comes from more enemies (the spawn director), not from tougher ones.
+ */
 export function enemyHpMultiplier(t: number): number {
-  return 1 + t / 80;
+  return 1 + Math.max(0, t) / 200;
 }
 
 /** Picks a weighted enemy type among those unlocked at time t and allowed in this ring. */
