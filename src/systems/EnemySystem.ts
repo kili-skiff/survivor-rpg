@@ -21,8 +21,10 @@ import type { EnemyDef } from '../config/types';
 import { Enemy } from '../entities/Enemy';
 import { DIRECTOR } from '../config/director';
 import {
+  edgeDistance,
   forEachSpawnPoint,
   headingOf,
+  outsideView,
   recycleAngle,
   SpawnDirector,
   type Announcement,
@@ -52,6 +54,9 @@ export class EnemySystem {
   readonly group: Phaser.Physics.Arcade.Group;
   /** Diagonal of the visible world area; set by the scene on resize */
   viewDiag = 1000;
+  /** Size of the visible world area (px); set by the scene on resize */
+  viewW = 800;
+  viewH = 600;
   /** Paces the fight: build-ups, announced surges and breathers instead of a constant stream */
   private readonly director = new SpawnDirector(Math.random);
   /** Golden rings under elites, so they stand out from the horde */
@@ -248,6 +253,7 @@ export class EnemySystem {
         (x, y) => this.spawnAt(x, y, runTime, fightTime),
         DIRECTOR,
         headingOf(this.targetVelocity.x, this.targetVelocity.y),
+        (a) => edgeDistance(a, this.viewW / 2, this.viewH / 2, DIRECTOR.spawnMargin),
       );
     }
     if (step.announce) this.onAnnounce(step.announce);
@@ -271,8 +277,8 @@ export class EnemySystem {
     this.lastUpdateMs = now;
     this.bursts.update();
     const { x: px, y: py } = this.target;
-    const spawnDist = this.viewDiag / 2 + 40;
-    const recycleDist = this.viewDiag / 2 + DIRECTOR.recycleMargin;
+    const halfW = this.viewW / 2;
+    const halfH = this.viewH / 2;
     const farDist = this.viewDiag * 0.8;
     const graceMs = DIRECTOR.recycleGraceSec * 1000;
     const heading = headingOf(this.targetVelocity.x, this.targetVelocity.y);
@@ -292,12 +298,14 @@ export class EnemySystem {
       const dy = py - e.y;
       const d = Math.hypot(dx, dy) || 1;
 
-      // Fell behind, out of view? Move it ahead of the player instead of despawning: the horde stays
+      // Fell behind, well out of view? Move it ahead of the player instead of despawning: the horde stays
       // dense, and there is no long tail of enemies trailing behind.
-      if (d > farDist || (d > recycleDist && now - e.placedAt > graceMs)) {
+      const out = outsideView(e.x - px, e.y - py, halfW, halfH, DIRECTOR.recycleMargin);
+      if (d > farDist || (out && now - e.placedAt > graceMs)) {
         const a = recycleAngle(Math.random, heading);
         e.placedAt = now;
-        e.setPosition(px + Math.cos(a) * spawnDist, py + Math.sin(a) * spawnDist);
+        const at = edgeDistance(a, halfW, halfH, DIRECTOR.spawnMargin);
+        e.setPosition(px + Math.cos(a) * at, py + Math.sin(a) * at);
         e.push.x = 0;
         e.push.y = 0;
         continue;

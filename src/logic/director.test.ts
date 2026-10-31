@@ -11,6 +11,8 @@ import {
   headingOf,
   scatterAngle,
   recycleAngle,
+  edgeDistance,
+  outsideView,
 } from './director';
 import { createRng } from './rng';
 import { baseSpawnRate } from './spawning';
@@ -337,5 +339,40 @@ describe('spawning ahead of a moving player', () => {
       const a = recycleAngle(seq(r), Math.PI);
       expect(Math.cos(a)).toBeLessThan(0); // heading west: they come back in the west
     }
+  });
+});
+
+describe('the edge of the view', () => {
+  it('is half the width to the side and half the height up and down, plus the margin', () => {
+    expect(edgeDistance(0, 400, 200, 40)).toBeCloseTo(440);
+    expect(edgeDistance(Math.PI / 2, 400, 200, 40)).toBeCloseTo(240);
+    expect(edgeDistance(Math.PI, 400, 200, 0)).toBeCloseTo(400);
+  });
+
+  it('reaches the corner on the diagonal', () => {
+    const a = Math.atan2(200, 400);
+    expect(edgeDistance(a, 400, 200, 0)).toBeCloseTo(Math.hypot(400, 200));
+  });
+
+  it('tells what lies outside the view and its margin', () => {
+    expect(outsideView(390, 0, 400, 200, 50)).toBe(false);
+    expect(outsideView(0, 260, 400, 200, 50)).toBe(true);
+    expect(outsideView(-460, 0, 400, 200, 50)).toBe(true);
+  });
+
+  it('places scattered enemies on the edge it is given', () => {
+    const points: number[] = [];
+    forEachSpawnPoint(
+      { count: 20, pattern: 'scatter', angle: 0 },
+      0,
+      0,
+      999,
+      createRng(4),
+      (x, y) => points.push(Math.hypot(x, y) - edgeDistance(Math.atan2(y, x), 400, 200, 40)),
+      DIRECTOR,
+      null,
+      (a) => edgeDistance(a, 400, 200, 40),
+    );
+    for (const p of points) expect(Math.abs(p)).toBeLessThan(1e-6);
   });
 });
