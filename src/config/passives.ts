@@ -2,7 +2,7 @@ import type { PassiveDef, PassiveId, PlayerStats } from './types';
 
 export const BASE_PLAYER_STATS: PlayerStats = {
   maxHp: 100,
-  moveSpeed: 145,
+  moveSpeed: 135,
   might: 1,
   haste: 1,
   magnet: 70,
@@ -47,7 +47,7 @@ export const PASSIVES: Record<PassiveId, PassiveDef> = {
     texture: 'icon-swiftness',
     rarity: 'common',
     maxLevel: 5,
-    perLevel: { moveSpeed: 15 },
+    perLevel: { moveSpeed: 14 },
   },
   might: {
     id: 'might',

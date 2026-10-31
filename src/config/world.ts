@@ -45,7 +45,7 @@ export const WORLD = {
   /** The countdown turns into a warning colour for the last N seconds */
   warningSec: 10,
   /** How many seconds "later" the enemy mix starts per ring (harder enemies appear sooner) */
-  difficultyOffsetPerRingSec: 30,
+  difficultyOffsetPerRingSec: 15,
 } as const;
 
 export const BIOMES: Record<BiomeId, BiomeDef> = {
