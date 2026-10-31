@@ -15,7 +15,7 @@ import {
   outsideView,
 } from './director';
 import { createRng } from './rng';
-import { baseSpawnRate } from './spawning';
+import { spawnRate } from './spawning';
 
 const DT = 1 / 30;
 
@@ -286,7 +286,7 @@ describe('against the old stream', () => {
     let spawned = 0;
     let old = 0;
     for (; t < 180; t += DT) {
-      const rate = baseSpawnRate(t);
+      const rate = spawnRate(t);
       old += rate * DT;
       const step = d.update(DT, { time: t, rate, room: 1000 });
       for (const o of step.orders) spawned += o.count;

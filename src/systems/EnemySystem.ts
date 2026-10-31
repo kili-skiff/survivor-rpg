@@ -30,7 +30,7 @@ import {
   type Announcement,
   type DirectorPhase,
 } from '../logic/director';
-import { baseSpawnRate, enemyHpMultiplier, maxEnemies, pickEnemy } from '../logic/spawning';
+import { enemyHpMultiplier, maxEnemies, pickEnemy, spawnRate } from '../logic/spawning';
 import { Swarm, VelocityEstimator } from '../logic/swarm';
 import { BurstFx } from './BurstFx';
 import type { DamageNumbers } from './DamageNumbers';
@@ -260,10 +260,11 @@ export class EnemySystem {
    * how tough they are.
    */
   spawn(dms: number, runTime: number, fightTime: number): void {
-    const room = maxEnemies(runTime, BALANCE.maxEnemiesHardCap) - this.group.countActive(true);
+    const room =
+      maxEnemies(this.ringNumber, fightTime, BALANCE.maxEnemiesHardCap) - this.group.countActive(true);
     const step = this.director.update(dms / 1000, {
       time: runTime,
-      rate: baseSpawnRate(runTime) * this.ring.spawnRate,
+      rate: spawnRate(fightTime) * this.ring.spawnRate,
       room,
     });
     const dist = this.viewDiag / 2 + 40;

@@ -6,7 +6,7 @@ import { SKILLS } from '../config/skills';
 import { WEAPONS } from '../config/weapons';
 import { addXp, formatTime, xpToNext } from './progression';
 import { emptySave, loadSave, migrate, recordRun, SAVE_VERSION } from './save';
-import { enemyHpMultiplier, pickEnemy, spawnIntervalMs } from './spawning';
+import { enemyHpMultiplier, maxEnemies, pickEnemy, spawnRate } from './spawning';
 import {
   applyLevels,
   computePlayerStats,
@@ -141,7 +141,13 @@ describe('upgrades', () => {
 
 describe('spawning', () => {
   it('gets harder over time', () => {
-    expect(spawnIntervalMs(300)).toBeLessThan(spawnIntervalMs(0));
+    expect(spawnRate(300)).toBeGreaterThan(spawnRate(0));
+    // Evenly: no jumps from one second to the next.
+    for (let t = 0; t < 300; t += 1) expect(spawnRate(t + 1) - spawnRate(t)).toBeLessThan(0.02);
+    // More room for enemies further out and later in a fight, never beyond the hard cap.
+    expect(maxEnemies(4, 0, 999)).toBeGreaterThan(maxEnemies(1, 0, 999));
+    expect(maxEnemies(1, 60, 999)).toBeGreaterThan(maxEnemies(1, 0, 999));
+    expect(maxEnemies(9, 999, 100)).toBe(100);
     expect(enemyHpMultiplier(300)).toBeGreaterThan(enemyHpMultiplier(0));
     // Gentle: a long fight of 150 s makes enemies 75% tougher, not three times as tough.
     expect(enemyHpMultiplier(0)).toBe(1);
