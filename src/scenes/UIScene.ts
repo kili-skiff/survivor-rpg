@@ -34,6 +34,8 @@ interface PotionButton {
 }
 
 /** Warnings of a coming surge are red, so they stand out from the friendly hints */
+/** Hint colour when the watchfire is found */
+const FIRE_HINT_COLOR = 0xfb923c;
 const SURGE_COLOR = 0xff6a6a;
 
 type OverlayKind = 'none' | 'levelup' | 'pause' | 'runend' | 'chest';
@@ -201,6 +203,7 @@ export class UIScene extends Phaser.Scene {
     this.gs.events.on('herbbloom', this.onHerbBloom, this);
     this.gs.events.on('chestdrop', this.onChestDrop, this);
     this.gs.events.on('surge', this.onSurge, this);
+    this.gs.events.on('firefound', this.onFireFound, this);
     this.game.events.on(Phaser.Core.Events.HIDDEN, this.onHidden, this);
     this.events.once('shutdown', () => {
       this.scale.off('resize', this.onResize, this);
@@ -210,6 +213,7 @@ export class UIScene extends Phaser.Scene {
       this.gs.events.off('herbbloom', this.onHerbBloom, this);
       this.gs.events.off('chestdrop', this.onChestDrop, this);
       this.gs.events.off('surge', this.onSurge, this);
+      this.gs.events.off('firefound', this.onFireFound, this);
       this.game.events.off(Phaser.Core.Events.HIDDEN, this.onHidden, this);
     });
 
@@ -458,26 +462,13 @@ export class UIScene extends Phaser.Scene {
     g.fillStyle(COLORS.xpBack).fillRect(0, this.sa.top, W, xpH);
     g.fillStyle(COLORS.xp).fillRect(0, this.sa.top, W * xpFrac, xpH);
 
-    // Health bar
-    const hpW = 150 * u;
-    const hpH = 12 * u;
-    const hpY = top + 6 * u;
-    const hpFrac = Phaser.Math.Clamp(run.hp / run.stats.maxHp, 0, 1);
-    g.fillStyle(0x000000, 0.5).fillRoundedRect(left - 2 * u, hpY - 2 * u, hpW + 4 * u, hpH + 4 * u, 5 * u);
-    g.fillStyle(COLORS.hpBack).fillRoundedRect(left, hpY, hpW, hpH, 4 * u);
-    if (hpFrac > 0)
-      g.fillStyle(COLORS.hp).fillRoundedRect(left, hpY, Math.max(hpW * hpFrac, 8 * u), hpH, 4 * u);
-
-    this.hpText.setText(`${Math.ceil(run.hp)}/${run.stats.maxHp}`);
-    this.levelText.setText(`Level ${run.level}`);
     // The goal's counter: the time left, or the kills so far.
     const counter = goalCounter(
       run.segment.goal,
-      { time: run.time, kills: run.kills, lit: run.lit },
+      { time: run.time, kills: run.kills, lit: run.lit, found: run.found },
       run.segment.warningSec,
     );
-    // The light goal shows words ("Find the watchfire"), set smaller than a number, so they fit next to
-    // the health bar.
+    // The light goal shows words ("Find the fire"), set smaller than a number.
     const counterSize = Math.round((run.segment.goal.kind === 'light' ? 15 : 22) * this.u);
     if (counterSize !== this.counterSize) {
       this.counterSize = counterSize;
@@ -491,6 +482,21 @@ export class UIScene extends Phaser.Scene {
         this.timerText.x - this.timerText.width / 2 - 6 * this.u,
         this.timerText.y + this.timerText.height / 2,
       );
+
+    // Health bar, as wide as there is room for next to the goal's counter, so they never overlap on a narrow screen.
+    const counterLeft = this.goalIcon.x - this.goalIcon.displayWidth - 8 * u;
+    const hpW = Phaser.Math.Clamp(counterLeft - left, 80 * u, 150 * u);
+    const hpH = 12 * u;
+    const hpY = top + 6 * u;
+    const hpFrac = Phaser.Math.Clamp(run.hp / run.stats.maxHp, 0, 1);
+    g.fillStyle(0x000000, 0.5).fillRoundedRect(left - 2 * u, hpY - 2 * u, hpW + 4 * u, hpH + 4 * u, 5 * u);
+    g.fillStyle(COLORS.hpBack).fillRoundedRect(left, hpY, hpW, hpH, 4 * u);
+    if (hpFrac > 0)
+      g.fillStyle(COLORS.hp).fillRoundedRect(left, hpY, Math.max(hpW * hpFrac, 8 * u), hpH, 4 * u);
+
+    this.hpText.setText(`${Math.ceil(run.hp)}/${run.stats.maxHp}`);
+    this.levelText.setText(`Level ${run.level}`);
+    this.hpText.setX(left + hpW / 2);
     this.segmentText.setText(run.segment.name);
     this.killsText.setText(`☠ ${run.kills}`);
     // Gold (once there is some) and herbs stack below the kills on the right.
@@ -1134,6 +1140,10 @@ export class UIScene extends Phaser.Scene {
   /** The spawn director announces a wave, a ring or a wall a few seconds before it hits. */
   private onSurge(a: Announcement): void {
     this.showHint(a.text, SURGE_COLOR);
+  }
+
+  private onFireFound(): void {
+    this.showHint('A faint glow in the dark!', FIRE_HINT_COLOR);
   }
 
   /** Fades a line in below the timer for a moment; a second hint goes below the first. */

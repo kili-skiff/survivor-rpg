@@ -243,10 +243,12 @@ next; the map itself does not change.
 - **Survive** a time (built).
 - **Hunt:** kill a number of enemies, more further out; no time limit, the spawn director keeps the
   pressure up (built). Later also a special target, e.g. a marked elite.
-- **Find the light** (built for watchfires): the cold watchfire stands somewhere in the dark, 650–950 px
-  from where the fight starts. It glows faintly and an arrow at the screen edge points to it from the
-  start. Standing next to it lights it in 4 s; away from it, the progress drains slowly; hits do not
-  interrupt it. Once it burns the hex is cleared, and on later expeditions the hex rolls an ordinary goal.
+- **Find the light** (built for watchfires): first you search the dark. Only while you move, the search
+  time runs (25 s in ring 1, +8 s per ring, give or take 20%); then the cold watchfire shows up just
+  outside the view in the direction you walk, with "A faint glow in the dark!" and an arrow at the screen
+  edge. By then the horde has grown. Standing next to it lights it in 6 s; away from it, the progress drains
+  (all of it in 8 s); hits do not interrupt it. Once it burns the hex is cleared, and on later expeditions
+  the hex rolls an ordinary goal.
   Lanterns or beacons could work the same way later.
 - **Find the dungeon** entrance (or another place) in the area.
 - Perhaps: protect something, gather herbs, defeat an elite or a boss.

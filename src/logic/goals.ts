@@ -2,6 +2,7 @@
 
 import { GOALS } from '../config/goals';
 import type { FightGoal, PoiId, RolledGoalKind } from '../config/types';
+import { edgeDistance } from './director';
 import { formatTime } from './progression';
 import { createRng, hash32, seedFromString } from './rng';
 
@@ -12,6 +13,8 @@ export interface GoalState {
   kills: number;
   /** How far the watchfire is lit, 0..1 (only for the light goal; 0 when missing) */
   lit?: number;
+  /** Whether the watchfire has been found (only for the light goal) */
+  found?: boolean;
 }
 
 /** The hex a goal is rolled for. */
@@ -57,9 +60,12 @@ export function goalForHex(
   seasonSeed: string,
   fireLit: FireLit = false,
 ): FightGoal {
-  if (hex.poi === 'watchfire' && !fireLit) return { kind: 'light', litSec: GOALS.light.litSec };
   const seed = hash32(seedFromString(seasonSeed), seedFromString(hex.key), expedition, 0x60a1);
-  const kind = pickGoalKind(createRng(seed)());
+  const rng = createRng(seed);
+  if (hex.poi === 'watchfire' && !fireLit) {
+    return { kind: 'light', searchSec: searchTime(hex.ring, rng()), litSec: GOALS.light.litSec };
+  }
+  const kind = pickGoalKind(rng());
   switch (kind) {
     case 'survive':
       return { kind, durationSec };
@@ -112,9 +118,10 @@ export function goalCounter(
     case 'hunt':
       return { text: `${Math.min(state.kills, goal.kills)} / ${goal.kills}`, warning: false };
     case 'light':
+      if (!state.found) return { text: 'Search the dark', warning: false };
       return (state.lit ?? 0) > 0
         ? { text: `Lighting ${Math.floor((state.lit ?? 0) * 100)}%`, warning: false }
-        : { text: 'Find the watchfire', warning: false };
+        : { text: 'Find the fire', warning: false };
   }
 }
 
@@ -132,12 +139,27 @@ export function advanceLighting(
   return Math.min(1, Math.max(0, next));
 }
 
-/** Where the cold watchfire stands, as an offset from where the fight starts. `rng` gives [0, 1). */
-export function firePlacement(
+/**
+ * How long (seconds of moving) it takes to find the watchfire in a ring; `roll` in [0, 1) adds or takes
+ * up to `searchJitter` of it.
+ */
+export function searchTime(ring: number, roll: number, params = GOALS.light): number {
+  const base = params.searchBaseSec + params.searchPerRingSec * Math.max(0, ring - 1);
+  return base * (1 + (roll * 2 - 1) * params.searchJitter);
+}
+
+/**
+ * Where the watchfire shows up once it is found, as an offset from the player: just outside the view in
+ * the direction they walk (`heading`, radians; anywhere when null), spread a little to the sides.
+ */
+export function foundPlacement(
+  heading: number | null,
   rng: () => number,
-  params: { distanceMin: number; distanceMax: number } = GOALS.light,
+  halfW: number,
+  halfH: number,
+  params: { foundMargin: number; foundSpread: number } = GOALS.light,
 ): { x: number; y: number } {
-  const angle = rng() * Math.PI * 2;
-  const d = params.distanceMin + rng() * (params.distanceMax - params.distanceMin);
+  const angle = heading === null ? rng() * Math.PI * 2 : heading + (rng() - 0.5) * params.foundSpread;
+  const d = edgeDistance(angle, halfW, halfH, params.foundMargin);
   return { x: Math.cos(angle) * d, y: Math.sin(angle) * d };
 }

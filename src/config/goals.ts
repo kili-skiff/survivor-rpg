@@ -19,9 +19,20 @@ export const GOALS = {
   /** Hunt: kill this many enemies; no time limit, the spawn director keeps the pressure up */
   hunt: { killsBase: 35, killsPerRing: 25 },
   /**
-   * Find the light (watchfire hexes): the cold fire stands this far from where the fight starts (px, in a
-   * random direction). Standing within `radius` lights it in `litSec` seconds; away from it, the progress
-   * drains, all of it in `drainSec`. A hit does not interrupt it.
+   * Find the light (watchfire hexes). First you search: the fire shows up after `searchBaseSec` (+
+   * `searchPerRingSec` per ring further out, give or take `searchJitter`) of moving through the dark,
+   * just outside the view (`foundMargin` px) in the direction you walk (within `foundSpread` radians).
+   * Then standing within `radius` lights it in `litSec` seconds; away from it, the progress drains, all of
+   * it in `drainSec`. A hit does not interrupt it.
    */
-  light: { distanceMin: 650, distanceMax: 950, radius: 70, litSec: 4, drainSec: 10 },
+  light: {
+    searchBaseSec: 25,
+    searchPerRingSec: 8,
+    searchJitter: 0.2,
+    foundMargin: 80,
+    foundSpread: 1,
+    radius: 70,
+    litSec: 6,
+    drainSec: 8,
+  },
 };

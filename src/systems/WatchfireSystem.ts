@@ -16,27 +16,38 @@ interface Target {
 }
 
 /**
- * The goal "find the light": a cold watchfire somewhere in the dark. Standing next to it lights it bit by
- * bit; away from it, the progress drains slowly. Enemies keep coming meanwhile.
+ * The goal "find the light": a cold watchfire in the dark. It is hidden until the player has searched long
+ * enough (see `place`); then standing next to it lights it bit by bit, and away from it the progress
+ * drains slowly. Enemies keep coming meanwhile.
  */
 export class WatchfireSystem {
-  readonly x: number;
-  readonly y: number;
+  x = 0;
+  y = 0;
   private readonly image: Phaser.GameObjects.Image;
   private readonly ring: Phaser.GameObjects.Graphics;
   /** 0..1, 1 = burning */
   private progressValue = 0;
+  private foundValue = false;
 
   constructor(
     scene: Phaser.Scene,
-    x: number,
-    y: number,
     private readonly target: Target,
   ) {
+    this.image = scene.add.image(0, 0, 'watchfire-cold').setOrigin(0.5, 0.93).setDepth(1.5).setVisible(false);
+    this.ring = scene.add.graphics().setDepth(6);
+  }
+
+  /** Whether the player has found it (it is in the world from then on). */
+  get found(): boolean {
+    return this.foundValue;
+  }
+
+  /** The search is over: the fire stands at (x, y) from now on. */
+  place(x: number, y: number): void {
     this.x = x;
     this.y = y;
-    this.image = scene.add.image(x, y, 'watchfire-cold').setOrigin(0.5, 0.93).setDepth(1.5);
-    this.ring = scene.add.graphics().setDepth(6);
+    this.foundValue = true;
+    this.image.setPosition(x, y).setVisible(true);
   }
 
   get progress(): number {
@@ -48,7 +59,7 @@ export class WatchfireSystem {
   }
 
   update(dt: number): void {
-    if (this.lit) return;
+    if (!this.foundValue || this.lit) return;
     const inRange = Math.hypot(this.target.x - this.x, this.target.y - this.y) <= GOALS.light.radius;
     this.progressValue = advanceLighting(this.progressValue, inRange, dt);
     this.drawRing();
@@ -56,7 +67,8 @@ export class WatchfireSystem {
   }
 
   /** Its glow for the darkness: faint while cold, so you can spot it, bright once it burns. */
-  light(): LightSource {
+  light(): LightSource | null {
+    if (!this.foundValue) return null;
     return this.lit
       ? { x: this.x, y: this.y - 20, radius: LIT_GLOW, color: FIRE_COLOR }
       : {
@@ -68,9 +80,9 @@ export class WatchfireSystem {
         };
   }
 
-  /** Arrow at the screen edge while it is off screen; shown from the start of the fight. */
+  /** Arrow at the screen edge while it is off screen, from the moment it is found. */
   indicator(viewW: number, viewH: number): EdgeIndicator | null {
-    if (this.lit) return null;
+    if (!this.foundValue || this.lit) return null;
     const dx = this.x - this.target.x;
     const dy = this.y - this.target.y;
     const outX = Math.max(0, Math.abs(dx) - (viewW / 2 - 20));

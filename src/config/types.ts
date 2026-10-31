@@ -251,8 +251,8 @@ export interface EnemyDef {
 export type FightGoal =
   | { kind: 'survive'; durationSec: number }
   | { kind: 'hunt'; kills: number }
-  /** Find the cold watchfire somewhere in the dark and light it by standing next to it */
-  | { kind: 'light'; litSec: number };
+  /** Search the dark until the cold watchfire shows up (`searchSec` of moving), then light it by standing next to it */
+  | { kind: 'light'; searchSec: number; litSec: number };
 export type GoalKind = FightGoal['kind'];
 /** Goals an ordinary hex can roll; the others belong to places (a watchfire always asks for light). */
 export type RolledGoalKind = Exclude<GoalKind, 'light'>;

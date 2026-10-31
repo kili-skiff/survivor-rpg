@@ -5,7 +5,7 @@ import { GOALS } from '../config/goals';
 import type { FightGoal } from '../config/types';
 import {
   advanceLighting,
-  firePlacement,
+  foundPlacement,
   goalCounter,
   goalForHex,
   goalLabel,
@@ -13,6 +13,7 @@ import {
   huntKills,
   isGoalDone,
   pickGoalKind,
+  searchTime,
 } from './goals';
 
 const survive: FightGoal = { kind: 'survive', durationSec: 100 };
@@ -106,7 +107,7 @@ describe('goal symbols', () => {
 });
 
 describe('find the light', () => {
-  const light: FightGoal = { kind: 'light', litSec: 4 };
+  const light: FightGoal = { kind: 'light', searchSec: 30, litSec: 4 };
   const fireHex = { key: '4,-2', ring: 3, poi: 'watchfire' as const };
 
   it('is the goal of every cold watchfire, on every expedition', () => {
@@ -122,10 +123,11 @@ describe('find the light', () => {
     expect(isGoalDone(light, { time: 0, kills: 0, lit: 1 })).toBe(true);
   });
 
-  it('says what to do: find it first, then how far it is lit', () => {
+  it('says what to do: search, find it, then how far it is lit', () => {
     expect(goalLabel(light)).toBe('Light the watchfire');
-    expect(goalCounter(light, { time: 0, kills: 0, lit: 0 }, 10).text).toBe('Find the watchfire');
-    expect(goalCounter(light, { time: 0, kills: 0, lit: 0.6 }, 10).text).toBe('Lighting 60%');
+    expect(goalCounter(light, { time: 0, kills: 0, lit: 0, found: false }, 10).text).toBe('Search the dark');
+    expect(goalCounter(light, { time: 0, kills: 0, lit: 0, found: true }, 10).text).toBe('Find the fire');
+    expect(goalCounter(light, { time: 0, kills: 0, lit: 0.6, found: true }, 10).text).toBe('Lighting 60%');
   });
 
   it('lights while you stand next to it and drains slowly while you are away', () => {
@@ -136,21 +138,30 @@ describe('find the light', () => {
     expect(advanceLighting(0.05, false, 1, params)).toBe(0);
   });
 
-  it('places the fire within its distance, in any direction', () => {
-    let s = 9;
-    const rng = () => {
-      s = (s * 1664525 + 1013904223) % 4294967296;
-      return s / 4294967296;
-    };
-    const params = { distanceMin: 600, distanceMax: 900 };
-    const angles = new Set<number>();
-    for (let i = 0; i < 50; i++) {
-      const p = firePlacement(rng, params);
-      const d = Math.hypot(p.x, p.y);
-      expect(d).toBeGreaterThanOrEqual(600 - 1e-9);
-      expect(d).toBeLessThanOrEqual(900 + 1e-9);
-      angles.add(Math.sign(p.x) * 2 + Math.sign(p.y));
+  it('takes longer to find further out, give or take a little', () => {
+    const params = { ...GOALS.light, searchBaseSec: 20, searchPerRingSec: 10, searchJitter: 0.2 };
+    expect(searchTime(1, 0.5, params)).toBeCloseTo(20);
+    expect(searchTime(3, 0.5, params)).toBeCloseTo(40);
+    expect(searchTime(1, 0, params)).toBeCloseTo(16);
+    expect(searchTime(1, 0.999999, params)).toBeCloseTo(24);
+  });
+
+  it('rolls the search time with the hex, the same for the whole expedition', () => {
+    const a = goalForHex(fireHex, 75, 2, 'seed');
+    expect(a).toEqual(goalForHex(fireHex, 75, 2, 'seed'));
+    if (a.kind !== 'light') throw new Error('expected light');
+    expect(a.searchSec).toBeGreaterThan(0);
+  });
+
+  it('shows up just outside the view, ahead of where you walk', () => {
+    const params = { foundMargin: 80, foundSpread: 1 };
+    for (const r of [0, 0.5, 0.999]) {
+      const p = foundPlacement(0, () => r, 400, 200, params);
+      // Heading east: ahead, and within half the spread to either side.
+      expect(p.x).toBeGreaterThan(0);
+      expect(Math.abs(Math.atan2(p.y, p.x))).toBeLessThanOrEqual(0.5 + 1e-9);
     }
-    expect(angles.size).toBe(4);
+    // Straight ahead it lies at the edge of the view plus the margin.
+    expect(foundPlacement(0, () => 0.5, 400, 200, params).x).toBeCloseTo(480);
   });
 });
