@@ -63,12 +63,6 @@ export const HIT_EFFECTS = {
   burstFxMs: 260,
 } as const;
 
-/** The standard attack (Arcane Bolt) only fires where the player looks, i.e. moves (logic/aim.ts). */
-export const BOLT_AIM = {
-  /** Enemies up to this angle (degrees) to either side of the looking direction can be targeted */
-  halfAngleDeg: 55,
-} as const;
-
 /** Chain Lightning (systems/weapons/ChainWeapon.ts, logic/chain.ts). Distances in px, times in ms. */
 export const CHAIN = {
   /** How far from the player a strike may start */

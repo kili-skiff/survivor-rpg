@@ -1,6 +1,5 @@
 import * as Phaser from 'phaser';
-import { BALANCE, BOLT_AIM } from '../../config/balance';
-import { coneCos } from '../../logic/aim';
+import { BALANCE } from '../../config/balance';
 import { shotLifetimeMs } from '../../logic/vision';
 import type { WeaponStats } from '../../config/types';
 import type { HitEffects } from '../../logic/hitEffects';
@@ -12,10 +11,7 @@ import { FIRST_SHOT_DELAY, type Weapon } from './Weapon';
 /** Angle offset for extra bolts when there are fewer targets than bolts (radians) */
 const SPREAD = 0.18;
 
-/** Cosine of the aiming cone's half angle */
-const CONE_COS = coneCos(BOLT_AIM.halfAngleDeg);
-
-/** Arcane bolt: fires at the nearest enemies in front of the player, where they look. */
+/** Arcane bolt: fires at the nearest enemies. */
 export class BoltWeapon implements Weapon {
   private readonly projectiles: Phaser.Physics.Arcade.Group;
   private timer = FIRST_SHOT_DELAY;
@@ -39,8 +35,7 @@ export class BoltWeapon implements Weapon {
 
     const { player, enemies } = this.ctx;
     const range = this.ctx.visionRange();
-    const { x: dirX, y: dirY } = player.aim;
-    const targets = enemies.nearest(stats.count, range, { dirX, dirY, cosHalf: CONE_COS });
+    const targets = enemies.nearest(stats.count, range);
     if (targets.length === 0) {
       this.timer = 0;
       return;

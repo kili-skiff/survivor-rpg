@@ -7,7 +7,7 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
   bolt: {
     id: 'bolt',
     name: 'Arcane Bolt',
-    description: 'Fires at the nearest enemies in front of you, where you look.',
+    description: 'Automatically fires at the nearest enemies.',
     texture: 'icon-bolt',
     base: {
       damage: 12,
