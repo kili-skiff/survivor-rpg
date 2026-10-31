@@ -4,6 +4,8 @@ import boot from '../scenes/BootScene.ts?raw';
 import { GOALS } from '../config/goals';
 import type { FightGoal } from '../config/types';
 import {
+  advanceLighting,
+  foundPlacement,
   goalCounter,
   goalForHex,
   goalLabel,
@@ -11,6 +13,7 @@ import {
   huntKills,
   isGoalDone,
   pickGoalKind,
+  searchTime,
 } from './goals';
 
 const survive: FightGoal = { kind: 'survive', durationSec: 100 };
@@ -85,7 +88,8 @@ describe('goals per hex', () => {
     for (let e = 0; e < 20; e++) {
       const goal = goalForHex(hex, 75, e, 'seed');
       if (goal.kind === 'survive') expect(goal.durationSec).toBe(75);
-      else expect(goal.kills).toBe(huntKills(3));
+      else if (goal.kind === 'hunt') expect(goal.kills).toBe(huntKills(3));
+      else throw new Error('an ordinary hex never asks for light');
     }
   });
 
@@ -99,5 +103,65 @@ describe('goals per hex', () => {
 describe('goal symbols', () => {
   it('exist for every goal', () => {
     for (const texture of Object.values(GOALS.icons)) expect(boot).toContain(`make('${texture}'`);
+  });
+});
+
+describe('find the light', () => {
+  const light: FightGoal = { kind: 'light', searchSec: 30, litSec: 4 };
+  const fireHex = { key: '4,-2', ring: 3, poi: 'watchfire' as const };
+
+  it('is the goal of every cold watchfire, on every expedition', () => {
+    for (let e = 0; e < 10; e++) expect(goalForHex(fireHex, 75, e, 'seed').kind).toBe('light');
+  });
+
+  it('is not asked again once the fire burns', () => {
+    for (let e = 0; e < 10; e++) expect(goalForHex(fireHex, 75, e, 'seed', true).kind).not.toBe('light');
+  });
+
+  it('is done when the fire is lit', () => {
+    expect(isGoalDone(light, { time: 500, kills: 500, lit: 0.99 })).toBe(false);
+    expect(isGoalDone(light, { time: 0, kills: 0, lit: 1 })).toBe(true);
+  });
+
+  it('says what to do: search, find it, then how far it is lit', () => {
+    expect(goalLabel(light)).toBe('Light the watchfire');
+    expect(goalCounter(light, { time: 0, kills: 0, lit: 0, found: false }, 10).text).toBe('Search the dark');
+    expect(goalCounter(light, { time: 0, kills: 0, lit: 0, found: true }, 10).text).toBe('Find the fire');
+    expect(goalCounter(light, { time: 0, kills: 0, lit: 0.6, found: true }, 10).text).toBe('Lighting 60%');
+  });
+
+  it('lights while you stand next to it and drains slowly while you are away', () => {
+    const params = { litSec: 4, drainSec: 10 };
+    expect(advanceLighting(0, true, 1, params)).toBeCloseTo(0.25);
+    expect(advanceLighting(0.5, false, 1, params)).toBeCloseTo(0.4);
+    expect(advanceLighting(0.98, true, 1, params)).toBe(1);
+    expect(advanceLighting(0.05, false, 1, params)).toBe(0);
+  });
+
+  it('takes longer to find further out, give or take a little', () => {
+    const params = { ...GOALS.light, searchBaseSec: 20, searchPerRingSec: 10, searchJitter: 0.2 };
+    expect(searchTime(1, 0.5, params)).toBeCloseTo(20);
+    expect(searchTime(3, 0.5, params)).toBeCloseTo(40);
+    expect(searchTime(1, 0, params)).toBeCloseTo(16);
+    expect(searchTime(1, 0.999999, params)).toBeCloseTo(24);
+  });
+
+  it('rolls the search time with the hex, the same for the whole expedition', () => {
+    const a = goalForHex(fireHex, 75, 2, 'seed');
+    expect(a).toEqual(goalForHex(fireHex, 75, 2, 'seed'));
+    if (a.kind !== 'light') throw new Error('expected light');
+    expect(a.searchSec).toBeGreaterThan(0);
+  });
+
+  it('shows up just outside the view, ahead of where you walk', () => {
+    const params = { foundMargin: 80, foundSpread: 1 };
+    for (const r of [0, 0.5, 0.999]) {
+      const p = foundPlacement(0, () => r, 400, 200, params);
+      // Heading east: ahead, and within half the spread to either side.
+      expect(p.x).toBeGreaterThan(0);
+      expect(Math.abs(Math.atan2(p.y, p.x))).toBeLessThanOrEqual(0.5 + 1e-9);
+    }
+    // Straight ahead it lies at the edge of the view plus the margin.
+    expect(foundPlacement(0, () => 0.5, 400, 200, params).x).toBeCloseTo(480);
   });
 });

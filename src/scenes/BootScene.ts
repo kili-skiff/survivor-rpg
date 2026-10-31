@@ -116,6 +116,31 @@ export class BootScene extends Phaser.Scene {
       g.fillRect(13, 22, 1.5, 3).fillRect(17.5, 22, 1.5, 3);
     });
 
+    make('goal-light', 32, 32, (g) => {
+      g.fillStyle(0x0d0b12, 0.8).fillCircle(16, 16, 16);
+      g.fillStyle(0xfb923c).fillTriangle(16, 4, 24, 20, 8, 20).fillCircle(16, 20, 8);
+      g.fillStyle(0xfde68a).fillTriangle(16, 11, 20, 22, 12, 22).fillCircle(16, 22, 4);
+    });
+
+    // The watchfire in a fight (goal "find the light"): a stone brazier, cold or burning. 48x56, base at the bottom.
+    const brazier = (g: G) => {
+      g.fillStyle(0x000000, 0.3).fillEllipse(24, 52, 34, 8);
+      g.fillStyle(0x57534e).fillRect(14, 38, 20, 14);
+      g.fillStyle(0x78716c).fillRect(8, 30, 32, 9);
+      g.fillStyle(0x44403c).fillRect(8, 36, 32, 3);
+    };
+    make('watchfire-cold', 48, 56, (g) => {
+      brazier(g);
+      g.fillStyle(0x292524).fillRect(12, 26, 24, 5);
+      g.fillStyle(0x1c1917).fillRect(16, 24, 4, 3).fillRect(26, 23, 5, 4);
+    });
+    make('watchfire-lit', 48, 56, (g) => {
+      brazier(g);
+      g.fillStyle(0xf97316).fillTriangle(24, 2, 38, 31, 10, 31);
+      g.fillStyle(0xfb923c).fillTriangle(16, 10, 26, 31, 8, 31).fillTriangle(32, 8, 40, 31, 24, 31);
+      g.fillStyle(0xfde68a).fillTriangle(24, 14, 31, 31, 17, 31);
+    });
+
     // Player
     make('player', 34, 34, (g) => {
       g.fillStyle(0x000000, 0.25).fillEllipse(17, 29, 22, 7);

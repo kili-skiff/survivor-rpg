@@ -200,8 +200,9 @@ function placePois(
 /**
  * The fight you get when entering a hex. Further rings last longer and start harder. `expedition` is the
  * number of finished expeditions: the hex's goal stays the same for one expedition and changes with the next.
+ * `fireLit`: the hex's watchfire already burns.
  */
-export function segmentForHex(h: WorldHex, expedition = 0): SegmentDef {
+export function segmentForHex(h: WorldHex, expedition = 0, fireLit = false): SegmentDef {
   const biome = BIOMES[h.biome];
   const steps = Math.max(0, h.ring - 1);
   const durationSec = Math.min(
@@ -211,7 +212,7 @@ export function segmentForHex(h: WorldHex, expedition = 0): SegmentDef {
   return {
     id: `hex:${h.key}`,
     name: h.poi && h.poi !== 'village' ? `${biome.name} · ${POIS[h.poi].name}` : biome.name,
-    goal: goalForHex(h, durationSec, expedition, SEASON.seed),
+    goal: goalForHex(h, durationSec, expedition, SEASON.seed, fireLit),
     durationSec,
     warningSec: WORLD.warningSec,
     difficultyOffsetSec: steps * WORLD.difficultyOffsetPerRingSec,
