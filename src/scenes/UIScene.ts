@@ -1342,9 +1342,11 @@ export class UIScene extends Phaser.Scene {
     const u = this.u;
     const side = this.settings.skillSide === 'left' ? 'left' : 'right';
     const light = this.settings.lighting ? 'on' : 'off';
+    const bar = this.settings.healthBar ? 'on' : 'off';
     const resume = () => this.togglePause();
     const skills = () => this.toggleSkillSide();
     const lighting = () => this.toggleLighting();
+    const healthBar = () => this.toggleHealthBar();
     const giveUp = () => this.gs.giveUp();
     const hint = 'Giving up ends the expedition, like falling.';
     if (W > H * 1.3) {
@@ -1357,7 +1359,8 @@ export class UIScene extends Phaser.Scene {
       this.button(lx, y + 64 * u, 'Give up', giveUp, false);
       this.button(rx, y, `Skills: ${side} side`, skills, false);
       this.button(rx, y + 64 * u, `Night light: ${light}`, lighting, false);
-      this.text(W / 2, y + 106 * u, hint, 12, { color: '#a1a1aa' });
+      this.button(rx, y + 128 * u, `Health bar: ${bar}`, healthBar, false);
+      this.text(W / 2, y + 170 * u, hint, 12, { color: '#a1a1aa' });
       return;
     }
     const y = Math.max(H * 0.38, this.sa.top + 120 * u);
@@ -1365,8 +1368,9 @@ export class UIScene extends Phaser.Scene {
     this.button(W / 2, y, 'Resume', resume);
     this.button(W / 2, y + 64 * u, `Skills: ${side} side`, skills, false);
     this.button(W / 2, y + 128 * u, `Night light: ${light}`, lighting, false);
-    this.button(W / 2, y + 192 * u, 'Give up', giveUp, false);
-    this.text(W / 2, y + 234 * u, hint, 12, { color: '#a1a1aa' });
+    this.button(W / 2, y + 192 * u, `Health bar: ${bar}`, healthBar, false);
+    this.button(W / 2, y + 256 * u, 'Give up', giveUp, false);
+    this.text(W / 2, y + 298 * u, hint, 12, { color: '#a1a1aa' });
   }
 
   /** Moves the skill buttons to the other screen edge and remembers the choice on this device. */
@@ -1375,6 +1379,14 @@ export class UIScene extends Phaser.Scene {
     this.settings = { ...this.settings, lighting: !this.settings.lighting };
     writeSettings(safeStorage(), this.settings);
     this.gs.setLighting(this.settings.lighting);
+    this.showPause();
+  }
+
+  /** The small health bar under the player on or off, remembered on this device. */
+  private toggleHealthBar(): void {
+    this.settings = { ...this.settings, healthBar: !this.settings.healthBar };
+    writeSettings(safeStorage(), this.settings);
+    this.gs.setHealthBar(this.settings.healthBar);
     this.showPause();
   }
 

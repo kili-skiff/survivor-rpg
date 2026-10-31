@@ -12,10 +12,12 @@ export interface Settings {
   skillSide: Side;
   /** Night lighting in fights (darkness and lights); can be switched off on slow devices. */
   lighting: boolean;
+  /** Small health bar under the player in fights. */
+  healthBar: boolean;
 }
 
 export function defaultSettings(): Settings {
-  return { skillSide: 'right', lighting: true };
+  return { skillSide: 'right', lighting: true, healthBar: true };
 }
 
 /** Reads settings leniently: unknown or broken values fall back to the defaults. */
@@ -26,6 +28,7 @@ export function parseSettings(raw: unknown): Settings {
   return {
     skillSide: data.skillSide === 'left' || data.skillSide === 'right' ? data.skillSide : base.skillSide,
     lighting: typeof data.lighting === 'boolean' ? data.lighting : base.lighting,
+    healthBar: typeof data.healthBar === 'boolean' ? data.healthBar : base.healthBar,
   };
 }
 

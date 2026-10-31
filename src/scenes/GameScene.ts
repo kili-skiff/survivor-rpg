@@ -283,7 +283,9 @@ export class GameScene extends Phaser.Scene {
       () => this.pickups.gems(),
       Math.floor(Math.random() * 2 ** 31),
     );
-    this.lighting.setEnabled(loadSettings(safeStorage()).lighting);
+    const settings = loadSettings(safeStorage());
+    this.lighting.setEnabled(settings.lighting);
+    this.healthBar.setEnabled(settings.healthBar);
     this.lighting.setRadiusScale(this.run.stats.light);
     this.lighting.setLightsAll(lanternLightsAll(this.lanternLevel) || this.devFullLight()); // DEV: full light
 
@@ -305,6 +307,11 @@ export class GameScene extends Phaser.Scene {
 
   skillCooldownRemaining(id: SkillId): number {
     return Math.max(0, this.skillReadyAt[id] - this.clock);
+  }
+
+  /** The small health bar under the player on or off (from the pause menu). */
+  setHealthBar(on: boolean): void {
+    this.healthBar.setEnabled(on);
   }
 
   /** Night lighting on or off (from the pause menu). */

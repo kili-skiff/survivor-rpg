@@ -29,13 +29,13 @@ describe('settings', () => {
 
   it('round-trips through storage', () => {
     const storage = memoryStorage();
-    writeSettings(storage, { skillSide: 'left', lighting: false });
-    expect(loadSettings(storage)).toEqual({ skillSide: 'left', lighting: false });
+    writeSettings(storage, { skillSide: 'left', lighting: false, healthBar: false });
+    expect(loadSettings(storage)).toEqual({ skillSide: 'left', lighting: false, healthBar: false });
   });
 
   it('does not touch the save data', () => {
     const storage = memoryStorage();
-    writeSettings(storage, { skillSide: 'left', lighting: true });
+    writeSettings(storage, { skillSide: 'left', lighting: true, healthBar: true });
     expect(storage.data.has('survivor-rpg.save')).toBe(false);
   });
 
@@ -44,6 +44,13 @@ describe('settings', () => {
     expect(parseSettings({ skillSide: 'left' }).lighting).toBe(true);
     expect(parseSettings({ lighting: false }).lighting).toBe(false);
     expect(parseSettings({ lighting: 'no' }).lighting).toBe(true);
+  });
+
+  it('keeps the health bar switch and defaults it to on', () => {
+    expect(defaultSettings().healthBar).toBe(true);
+    expect(parseSettings({ skillSide: 'left' }).healthBar).toBe(true);
+    expect(parseSettings({ healthBar: false }).healthBar).toBe(false);
+    expect(parseSettings({ healthBar: 'no' }).healthBar).toBe(true);
   });
 
   it('flips sides', () => {
