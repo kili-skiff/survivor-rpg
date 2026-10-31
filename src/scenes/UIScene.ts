@@ -66,6 +66,8 @@ export class UIScene extends Phaser.Scene {
   private timerText!: Phaser.GameObjects.Text;
   /** The goal's symbol, left of its counter */
   private goalIcon!: Phaser.GameObjects.Image;
+  /** Font size of the goal's counter (px); changes between numbers and words */
+  private counterSize = 0;
   private segmentText!: Phaser.GameObjects.Text;
   private levelText!: Phaser.GameObjects.Text;
   private hpText!: Phaser.GameObjects.Text;
@@ -387,7 +389,8 @@ export class UIScene extends Phaser.Scene {
     const left = this.sa.left + m;
     const right = W - this.sa.right - m;
 
-    this.timerText.setFontSize(Math.round(22 * u)).setPosition(W / 2, top + 4 * u);
+    this.counterSize = 0; // set again by the next update, for the new size
+    this.timerText.setPosition(W / 2, top + 4 * u);
     this.segmentText.setFontSize(Math.round(11 * u)).setPosition(W / 2, top + 32 * u);
     this.levelText.setFontSize(Math.round(14 * u)).setPosition(left, top + 24 * u);
     this.hpText.setFontSize(Math.round(10 * u)).setPosition(left + 75 * u, top + 12 * u);
@@ -470,9 +473,16 @@ export class UIScene extends Phaser.Scene {
     // The goal's counter: the time left, or the kills so far.
     const counter = goalCounter(
       run.segment.goal,
-      { time: run.time, kills: run.kills },
+      { time: run.time, kills: run.kills, lit: run.lit },
       run.segment.warningSec,
     );
+    // The light goal shows words ("Find the watchfire"), set smaller than a number, so they fit next to
+    // the health bar.
+    const counterSize = Math.round((run.segment.goal.kind === 'light' ? 15 : 22) * this.u);
+    if (counterSize !== this.counterSize) {
+      this.counterSize = counterSize;
+      this.timerText.setFontSize(counterSize);
+    }
     this.timerText.setText(counter.text).setColor(counter.warning ? css(COLORS.accent) : '#ffffff');
     const iconSize = 20 * this.u;
     this.goalIcon
@@ -585,6 +595,12 @@ export class UIScene extends Phaser.Scene {
       const size = (ind.rare ? 13 : 10) * u * pulse;
       const alpha = ind.freshness > 0 ? 1 : Phaser.Math.Clamp(1.1 - ind.distance / 500, 0.45, 1);
       this.drawEdgeArrow(g, ind.angle, size, ind.color, alpha);
+    }
+    const fire = this.gs.fireIndicator();
+    if (fire) {
+      // The goal of the fight: big and steady, so it is always easy to find.
+      const size = 16 * u * (1 + 0.12 * (0.5 + 0.5 * Math.sin(this.time.now / 220)));
+      this.drawEdgeArrow(g, fire.angle, size, fire.color, 1, true);
     }
     for (const ind of this.gs.chestIndicators()) {
       const size = 14 * u * (1 + 0.15 * (0.5 + 0.5 * Math.sin(this.time.now / 160)));

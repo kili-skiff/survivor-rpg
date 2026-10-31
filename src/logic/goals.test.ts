@@ -4,6 +4,8 @@ import boot from '../scenes/BootScene.ts?raw';
 import { GOALS } from '../config/goals';
 import type { FightGoal } from '../config/types';
 import {
+  advanceLighting,
+  firePlacement,
   goalCounter,
   goalForHex,
   goalLabel,
@@ -85,7 +87,8 @@ describe('goals per hex', () => {
     for (let e = 0; e < 20; e++) {
       const goal = goalForHex(hex, 75, e, 'seed');
       if (goal.kind === 'survive') expect(goal.durationSec).toBe(75);
-      else expect(goal.kills).toBe(huntKills(3));
+      else if (goal.kind === 'hunt') expect(goal.kills).toBe(huntKills(3));
+      else throw new Error('an ordinary hex never asks for light');
     }
   });
 
@@ -99,5 +102,55 @@ describe('goals per hex', () => {
 describe('goal symbols', () => {
   it('exist for every goal', () => {
     for (const texture of Object.values(GOALS.icons)) expect(boot).toContain(`make('${texture}'`);
+  });
+});
+
+describe('find the light', () => {
+  const light: FightGoal = { kind: 'light', litSec: 4 };
+  const fireHex = { key: '4,-2', ring: 3, poi: 'watchfire' as const };
+
+  it('is the goal of every cold watchfire, on every expedition', () => {
+    for (let e = 0; e < 10; e++) expect(goalForHex(fireHex, 75, e, 'seed').kind).toBe('light');
+  });
+
+  it('is not asked again once the fire burns', () => {
+    for (let e = 0; e < 10; e++) expect(goalForHex(fireHex, 75, e, 'seed', true).kind).not.toBe('light');
+  });
+
+  it('is done when the fire is lit', () => {
+    expect(isGoalDone(light, { time: 500, kills: 500, lit: 0.99 })).toBe(false);
+    expect(isGoalDone(light, { time: 0, kills: 0, lit: 1 })).toBe(true);
+  });
+
+  it('says what to do: find it first, then how far it is lit', () => {
+    expect(goalLabel(light)).toBe('Light the watchfire');
+    expect(goalCounter(light, { time: 0, kills: 0, lit: 0 }, 10).text).toBe('Find the watchfire');
+    expect(goalCounter(light, { time: 0, kills: 0, lit: 0.6 }, 10).text).toBe('Lighting 60%');
+  });
+
+  it('lights while you stand next to it and drains slowly while you are away', () => {
+    const params = { litSec: 4, drainSec: 10 };
+    expect(advanceLighting(0, true, 1, params)).toBeCloseTo(0.25);
+    expect(advanceLighting(0.5, false, 1, params)).toBeCloseTo(0.4);
+    expect(advanceLighting(0.98, true, 1, params)).toBe(1);
+    expect(advanceLighting(0.05, false, 1, params)).toBe(0);
+  });
+
+  it('places the fire within its distance, in any direction', () => {
+    let s = 9;
+    const rng = () => {
+      s = (s * 1664525 + 1013904223) % 4294967296;
+      return s / 4294967296;
+    };
+    const params = { distanceMin: 600, distanceMax: 900 };
+    const angles = new Set<number>();
+    for (let i = 0; i < 50; i++) {
+      const p = firePlacement(rng, params);
+      const d = Math.hypot(p.x, p.y);
+      expect(d).toBeGreaterThanOrEqual(600 - 1e-9);
+      expect(d).toBeLessThanOrEqual(900 + 1e-9);
+      angles.add(Math.sign(p.x) * 2 + Math.sign(p.y));
+    }
+    expect(angles.size).toBe(4);
   });
 });

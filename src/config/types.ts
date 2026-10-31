@@ -248,8 +248,14 @@ export interface EnemyDef {
 
 /** One hex segment of an expedition. For now there is only a single default segment. */
 /** What a fight asks of the player (config/goals.ts, logic/goals.ts). */
-export type FightGoal = { kind: 'survive'; durationSec: number } | { kind: 'hunt'; kills: number };
+export type FightGoal =
+  | { kind: 'survive'; durationSec: number }
+  | { kind: 'hunt'; kills: number }
+  /** Find the cold watchfire somewhere in the dark and light it by standing next to it */
+  | { kind: 'light'; litSec: number };
 export type GoalKind = FightGoal['kind'];
+/** Goals an ordinary hex can roll; the others belong to places (a watchfire always asks for light). */
+export type RolledGoalKind = Exclude<GoalKind, 'light'>;
 
 export interface SegmentDef {
   id: string;

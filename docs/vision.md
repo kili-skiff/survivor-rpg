@@ -243,14 +243,16 @@ next; the map itself does not change.
 - **Survive** a time (built).
 - **Hunt:** kill a number of enemies, more further out; no time limit, the spawn director keeps the
   pressure up (built). Later also a special target, e.g. a marked elite.
-- **Find the light:** locate a watchfire, lantern or beacon in the dark and light it.
+- **Find the light** (built for watchfires): the cold watchfire stands somewhere in the dark, 650–950 px
+  from where the fight starts. It glows faintly and an arrow at the screen edge points to it from the
+  start. Standing next to it lights it in 4 s; away from it, the progress drains slowly; hits do not
+  interrupt it. Once it burns the hex is cleared, and on later expeditions the hex rolls an ordinary goal.
+  Lanterns or beacons could work the same way later.
 - **Find the dungeon** entrance (or another place) in the area.
 - Perhaps: protect something, gather herbs, defeat an elite or a boss.
 
-**Points of interest get their own goals.** A watchfire hex should not be "survive, then it burns":
-the fire stands somewhere in the dark area and you have to find it first (it glows faintly or shows
-as an arrow once you are close), fight your way there, and light it by standing next to it for a
-few seconds while enemies keep coming. The same idea fits dungeon entrances, camps and merchants.
+**Points of interest get their own goals.** Watchfires have one now (find the light, above). The same
+idea fits dungeon entrances, camps and merchants.
 
 Ideas to keep in mind: goals are chosen per hex by the world generator (seeded, so the map stays
 deterministic), shown on the map before you go in, and have different rewards. A goal is a small
