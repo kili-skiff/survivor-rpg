@@ -1,28 +1,21 @@
+import { SPAWN } from '../config/balance';
 import type { EnemyDef } from '../config/types';
 
 export type Rng = () => number;
 
-/** Time between spawn waves in ms, based on run time in seconds. */
-export function spawnIntervalMs(t: number): number {
-  return Math.max(260, 1100 - t * 3.2);
-}
-
-/** How many enemies spawn per wave: one more every minute. */
-export function spawnBatchSize(t: number): number {
-  return 1 + Math.floor(t / 60);
-}
-
 /**
- * Enemies per second the horde grows by at fight time t: the strength of the old constant stream.
- * The spawn director shapes this into build-ups, surges and breathers (logic/director.ts).
+ * Enemies per second at `fightTime` (seconds of this fight), before the ring's factor: it grows evenly,
+ * without jumps. The spawn director shapes it into build-ups, surges and breathers (logic/director.ts).
  */
-export function baseSpawnRate(t: number): number {
-  return (spawnBatchSize(t) * 1000) / spawnIntervalMs(t);
+export function spawnRate(fightTime: number): number {
+  return SPAWN.baseRate * (1 + Math.max(0, fightTime) / SPAWN.growthSec);
 }
 
-/** Maximum number of enemies alive at once. */
-export function maxEnemies(t: number, hardCap: number): number {
-  return Math.min(hardCap, Math.round(30 + t * 1.2));
+/** Maximum number of enemies alive at once, in a ring at `fightTime` (seconds of this fight). */
+export function maxEnemies(ring: number, fightTime: number, hardCap: number): number {
+  const n =
+    SPAWN.capBase + SPAWN.capPerRing * Math.max(0, ring - 1) + SPAWN.capPerSec * Math.max(0, fightTime);
+  return Math.min(hardCap, Math.round(n));
 }
 
 /**

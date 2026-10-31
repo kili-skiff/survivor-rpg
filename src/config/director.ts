@@ -1,8 +1,8 @@
 // How the spawn director paces a fight (logic/director.ts). Times are seconds, distances px.
 //
 // A fight runs in cycles: the horde builds up, a warning is announced, a surge hits, and then a
-// breather lets the player recover. The pressure is the old constant stream (logic/spawning.ts)
-// multiplied by a factor per phase, so a whole cycle brings roughly as many enemies as before,
+// breather lets the player recover. The pressure is the stream from logic/spawning.ts (SPAWN)
+// multiplied by a factor per phase, so a whole cycle brings roughly as many enemies as the stream,
 // only in a shape.
 
 export type SurgeKind = 'swarm' | 'ring' | 'wall';

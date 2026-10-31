@@ -213,8 +213,11 @@ and fits the identity of the game. Not decided.
 steering): one place that decides when and how enemies come, instead of a constant stream. A fight runs
 in cycles: a **build-up** where the stream rises, an **announced surge** (a hint in red a few seconds
 before it hits) and a **breather** with almost no spawns. The first build-up is longer and gentler.
-The strength of the stream is still the old curve (`baseSpawnRate`, scaled by the ring), multiplied
-per phase, so a cycle brings about as many enemies as before, only in a shape. Surge kinds:
+The strength of the stream is a smooth curve (`spawnRate` in `logic/spawning.ts`, values in `SPAWN`):
+0.9 enemies per second, +20% per ring, growing by half again every minute of the fight, without the
+jumps the first curve had. It counts only the time of this fight, so a long fight (finding the light)
+does not run away, and ring 4 is no longer a wall. The director multiplies it per phase, so a cycle
+brings about as many enemies as the stream, only in a shape. Surge kinds:
 
 - _swarm:_ a wave of higher pressure that comes from one side ("from the north-east"); always the first
 - _ring:_ from 1 minute on, a ring of enemies closes in from all sides at once
@@ -249,6 +252,7 @@ next; the map itself does not change.
   edge. By then the horde has grown. Standing next to it lights it in 6 s; away from it, the progress drains
   (all of it in 8 s); hits do not interrupt it. Once it burns the hex is cleared, and on later expeditions
   the hex rolls an ordinary goal.
+  Idea for later: while you light it, its glow keeps enemies at bay (they slow down near the fire).
   Lanterns or beacons could work the same way later.
 - **Find the dungeon** entrance (or another place) in the area.
 - Perhaps: protect something, gather herbs, defeat an elite or a boss.
