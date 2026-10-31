@@ -37,6 +37,7 @@ import {
   travelKind,
   type TravelKind,
 } from '../logic/worldProgress';
+import { GOALS } from '../config/goals';
 import { goalLabel } from '../logic/goals';
 import { seasonWorld, segmentForHex, type World, type WorldHex } from '../logic/worldgen';
 import { jumpTo } from '../dev/devLogic'; // DEV:
@@ -102,6 +103,8 @@ export class WorldMapScene extends Phaser.Scene {
   private poiLabels: { hex: WorldHex; text: Phaser.GameObjects.Text }[] = [];
   /** A small herb in each hex that shows which herb grows there */
   private herbIcons: { hex: WorldHex; icon: Phaser.GameObjects.Image }[] = [];
+  /** The goal of the fight waiting in each hex (config/goals.ts), top left in the hex */
+  private goalIcons: { hex: WorldHex; icon: Phaser.GameObjects.Image }[] = [];
   /** Night fog drifting over the whole map; the village and lit watchfires glow through it */
   private fog!: MapFog;
   private marker!: Phaser.GameObjects.Image;
@@ -134,6 +137,7 @@ export class WorldMapScene extends Phaser.Scene {
     this.selected = null;
     this.poiLabels = [];
     this.herbIcons = [];
+    this.goalIcons = [];
     this.tiles = [];
     this.hud = [];
     this.drag = null;
@@ -186,6 +190,13 @@ export class WorldMapScene extends Phaser.Scene {
         // Below the fog, like the tiles they sit on.
         .setDepth(0.3);
       this.herbIcons.push({ hex: h, icon });
+    }
+    for (const h of this.world.hexes.values()) {
+      // No fight in the village, and the tower is sealed.
+      if (h.poi === 'village' || h.poi === 'tower') continue;
+      // Below the fog, like the tiles they sit on.
+      const icon = this.add.image(0, 0, GOALS.icons.survive).setDepth(0.31);
+      this.goalIcons.push({ hex: h, icon });
     }
     this.fog = new MapFog(
       this,
@@ -321,6 +332,13 @@ export class WorldMapScene extends Phaser.Scene {
       const p = hexToPixelFlat(hex.hex, this.hexSize);
       // Bottom of the hex, so it does not cover point-of-interest glyphs or the player.
       icon.setPosition(p.x, p.y + this.hexSize * 0.58).setDisplaySize(11 * this.u, 12 * this.u);
+    }
+    for (const { hex, icon } of this.goalIcons) {
+      const p = hexToPixelFlat(hex.hex, this.hexSize);
+      // Top left of the hex: herbs sit at the bottom, the player and place symbols in the middle.
+      icon
+        .setPosition(p.x - this.hexSize * 0.42, p.y - this.hexSize * 0.48)
+        .setDisplaySize(18 * this.u, 18 * this.u);
     }
     if (this.marker.texture.key === CHARACTER_SPRITES.player.key) {
       // The watchman fits on a hex with room to see the tile below.
@@ -467,6 +485,12 @@ export class WorldMapScene extends Phaser.Scene {
 
     for (const { hex, icon } of this.herbIcons) {
       icon.setVisible(this.isVisible(hex.key) && !isUsedUp(progress, hex.key));
+    }
+    // Goals change with every expedition, so the symbols follow the current one.
+    for (const { hex, icon } of this.goalIcons) {
+      const shown = this.isVisible(hex.key) && !isUsedUp(progress, hex.key);
+      icon.setVisible(shown);
+      if (shown) icon.setTexture(GOALS.icons[segmentForHex(hex, progress.expeditions).goal.kind]);
     }
     for (const { hex, text } of this.poiLabels) {
       text.setVisible(this.isVisible(hex.key));
@@ -684,7 +708,18 @@ export class WorldMapScene extends Phaser.Scene {
       const right = W - this.sa.right - 16 * u;
       this.devJumpButton(this.isWide() ? right - 240 * u : right, panelY + 12 * u, this.selected);
     }
-    this.text(left, panelY + 16 * u, info.title, 18, { fontStyle: 'bold' });
+    const title = this.text(left, panelY + 16 * u, info.title, 18, { fontStyle: 'bold' });
+    if (info.goalIcon) {
+      const size = 20 * u;
+      this.hud.push(
+        this.fixed(
+          this.add
+            .image(title.x + title.width + 8 * u + size / 2, title.y + title.height / 2, info.goalIcon)
+            .setDisplaySize(size, size)
+            .setDepth(11),
+        ),
+      );
+    }
     const detail = this.text(left, panelY + 44 * u, info.detail, 13, {
       color: '#c4c0cf',
       wordWrap: { width: textW },
@@ -766,6 +801,8 @@ export class WorldMapScene extends Phaser.Scene {
     detail: string;
     /** Which herbs grow in the selected hex */
     herbs?: { text: string; color: number };
+    /** Symbol of the fight goal, shown next to the title */
+    goalIcon?: string;
     action?: { label: string; run: () => void };
   } {
     const progress = this.save.world;
@@ -882,6 +919,7 @@ export class WorldMapScene extends Phaser.Scene {
       (here ? 'You are here.' : kind === 'blocked' ? 'Too far: travel to a hex next to it first.' : '');
     return {
       title: `${BIOMES[h.biome].name}${poi}`,
+      goalIcon: GOALS.icons[seg.goal.kind],
       detail:
         `Ring ${h.ring} · ${goalLabel(seg.goal)}${isCleared(progress, key) ? ' · cleared before' : ''}\n${status}`.trim(),
       herbs,

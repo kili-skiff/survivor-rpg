@@ -11,6 +11,7 @@ import { describeEarned } from '../logic/deeds';
 import type { Announcement } from '../logic/director';
 import { formatTime, xpToNext } from '../logic/progression';
 import { safeStorage } from '../logic/save';
+import { GOALS } from '../config/goals';
 import { goalCounter, goalLabel } from '../logic/goals';
 import { loadSettings, otherSide, writeSettings, type Settings } from '../logic/settings';
 import { RARITIES } from '../config/rarity';
@@ -63,6 +64,8 @@ export class UIScene extends Phaser.Scene {
   private controls!: InputState;
   private hud!: Phaser.GameObjects.Graphics;
   private timerText!: Phaser.GameObjects.Text;
+  /** The goal's symbol, left of its counter */
+  private goalIcon!: Phaser.GameObjects.Image;
   private segmentText!: Phaser.GameObjects.Text;
   private levelText!: Phaser.GameObjects.Text;
   private hpText!: Phaser.GameObjects.Text;
@@ -139,6 +142,7 @@ export class UIScene extends Phaser.Scene {
       strokeThickness: 3,
     });
     this.timerText = this.add.text(0, 0, '00:00', textStyle(22)).setOrigin(0.5, 0);
+    this.goalIcon = this.add.image(0, 0, GOALS.icons[this.gs.run.segment.goal.kind]).setOrigin(1, 0.5);
     this.segmentText = this.add.text(0, 0, '', textStyle(11, false)).setOrigin(0.5, 0);
     this.levelText = this.add.text(0, 0, 'Level 1', textStyle(14));
     this.hpText = this.add.text(0, 0, '', textStyle(10)).setOrigin(0.5, 0.5).setDepth(1);
@@ -470,6 +474,13 @@ export class UIScene extends Phaser.Scene {
       run.segment.warningSec,
     );
     this.timerText.setText(counter.text).setColor(counter.warning ? css(COLORS.accent) : '#ffffff');
+    const iconSize = 20 * this.u;
+    this.goalIcon
+      .setDisplaySize(iconSize, iconSize)
+      .setPosition(
+        this.timerText.x - this.timerText.width / 2 - 6 * this.u,
+        this.timerText.y + this.timerText.height / 2,
+      );
     this.segmentText.setText(run.segment.name);
     this.killsText.setText(`☠ ${run.kills}`);
     // Gold (once there is some) and herbs stack below the kills on the right.

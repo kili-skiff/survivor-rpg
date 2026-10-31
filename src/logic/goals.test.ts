@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+// The symbols are drawn in code, so the test reads the source of the scene that draws them.
+import boot from '../scenes/BootScene.ts?raw';
 import { GOALS } from '../config/goals';
 import type { FightGoal } from '../config/types';
 import {
@@ -91,5 +93,11 @@ describe('goals per hex', () => {
     expect(pickGoalKind(0, { survive: 1, hunt: 1 })).toBe('survive');
     expect(pickGoalKind(0.99, { survive: 1, hunt: 1 })).toBe('hunt');
     expect(pickGoalKind(0.5, { survive: 0, hunt: 1 })).toBe('hunt');
+  });
+});
+
+describe('goal symbols', () => {
+  it('exist for every goal', () => {
+    for (const texture of Object.values(GOALS.icons)) expect(boot).toContain(`make('${texture}'`);
   });
 });
