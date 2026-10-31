@@ -13,6 +13,7 @@ import { formatTime, xpToNext } from '../logic/progression';
 import { safeStorage } from '../logic/save';
 import { isSegmentWarning, segmentRemaining } from '../logic/segment';
 import { loadSettings, otherSide, writeSettings, type Settings } from '../logic/settings';
+import { RARITIES } from '../config/rarity';
 import { describeUpgrade, type UpgradeOption } from '../logic/upgrades';
 import { DevPanel } from '../dev/DevPanel'; // DEV:
 import { isDevMode } from '../dev/devMode'; // DEV:
@@ -73,6 +74,8 @@ export class UIScene extends Phaser.Scene {
   private skillButtons: SkillButton[] = [];
   private potionButtons: PotionButton[] = [];
   private loadoutIcons: Phaser.GameObjects.GameObject[] = [];
+  /** DEV: left edge of the dev panel, and where the icon rows end (set by the layout) */
+  private devPanelLeft = 0;
   private loadoutSignature = '';
 
   private keys!: Record<string, Phaser.Input.Keyboard.Key>;
@@ -161,6 +164,8 @@ export class UIScene extends Phaser.Scene {
               run: () => this.gs.devToggleGodMode(),
             },
             { label: () => 'spawn elite', run: () => this.gs.devSpawnElite() },
+            { label: () => 'level up', run: () => this.gs.devLevelUp() },
+            { label: () => 'wild build', run: () => this.gs.devWildBuild() },
             {
               label: () => (this.gs.devInvincible() ? 'invincible on' : 'invincible off'),
               active: () => this.gs.devInvincible(),
@@ -386,7 +391,9 @@ export class UIScene extends Phaser.Scene {
       .setFontSize(Math.round(16 * u))
       .setPadding(Math.round(12 * u), Math.round(6 * u))
       .setPosition(right, top);
-    this.devPanel?.layout(left, top + 84 * u, u); // DEV: below the weapon icons on the left
+    this.devPanelLeft = left; // DEV: the panel sits below the icon rows on the left
+    this.loadoutSignature = ''; // the icon rows follow the new size
+    this.updateLoadoutIcons();
     this.killsText
       .setFontSize(Math.round(14 * u))
       .setPosition(right - this.pauseBtn.width - 10 * u, top + 6 * u);
@@ -622,9 +629,19 @@ export class UIScene extends Phaser.Scene {
     const u = this.u;
     const size = 26 * u;
     const gap = 4 * u;
-    let x = this.sa.left + 12 * u;
-    const y = this.sa.top + 10 * u + 46 * u;
+    const startX = this.sa.left + 12 * u;
+    const startY = this.sa.top + 10 * u + 46 * u;
+    // Without a limit on items the row gets long: it wraps before it reaches the timer in the middle.
+    const perRow = Math.max(4, Math.floor((this.scale.width / 2 - 36 * u - startX + gap) / (size + gap)));
+    let col = 0;
+    let row = 0;
     const add = (texture: string, level: number) => {
+      if (col >= perRow) {
+        col = 0;
+        row += 1;
+      }
+      const x = startX + col * (size + gap);
+      const y = startY + row * (size + gap);
       const img = this.add.image(x, y, texture).setOrigin(0, 0).setDisplaySize(size, size);
       const lv = this.add
         .text(x + size, y + size, String(level), {
@@ -637,11 +654,16 @@ export class UIScene extends Phaser.Scene {
         })
         .setOrigin(1, 1);
       this.loadoutIcons.push(img, lv);
-      x += size + gap;
+      col += 1;
     };
     for (const id of Object.keys(weapons) as WeaponId[]) add(WEAPONS[id].texture, weapons[id]!);
-    x += gap * 2;
+    // Items start on a row of their own.
+    if (col > 0) {
+      col = perRow;
+    }
     for (const id of Object.keys(passives) as PassiveId[]) add(PASSIVES[id].texture, passives[id]!);
+    const bottom = startY + (row + 1) * (size + gap);
+    this.devPanel?.layout(this.devPanelLeft, bottom + 4 * u, u); // DEV: below the icon rows
   }
 
   // ---------------------------------------------------------------- Menus
@@ -862,7 +884,10 @@ export class UIScene extends Phaser.Scene {
       const card = describeUpgrade(reward.upgrades[i]);
       reel.icon.setTexture(card.texture).setDisplaySize(size * 0.62, size * 0.62);
       reel.label.setVisible(true);
-      reel.frame.lineStyle(3 * u, COLORS.accent, 1).strokeRoundedRect(reel.x, rowY, size, size, 12 * u);
+      reel.frame
+        .lineStyle(3 * u, RARITIES[card.rarity].color, 1)
+        .strokeRoundedRect(reel.x, rowY, size, size, 12 * u);
+      reel.label.setColor(css(RARITIES[card.rarity].color));
       this.tweens.add({ targets: reel.icon, scale: reel.icon.scale * 1.25, duration: 120, yoyo: true });
     };
     for (let i = 0; i < this.chestRevealed; i++) reveal(i);
@@ -1161,12 +1186,26 @@ export class UIScene extends Phaser.Scene {
     const u = this.u;
     const card = describeUpgrade(option);
     const g = this.add.graphics().setDepth(51);
-    const edge = card.isNew ? COLORS.accent : COLORS.panelEdge;
+    const rarity = RARITIES[card.rarity];
+    const edge = rarity.color;
+    // Rarer cards get a thicker frame; legendary ones also a faint glow inside it.
+    const width = card.rarity === 'common' ? 2 : card.rarity === 'magic' ? 3 : 4;
     const draw = (hover: boolean) => {
       g.clear();
       g.fillStyle(hover ? 0x2e2642 : COLORS.panel, 0.97).fillRoundedRect(x, y, w, h, 14 * u);
-      g.lineStyle((hover ? 3 : 2) * u, hover ? 0xffffff : edge, 1).strokeRoundedRect(x, y, w, h, 14 * u);
+      if (card.rarity !== 'common') {
+        g.fillStyle(edge, hover ? 0.2 : 0.12).fillRoundedRect(x, y, w, h, 14 * u);
+      }
+      g.lineStyle((hover ? width + 1 : width) * u, hover ? 0xffffff : edge, 1).strokeRoundedRect(
+        x,
+        y,
+        w,
+        h,
+        14 * u,
+      );
     };
+    // Common cards carry no rarity word; the others name theirs.
+    const badge = card.rarity === 'common' ? card.badge : `${rarity.label} · ${card.badge}`;
     draw(false);
     this.overlay.push(g);
 
@@ -1179,8 +1218,8 @@ export class UIScene extends Phaser.Scene {
         .setDepth(52);
       this.overlay.push(icon);
       const ty = y + 26 * u + iconSize;
-      this.text(x + w / 2, ty, keyHint + card.badge, 10, {
-        color: css(edge === COLORS.accent ? COLORS.accent : 0xa78bfa),
+      this.text(x + w / 2, ty, keyHint + badge, 10, {
+        color: css(edge),
         fontStyle: 'bold',
       }).setOrigin(0.5, 0);
       this.text(x + w / 2, ty + 16 * u, card.title, 17, { fontStyle: 'bold' }).setOrigin(0.5, 0);
@@ -1196,8 +1235,8 @@ export class UIScene extends Phaser.Scene {
       this.overlay.push(icon);
       const tx = x + 28 * u + iconSize;
       const textW = w - (tx - x) - 12 * u;
-      this.text(tx, y + 10 * u, keyHint + card.badge, 10, {
-        color: css(edge === COLORS.accent ? COLORS.accent : 0xa78bfa),
+      this.text(tx, y + 10 * u, keyHint + badge, 10, {
+        color: css(edge),
         fontStyle: 'bold',
         align: 'left',
       }).setOrigin(0, 0);

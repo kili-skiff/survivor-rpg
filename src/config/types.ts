@@ -2,9 +2,40 @@
 
 import type { CharacterSpriteId } from './sprites';
 
-export type WeaponId = 'bolt' | 'blades' | 'aura';
+export type WeaponId = 'bolt' | 'blades' | 'aura' | 'chain';
+/** How rare a card is: decides how often it is offered and the colour of its frame (config/rarity.ts) */
+export type Rarity = 'common' | 'magic' | 'legendary';
+
 export type PassiveId =
-  'vitality' | 'swiftness' | 'might' | 'haste' | 'magnet' | 'regen' | 'armor' | 'lantern';
+  | 'vitality'
+  | 'swiftness'
+  | 'might'
+  | 'haste'
+  | 'magnet'
+  | 'regen'
+  | 'armor'
+  | 'lantern'
+  | 'reach'
+  | 'force'
+  | 'rend'
+  | 'wisdom'
+  | 'bloodthirst'
+  | 'fortune'
+  | 'twin'
+  | 'keenedge'
+  | 'deadlyaim'
+  | 'executioner'
+  | 'hunter'
+  | 'quickhands'
+  | 'momentum'
+  | 'emberheart'
+  | 'thorns'
+  | 'shadowstep'
+  | 'piercing'
+  | 'volatile'
+  | 'bloodpact';
+/** One-time effects offered on level-up cards (config/boons.ts) */
+export type BoonId = 'cache' | 'gemstorm' | 'feast' | 'novaburst' | 'judgement' | 'secondwind' | 'embers';
 export type SkillId = 'dash' | 'nova';
 export type EnemyId = 'bat' | 'zombie' | 'ghoul' | 'brute';
 
@@ -25,6 +56,45 @@ export interface PlayerStats {
   armor: number;
   /** Light radius multiplier in fights (1 = base lantern) */
   light: number;
+  // The stats below come from items (config/passives.ts); the base value changes nothing.
+  /** Area multiplier of all weapons and of Frost Nova (1 = as is) */
+  area: number;
+  /** Push added to every weapon hit (px/s) */
+  force: number;
+  /** Extra damage per hit as a share of the target's maximum health, on top of the weapon's own */
+  rend: number;
+  /** Multiplies the XP of every gem */
+  xpGain: number;
+  /** Health restored per kill */
+  bloodthirst: number;
+  /** Raises the chance that an enemy leaves a treasure chest (0.5 = half again as often) */
+  fortune: number;
+  /** Extra projectiles, blades and strikes for every weapon */
+  multishot: number;
+  /** Extra pierce for every piercing weapon */
+  pierce: number;
+  /** Radius (px) of a burst that every weapon hit adds around the target */
+  blast: number;
+  /** Chance (0..1) that a hit is a critical hit */
+  crit: number;
+  /** Damage multiplier of a critical hit */
+  critMul: number;
+  /** Hits finish off enemies below this share of their maximum health (elites: a quarter of it) */
+  execute: number;
+  /** Damage multiplier against elites */
+  eliteMul: number;
+  /** Cooldown multiplier of Dash and Frost Nova on top of `haste` (lower = faster) */
+  skillHaste: number;
+  /** Damage bonus while moving (0.2 = +20%) */
+  momentum: number;
+  /** Damage bonus that grows as health drops: at no health it is this much (1 = +100%) */
+  desperation: number;
+  /** Damage dealt back to every enemy that hurts you */
+  thorns: number;
+  /** Chance (0..1) to shrug off a hit completely */
+  dodge: number;
+  /** Enemies get this much more health (0.2 = +20%) */
+  curse: number;
 }
 
 export interface WeaponStats {
@@ -37,6 +107,16 @@ export interface WeaponStats {
   speed: number;
   /** Area multiplier */
   area: number;
+  /** Chain Lightning: how often the strike jumps on to another enemy */
+  chains: number;
+  /** Chain Lightning: 1 = the first target is the one in the biggest crowd, 0 = the nearest */
+  seek: number;
+  /** Push on every hit (px/s, 0 = none): spreads a crowd out and buys time; heavy enemies resist */
+  knockback: number;
+  /** Radius (px, before `area`) of the burst around a hit enemy that damages its neighbours (0 = none) */
+  splash: number;
+  /** Extra damage per hit as a share of the enemy's maximum health (0 = none): keeps up with tougher enemies */
+  percent: number;
 }
 
 export interface LevelStep<T> {
@@ -51,9 +131,18 @@ export interface WeaponDef {
   name: string;
   description: string;
   texture: string;
+  rarity: Rarity;
   base: WeaponStats;
   /** Level 2, 3, … (level 1 = base) */
   levels: LevelStep<WeaponStats>[];
+}
+
+export interface BoonDef {
+  id: BoonId;
+  name: string;
+  description: string;
+  texture: string;
+  rarity: Rarity;
 }
 
 export interface PassiveDef {
@@ -62,6 +151,7 @@ export interface PassiveDef {
   /** Text per level */
   description: string;
   texture: string;
+  rarity: Rarity;
   maxLevel: number;
   perLevel: Partial<PlayerStats>;
 }
@@ -82,6 +172,7 @@ export interface SkillDef {
   name: string;
   description: string;
   texture: string;
+  rarity: Rarity;
   base: SkillStats;
   levels: LevelStep<SkillStats>[];
 }
@@ -145,6 +236,8 @@ export interface EnemyDef {
   unlockAt: number;
   /** The enemy only appears in hexes of this ring or further out (default 1: everywhere) */
   minRing?: number;
+  /** Share of every push it shrugs off (0..1, default 0): big ones hardly move */
+  knockResist?: number;
   /** How it moves toward the player (default: chase) */
   behavior?: EnemyBehavior;
   /** Flies over the others: never pushed by them, never pushes them, and drawn above them */

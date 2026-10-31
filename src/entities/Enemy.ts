@@ -32,6 +32,8 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite implements SwarmAgent {
   /** Velocity chosen by the swarm this frame (px/s) */
   steerX = 0;
   steerY = 0;
+  /** Push from hits (px/s): added to the steering and slowing down by itself (logic/hitEffects.ts) */
+  readonly push = { x: 0, y: 0 };
   /** Flies over the others (see EnemyDef.flies) */
   flies = false;
   /** Where it is in its pounce; only used by chargers */
@@ -93,6 +95,8 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite implements SwarmAgent {
     this.nextAimAt = 0;
     this.steerX = 0;
     this.steerY = 0;
+    this.push.x = 0;
+    this.push.y = 0;
     const steering = steeringFor(def.behavior, Math.random);
     this.arc = steering.arc;
     this.lead = steering.lead;

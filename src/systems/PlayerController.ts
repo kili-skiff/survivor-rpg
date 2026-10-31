@@ -139,6 +139,11 @@ export class PlayerController {
     return true;
   }
 
+  /** No damage for the next `ms` (e.g. after Second Wind). */
+  protect(ms: number): void {
+    this.invulnUntil = Math.max(this.invulnUntil, this.now() + ms);
+  }
+
   stop(): void {
     this.sprite.setVelocity(0, 0);
   }

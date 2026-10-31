@@ -69,6 +69,8 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
     unlockAt: 180,
     // For now a plain chaser; a charger with a warning is planned.
     behavior: { kind: 'chase' },
+    // Big and heavy: it only moves a little when pushed.
+    knockResist: 0.55,
     weight: 1,
   },
 };

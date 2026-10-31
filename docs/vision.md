@@ -130,6 +130,35 @@ One character for everyone; weapons are the build, in the spirit of Hades (decid
   blacksmith forges them into new weapons or variants (like weapon aspects in Hades).
 - **Lanterns carry no skills.** A lantern only gives light and sight; a better lantern must always be
   the better choice.
+- **Tools against a crowd that piles up** (built, `logic/hitEffects.ts`, as level steps of the weapons):
+  enemies get tougher over time while the player's damage is capped, so a horde stacks up late in a
+  fight. Four tools help, and each weapon gets some of them by its fifth level:
+  - _Knockback:_ a hit pushes the enemy away; the push slows down by itself. It spreads a blob and buys
+    time. Big enemies (the colossus) and elites resist it. (aura, bolt, blades)
+  - _Bursts:_ a bolt explodes on impact and hurts the enemies around it for a share of the damage. (bolt)
+  - _Damage as a share of health:_ a hit also takes a few percent of the target's maximum health, so it
+    keeps up with the health that grows over time. Elites take only a quarter of it. (aura, blades)
+  - _Pierce:_ bolts already pierce; its steps come earlier now.
+
+  These are the first answer to "I cannot kill them fast enough". Still open: a weapon that is built
+  around them (e.g. a mortar) and scaling XP with enemy health (Wisdom helps for now).
+
+- **Wild builds** (built as a test batch, to be tuned by playing): level-up cards are meant to let a run
+  grow absurdly strong, and the game may scale a lot. There is no limit on items; they stack and combine.
+  - _Items_ (`config/passives.ts`): area (Far Reach), push, damage as a share of health, XP, health per
+    kill, chest luck, extra projectiles, crits and crit damage, executing weak enemies, damage against
+    elites, faster skills, damage while moving or at low health, thorns, dodge, extra pierce, bursts on
+    every hit, and a Blood Pact that trades tougher enemies for damage. The item bonuses are folded into the
+    weapons' numbers in `logic/stats.ts`; the situational ones in `logic/hitEffects.ts`.
+  - _One-time cards_ (`config/boons.ts`): act at once and are not part of the build (gold, all gems fly
+    to you, full health, a shockwave, wiping the screen, a revive, a short damage surge). They are
+    offered next to the other cards but never come out of chests.
+  - _Chain Lightning_ is a new weapon: a strike that jumps from enemy to enemy; later levels add strikes,
+    jumps and a search for the biggest crowd.
+  - _Rarity:_ every card is common (grey), magic (blue) or legendary (orange); the frame and badge show
+    it. Rarer cards are offered less often (`RARITIES` in `config/rarity.ts`; set a weight to 1 to
+    turn that off).
+  - The dev panel has "level up" and "wild build" to try combinations quickly.
 
 ## Swarms, enemy behaviour and elites
 
@@ -184,7 +213,7 @@ another with breathers. Still open for the director: bat flocks that sweep from 
 on the screen edge for the side a surge comes from, and a "recommended strength" per ring.
 
 **Other ideas on the table:** obstacles (trees, ruins) that break up the crowd, tools
-against blobs (area damage, pierce, knockback, percent-health damage), fewer but more varied
+against blobs (first set built, see Weapons; more weapons for it later), fewer but more varied
 enemies, and showing a "recommended strength" per ring on the map so hard rings are a choice.
 
 Reference: Vampire Survivors mixes straight lines, sine-wave flyers, walls and rings; Brotato uses

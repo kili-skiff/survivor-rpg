@@ -1,5 +1,6 @@
 import * as Phaser from 'phaser';
 import type { WeaponStats } from '../../config/types';
+import type { HitEffects } from '../../logic/hitEffects';
 import { BLADES_BASE_RADIUS } from '../../config/weapons';
 import type { CombatContext } from '../CombatContext';
 import type { Weapon } from './Weapon';
@@ -11,6 +12,8 @@ const BLADE_REACH = 12;
 export class BladesWeapon implements Weapon {
   private readonly blades: Phaser.GameObjects.Image[] = [];
   private angle = 0;
+  /** What a hit does besides damage; follows the weapon's level */
+  private readonly effects: HitEffects = {};
 
   constructor(private readonly ctx: CombatContext) {}
 
@@ -20,6 +23,9 @@ export class BladesWeapon implements Weapon {
       this.blades.push(scene.add.image(0, 0, 'blade').setDepth(4));
     }
 
+    this.effects.knockback = stats.knockback;
+    this.effects.splash = stats.splash;
+    this.effects.percent = stats.percent;
     const radius = BLADES_BASE_RADIUS * stats.area;
     this.angle += Phaser.Math.DegToRad(stats.speed) * dt;
     const { x: px, y: py } = player;
@@ -37,8 +43,7 @@ export class BladesWeapon implements Weapon {
       for (const blade of this.blades) {
         if (Math.abs(blade.x - e.x) < reach && Math.abs(blade.y - e.y) < reach) {
           e.lastBladeHit = now;
-          const a = Math.atan2(e.y - py, e.x - px);
-          enemies.damage(e, stats.damage, Math.cos(a) * 8, Math.sin(a) * 8);
+          enemies.hit(e, stats.damage, this.effects, px, py);
           break;
         }
       }

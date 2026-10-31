@@ -117,7 +117,8 @@ describe('upgrades', () => {
       passives: Object.fromEntries(Object.values(PASSIVES).map((p) => [p.id, p.maxLevel])),
       skills: { dash: SKILLS.dash.levels.length + 1, nova: SKILLS.nova.levels.length + 1 },
     };
-    expect(rollUpgradeOptions(loadout, seeded())).toEqual([{ kind: 'heal' }]);
+    // One-time cards are always on offer, so the fallback only shows up without them (chests).
+    expect(rollUpgradeOptions(loadout, seeded(), 3, false)).toEqual([{ kind: 'heal' }]);
   });
 
   it('applyUpgrade is immutable', () => {

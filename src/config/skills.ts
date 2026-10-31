@@ -7,6 +7,7 @@ export const SKILLS: Record<SkillId, SkillDef> = {
     name: 'Shadow Dash',
     description: 'A short, invulnerable sprint in your movement direction.',
     texture: 'icon-dash',
+    rarity: 'common',
     base: { cooldown: 3200, damage: 0, radius: 0, duration: 190, slow: 0 },
     levels: [
       { text: 'Cooldown −0.5 s', mods: { cooldown: -500 } },
@@ -20,6 +21,7 @@ export const SKILLS: Record<SkillId, SkillDef> = {
     name: 'Frost Nova',
     description: 'A blast of ice around you that damages and heavily slows enemies.',
     texture: 'icon-nova',
+    rarity: 'common',
     base: { cooldown: 8000, damage: 25, radius: 140, duration: 2200, slow: 0.55 },
     levels: [
       { text: '+15 damage', mods: { damage: 15 } },

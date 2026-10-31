@@ -1,6 +1,8 @@
-import { MAX_PASSIVES, PASSIVES } from '../config/passives';
+import { BOON_DEFS } from '../config/boons';
+import { PASSIVES } from '../config/passives';
+import { RARITIES } from '../config/rarity';
 import { SKILLS } from '../config/skills';
-import type { PassiveId, SkillId, WeaponId } from '../config/types';
+import type { BoonId, PassiveId, Rarity, SkillId, WeaponId } from '../config/types';
 import { MAX_WEAPONS, WEAPONS } from '../config/weapons';
 import type { Rng } from './spawning';
 import { skillMaxLevel, weaponMaxLevel, type Loadout } from './stats';
@@ -9,6 +11,8 @@ export type UpgradeOption =
   | { kind: 'weapon'; id: WeaponId; toLevel: number }
   | { kind: 'passive'; id: PassiveId; toLevel: number }
   | { kind: 'skill'; id: SkillId; toLevel: number }
+  /** One-time effect (config/boons.ts); not part of the build */
+  | { kind: 'boon'; id: BoonId }
   | { kind: 'heal' };
 
 export interface UpgradeCard {
@@ -16,51 +20,78 @@ export interface UpgradeCard {
   badge: string;
   text: string;
   texture: string;
+  rarity: Rarity;
   isNew: boolean;
 }
 
-const WEIGHTS = { newWeapon: 1.3, weapon: 1.1, newPassive: 0.9, passive: 0.9, skill: 0.75 };
+const WEIGHTS = { newWeapon: 1.3, weapon: 1.1, newPassive: 0.9, passive: 0.9, skill: 0.75, boon: 0.45 };
 
-/** All upgrades currently available, with their weight. */
-export function availableUpgrades(loadout: Loadout): { option: UpgradeOption; weight: number }[] {
+/**
+ * All upgrades currently available, with their weight. Items have no limit; one-time boons are
+ * left out when `boons` is false (chests).
+ */
+export function availableUpgrades(
+  loadout: Loadout,
+  boons = true,
+): { option: UpgradeOption; weight: number }[] {
   const out: { option: UpgradeOption; weight: number }[] = [];
   const ownedWeapons = Object.keys(loadout.weapons) as WeaponId[];
-  const ownedPassives = Object.keys(loadout.passives) as PassiveId[];
 
   for (const id of Object.keys(WEAPONS) as WeaponId[]) {
     const level = loadout.weapons[id] ?? 0;
     if (level === 0) {
       if (ownedWeapons.length < MAX_WEAPONS) {
-        out.push({ option: { kind: 'weapon', id, toLevel: 1 }, weight: WEIGHTS.newWeapon });
+        out.push({
+          option: { kind: 'weapon', id, toLevel: 1 },
+          weight: WEIGHTS.newWeapon * RARITIES[WEAPONS[id].rarity].weight,
+        });
       }
     } else if (level < weaponMaxLevel(id)) {
-      out.push({ option: { kind: 'weapon', id, toLevel: level + 1 }, weight: WEIGHTS.weapon });
+      out.push({
+        option: { kind: 'weapon', id, toLevel: level + 1 },
+        weight: WEIGHTS.weapon * RARITIES[WEAPONS[id].rarity].weight,
+      });
     }
   }
 
   for (const id of Object.keys(PASSIVES) as PassiveId[]) {
     const level = loadout.passives[id] ?? 0;
     if (level === 0) {
-      if (ownedPassives.length < MAX_PASSIVES) {
-        out.push({ option: { kind: 'passive', id, toLevel: 1 }, weight: WEIGHTS.newPassive });
-      }
+      out.push({
+        option: { kind: 'passive', id, toLevel: 1 },
+        weight: WEIGHTS.newPassive * RARITIES[PASSIVES[id].rarity].weight,
+      });
     } else if (level < PASSIVES[id].maxLevel) {
-      out.push({ option: { kind: 'passive', id, toLevel: level + 1 }, weight: WEIGHTS.passive });
+      out.push({
+        option: { kind: 'passive', id, toLevel: level + 1 },
+        weight: WEIGHTS.passive * RARITIES[PASSIVES[id].rarity].weight,
+      });
     }
   }
 
   for (const id of Object.keys(SKILLS) as SkillId[]) {
     const level = loadout.skills[id];
     if (level < skillMaxLevel(id)) {
-      out.push({ option: { kind: 'skill', id, toLevel: level + 1 }, weight: WEIGHTS.skill });
+      out.push({
+        option: { kind: 'skill', id, toLevel: level + 1 },
+        weight: WEIGHTS.skill * RARITIES[SKILLS[id].rarity].weight,
+      });
+    }
+  }
+  if (boons) {
+    for (const id of Object.keys(BOON_DEFS) as BoonId[]) {
+      out.push({
+        option: { kind: 'boon', id },
+        weight: WEIGHTS.boon * RARITIES[BOON_DEFS[id].rarity].weight,
+      });
     }
   }
   return out;
 }
 
 /** Draws up to `count` distinct upgrades, weighted, without replacement. */
-export function rollUpgradeOptions(loadout: Loadout, rng: Rng, count = 3): UpgradeOption[] {
-  const pool = availableUpgrades(loadout);
+export function rollUpgradeOptions(loadout: Loadout, rng: Rng, count = 3, boons = true): UpgradeOption[] {
+  const pool = availableUpgrades(loadout, boons);
   const picked: UpgradeOption[] = [];
   while (picked.length < count && pool.length > 0) {
     const total = pool.reduce((sum, e) => sum + e.weight, 0);
@@ -89,6 +120,7 @@ export function applyUpgrade(loadout: Loadout, option: UpgradeOption): Loadout {
       return { ...loadout, passives: { ...loadout.passives, [option.id]: option.toLevel } };
     case 'skill':
       return { ...loadout, skills: { ...loadout.skills, [option.id]: option.toLevel } };
+    case 'boon':
     case 'heal':
       return loadout;
   }
@@ -104,6 +136,7 @@ export function describeUpgrade(option: UpgradeOption): UpgradeCard {
         badge: isNew ? 'NEW WEAPON' : `WEAPON · LEVEL ${option.toLevel}`,
         text: isNew ? def.description : def.levels[option.toLevel - 2].text,
         texture: def.texture,
+        rarity: def.rarity,
         isNew,
       };
     }
@@ -115,6 +148,7 @@ export function describeUpgrade(option: UpgradeOption): UpgradeCard {
         badge: isNew ? 'NEW ITEM' : `ITEM · LEVEL ${option.toLevel}`,
         text: def.description,
         texture: def.texture,
+        rarity: def.rarity,
         isNew,
       };
     }
@@ -125,6 +159,18 @@ export function describeUpgrade(option: UpgradeOption): UpgradeCard {
         badge: `SKILL · LEVEL ${option.toLevel}`,
         text: def.levels[option.toLevel - 2].text,
         texture: def.texture,
+        rarity: def.rarity,
+        isNew: false,
+      };
+    }
+    case 'boon': {
+      const def = BOON_DEFS[option.id];
+      return {
+        title: def.name,
+        badge: 'ONE-TIME',
+        text: def.description,
+        texture: def.texture,
+        rarity: def.rarity,
         isNew: false,
       };
     }
@@ -134,6 +180,7 @@ export function describeUpgrade(option: UpgradeOption): UpgradeCard {
         badge: 'EVERYTHING MAXED',
         text: 'Restores 50 health.',
         texture: 'icon-vitality',
+        rarity: 'common',
         isNew: false,
       };
   }

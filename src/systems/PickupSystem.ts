@@ -53,6 +53,13 @@ export class PickupSystem {
     return (this.group.getChildren() as Pickup[]).filter((p) => p.active && p.kind === 'xp');
   }
 
+  /** Every gem on the ground starts flying to the player (Gem Storm). */
+  attractGems(): void {
+    for (const p of this.group.getChildren() as Pickup[]) {
+      if (p.active && p.kind === 'xp') p.attracted = true;
+    }
+  }
+
   /** Positions of the treasure chests lying on the ground. */
   chests(): { x: number; y: number }[] {
     return (this.group.getChildren() as Pickup[])

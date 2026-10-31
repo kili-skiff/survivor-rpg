@@ -1,9 +1,12 @@
 import * as Phaser from 'phaser';
-import { BALANCE, ELITE, LIGHT } from '../config/balance';
+import { BALANCE, BOONS, ELITE, LIGHT } from '../config/balance';
 import { ENEMIES } from '../config/enemies';
+import { PASSIVES } from '../config/passives';
 import { POTION_IDS, POTIONS } from '../config/potions';
 import { DEFAULT_SEGMENT } from '../config/segments';
 import type {
+  BoonId,
+  PassiveId,
   PlayerStats,
   PotionId,
   SegmentDef,
@@ -12,7 +15,7 @@ import type {
   WeaponId,
   WeaponStats,
 } from '../config/types';
-import { START_WEAPON } from '../config/weapons';
+import { START_WEAPON, WEAPONS } from '../config/weapons';
 import type { Enemy } from '../entities/Enemy';
 import type { Pickup } from '../entities/Pickup';
 import { InputState } from '../input/InputState';
@@ -37,9 +40,12 @@ import {
   computeWeaponStats,
   createStartLoadout,
   damageAfterArmor,
+  skillMaxLevel,
+  weaponMaxLevel,
   type Loadout,
 } from '../logic/stats';
 import { applyUpgrade, rollUpgradeOptions, type UpgradeOption } from '../logic/upgrades';
+import { situationalDamage } from '../logic/hitEffects';
 import { seasonWorld, segmentForHex } from '../logic/worldgen';
 import type { CombatContext } from '../systems/CombatContext';
 import type { VillageSceneData } from './VillageScene';
@@ -143,6 +149,10 @@ export class GameScene extends Phaser.Scene {
   /** Chests picked up while a menu was open; they open one after another */
   private pendingChests: ChestReward[] = [];
   private pendingLevelUps = 0;
+  /** Revives left (Second Wind) */
+  private secondWinds = 0;
+  /** Game time (ms) until which Ember Surge lasts */
+  private surgeUntil = 0;
   private viewW = 800;
   private viewH = 600;
   private hexKey: string | null = null;
@@ -166,6 +176,8 @@ export class GameScene extends Phaser.Scene {
     this.chestOpen = false;
     this.pendingChests = [];
     this.pendingLevelUps = 0;
+    this.secondWinds = 0;
+    this.surgeUntil = 0;
     this.endInfo = null;
 
     let controls = this.registry.get('input') as InputState | undefined;
@@ -309,6 +321,8 @@ export class GameScene extends Phaser.Scene {
   chooseUpgrade(option: UpgradeOption): void {
     if (option.kind === 'heal') {
       this.heal(FULL_LOADOUT_HEAL);
+    } else if (option.kind === 'boon') {
+      this.applyBoon(option.id);
     } else {
       this.run.loadout = applyUpgrade(this.run.loadout, option);
       this.refreshStats();
@@ -443,6 +457,30 @@ export class GameScene extends Phaser.Scene {
     if (this.run.alive) this.enemies.devSpawnElite(ENEMIES.zombie, this.run.time);
   }
 
+  // DEV: opens a level-up menu right away (stacks like normal level-ups).
+  devLevelUp(): void {
+    if (!this.run.alive) return;
+    this.pendingLevelUps += 1;
+    if (!this.levelUpOpen) this.openLevelUp();
+  }
+
+  // DEV: every weapon and item at its highest level, to test absurd builds.
+  devWildBuild(): void {
+    if (!this.run.alive) return;
+    const loadout = this.run.loadout;
+    const weapons: Loadout['weapons'] = { ...loadout.weapons };
+    for (const id of Object.keys(WEAPONS) as WeaponId[]) weapons[id] = weaponMaxLevel(id);
+    const passives: Loadout['passives'] = {};
+    for (const id of Object.keys(PASSIVES) as PassiveId[]) passives[id] = PASSIVES[id].maxLevel;
+    this.run.loadout = {
+      weapons,
+      passives,
+      skills: { dash: skillMaxLevel('dash'), nova: skillMaxLevel('nova') },
+    };
+    this.refreshStats();
+    this.run.hp = this.run.stats.maxHp;
+  }
+
   // DEV: wins the fight at once (the segment timer runs out on the next frame).
   devClearArea(): void {
     if (this.run.alive) this.run.time = this.run.segment.durationSec;
@@ -510,6 +548,13 @@ export class GameScene extends Phaser.Scene {
     this.updateGround();
     this.lantern.update(dt);
     this.lighting.update(this.time.now);
+    this.enemies.mods.damageMul = situationalDamage({
+      moving: Math.hypot(this.controls.moveX, this.controls.moveY) > 0.1,
+      momentum: this.run.stats.momentum,
+      hpShare: this.run.hp / this.run.stats.maxHp,
+      desperation: this.run.stats.desperation,
+      surge: this.clock < this.surgeUntil ? BOONS.surgeBonus : 0,
+    });
     this.enemies.spawn(dms, this.run.time + this.run.segment.difficultyOffsetSec);
     this.enemies.update();
     for (const [id, weapon] of this.weapons) weapon.update(this.weaponStats[id]!, dms, dt);
@@ -531,6 +576,13 @@ export class GameScene extends Phaser.Scene {
     this.lighting?.setRadiusScale(this.run.stats.light);
     this.lighting?.setLightsAll(lanternLightsAll(this.lanternLevel) || this.devFullLight()); // DEV: full light
     if (this.run.stats.maxHp > prevMax) this.run.hp += this.run.stats.maxHp - prevMax;
+
+    const st = this.run.stats;
+    this.enemies.mods.crit = st.crit;
+    this.enemies.mods.critMul = st.critMul;
+    this.enemies.mods.execute = st.execute;
+    this.enemies.mods.eliteMul = st.eliteMul;
+    this.enemies.hpMul = 1 + st.curse;
 
     this.weaponStats = {};
     for (const id of Object.keys(this.run.loadout.weapons) as WeaponId[]) {
@@ -569,6 +621,63 @@ export class GameScene extends Phaser.Scene {
         this.numbers.show(this.player.x, this.player.y - 30, POTIONS[id].short, css(POTIONS[id].color), true);
       }
     }
+  }
+
+  /** One-time cards (config/boons.ts): they act at once and are not part of the build. */
+  private applyBoon(id: BoonId): void {
+    const { x, y } = this.player;
+    switch (id) {
+      case 'cache': {
+        const gold = goldPerDrop(this.ring) * BOONS.cacheDrops;
+        this.run.gold += gold;
+        this.numbers.show(x, y - 26, `+${gold} gold`, '#fde047', true);
+        break;
+      }
+      case 'gemstorm':
+        this.pickups.attractGems();
+        break;
+      case 'feast':
+        this.heal(this.run.stats.maxHp);
+        break;
+      case 'novaburst':
+        this.shockwave();
+        break;
+      case 'judgement':
+        for (const e of this.enemies.active()) {
+          if (e.airborne || Math.hypot(e.x - x, e.y - y) > BOONS.judgementRadius) continue;
+          this.enemies.damage(e, e.elite ? e.hp * BOONS.judgementElite : e.hp, 0, 0, '#fde047');
+        }
+        this.cameras.main.flash(180, 255, 240, 180);
+        break;
+      case 'secondwind':
+        this.secondWinds += 1;
+        break;
+      case 'embers':
+        this.surgeUntil = this.clock + BOONS.surgeMs;
+        break;
+    }
+  }
+
+  /** A blast around the player that hurts and throws back everything near (Shockwave, Second Wind). */
+  private shockwave(): void {
+    const { x, y } = this.player;
+    const damage = BOONS.shockDamage * this.run.stats.might;
+    const fx = { knockback: BOONS.shockPush, percent: BOONS.shockPercent };
+    for (const e of this.enemies.active()) {
+      if (Math.hypot(e.x - x, e.y - y) <= BOONS.shockRadius + e.def.radius) {
+        this.enemies.hit(e, damage, fx, x, y);
+      }
+    }
+    const ring = this.add.image(x, y, 'ring').setTint(COLORS.accent).setDepth(5).setScale(0.15);
+    this.tweens.add({
+      targets: ring,
+      scale: (BOONS.shockRadius * 2) / 120,
+      alpha: 0,
+      duration: 450,
+      ease: 'Cubic.easeOut',
+      onComplete: () => ring.destroy(),
+    });
+    this.cameras.main.shake(160, 0.006);
   }
 
   private heal(amount: number): void {
@@ -611,10 +720,24 @@ export class GameScene extends Phaser.Scene {
       !this.player.tryTakeHit()
     )
       return; // DEV: god mode, invincible
+    if (Math.random() < this.run.stats.dodge) {
+      this.numbers.show(this.player.x, this.player.y - 22, 'dodge', '#93c5fd', true);
+      return;
+    }
     this.herbs.interrupt();
+    const thorns = this.run.stats.thorns;
+    if (thorns > 0) this.enemies.damage(e, thorns, 0, 0, '#a3e635');
     const dmg = damageAfterArmor(e.damage, this.run.stats.armor) * damageTakenMultiplier(this.potions.active);
     this.run.hp -= dmg;
     this.numbers.show(this.player.x, this.player.y - 22, `-${Math.round(dmg)}`, '#ff6b81', true);
+    if (this.run.hp <= 0 && this.secondWinds > 0) {
+      this.secondWinds -= 1;
+      this.run.hp = this.run.stats.maxHp * BOONS.windHeal;
+      this.player.protect(BOONS.windProtectMs);
+      this.shockwave();
+      this.numbers.show(this.player.x, this.player.y - 34, 'second wind!', '#fde047', true);
+      return;
+    }
     if (this.run.hp <= 0) {
       this.run.hp = 0;
       this.player.showDefeated();
@@ -626,9 +749,10 @@ export class GameScene extends Phaser.Scene {
   private onEnemyKilled(e: Enemy): void {
     this.run.kills += 1;
     if (Math.random() < BALANCE.healDropChance) this.pickups.drop(e.x, e.y, 'heal', BALANCE.healAmount);
-    else this.pickups.drop(e.x, e.y, 'xp', e.def.xp * (e.elite ? ELITE.xp : 1));
+    else this.pickups.drop(e.x, e.y, 'xp', e.def.xp * (e.elite ? ELITE.xp : 1) * this.run.stats.xpGain);
+    if (this.run.stats.bloodthirst > 0) this.heal(this.run.stats.bloodthirst);
     // Any enemy may leave a treasure chest (elites much more often) or a little gold.
-    if (dropsChest(e.elite, Math.random)) {
+    if (dropsChest(e.elite, Math.random, this.run.stats.fortune)) {
       this.pickups.drop(e.x, e.y + 10, 'chest', 0);
       this.events.emit('chestdrop');
     }

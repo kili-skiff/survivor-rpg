@@ -350,6 +350,149 @@ export class BootScene extends Phaser.Scene {
       g.fillStyle(0xffffff).fillCircle(22, 22, 4);
     });
 
+    // Chain Lightning, the items from config/passives.ts that came later, and the one-time cards.
+    // Simple shapes on purpose; they are placeholders like the rest.
+    icon('icon-chain', 0x155e75, (g) => {
+      g.lineStyle(4, 0xa5f3fc)
+        .beginPath()
+        .moveTo(26, 6)
+        .lineTo(15, 21)
+        .lineTo(25, 22)
+        .lineTo(16, 38)
+        .strokePath();
+      g.fillStyle(0xffffff).fillCircle(26, 7, 3).fillCircle(16, 37, 3);
+    });
+    icon('icon-reach', 0x1e40af, (g) => {
+      g.lineStyle(3, 0xbfdbfe).strokeCircle(22, 22, 7).strokeCircle(22, 22, 14);
+      g.fillStyle(0xffffff).fillCircle(22, 22, 3);
+    });
+    icon('icon-force', 0x7c2d12, (g) => {
+      g.fillStyle(0xfed7aa).fillRect(8, 17, 14, 10).fillTriangle(22, 11, 36, 22, 22, 33);
+    });
+    icon('icon-rend', 0x7f1d1d, (g) => {
+      g.lineStyle(4, 0xfecaca)
+        .lineBetween(11, 10, 31, 34)
+        .lineBetween(21, 8, 38, 28)
+        .lineBetween(8, 20, 24, 36);
+    });
+    icon('icon-wisdom', 0x4338ca, (g) => {
+      g.fillStyle(0xc7d2fe).fillTriangle(22, 6, 34, 22, 10, 22).fillTriangle(22, 38, 34, 22, 10, 22);
+      g.fillStyle(0xffffff).fillTriangle(22, 12, 28, 22, 16, 22);
+    });
+    icon('icon-bloodthirst', 0x7f1d1d, (g) => {
+      g.fillStyle(0xfca5a5).fillCircle(22, 28, 9).fillTriangle(22, 7, 14, 24, 30, 24);
+    });
+    icon('icon-fortune', 0x854d0e, (g) => {
+      g.fillStyle(0xfde047).fillCircle(22, 22, 13);
+      g.fillStyle(0xa16207).fillCircle(22, 22, 9);
+      g.fillStyle(0xfef08a).fillRect(20, 14, 4, 16);
+    });
+    icon('icon-twin', 0x0f766e, (g) => {
+      g.fillStyle(0x99f6e4).fillCircle(14, 22, 7).fillCircle(30, 22, 7);
+      g.fillStyle(0xffffff).fillCircle(15, 21, 3).fillCircle(31, 21, 3);
+    });
+    icon('icon-keenedge', 0x9a3412, (g) => {
+      g.fillStyle(0xfed7aa).fillTriangle(22, 5, 27, 18, 38, 22).fillTriangle(22, 39, 17, 26, 6, 22);
+      g.fillTriangle(22, 5, 17, 18, 6, 22).fillTriangle(22, 39, 27, 26, 38, 22);
+      g.fillStyle(0xffffff).fillCircle(22, 22, 4);
+    });
+    icon('icon-deadlyaim', 0x991b1b, (g) => {
+      g.lineStyle(3, 0xfecaca).strokeCircle(22, 22, 11);
+      g.lineBetween(22, 5, 22, 39).lineBetween(5, 22, 39, 22);
+      g.fillStyle(0xef4444).fillCircle(22, 22, 3);
+    });
+    icon('icon-executioner', 0x3f3f46, (g) => {
+      g.fillStyle(0xe4e4e7).fillRect(21, 6, 4, 30).fillTriangle(25, 8, 37, 14, 25, 24);
+      g.fillStyle(0x71717a).fillRect(15, 32, 16, 4);
+    });
+    icon('icon-hunter', 0x713f12, (g) => {
+      g.fillStyle(0xfde68a).fillTriangle(8, 34, 22, 8, 36, 34);
+      g.fillStyle(0x713f12).fillTriangle(15, 34, 22, 20, 29, 34);
+    });
+    icon('icon-quickhands', 0x1d4ed8, (g) => {
+      g.lineStyle(3, 0xdbeafe).strokeCircle(22, 23, 12);
+      g.lineBetween(22, 23, 22, 15).lineBetween(22, 23, 28, 26).fillStyle(0xdbeafe).fillRect(19, 6, 6, 4);
+    });
+    icon('icon-momentum', 0x065f46, (g) => {
+      g.fillStyle(0xa7f3d0, 0.45).fillTriangle(4, 14, 16, 22, 4, 30);
+      g.fillStyle(0xa7f3d0).fillTriangle(14, 10, 38, 22, 14, 34);
+    });
+    icon('icon-emberheart', 0x9a3412, (g) => {
+      drawHeart(g, 22, 24, 13, 0xfb923c);
+      g.fillStyle(0xfef3c7).fillTriangle(22, 14, 17, 26, 27, 26);
+    });
+    icon('icon-thorns', 0x14532d, (g) => {
+      g.fillStyle(0x86efac);
+      for (let i = 0; i < 5; i++) {
+        const a = (i / 5) * Math.PI * 2 - Math.PI / 2;
+        g.fillTriangle(
+          22 + Math.cos(a) * 16,
+          22 + Math.sin(a) * 16,
+          22 + Math.cos(a + 1.6) * 6,
+          22 + Math.sin(a + 1.6) * 6,
+          22 + Math.cos(a - 1.6) * 6,
+          22 + Math.sin(a - 1.6) * 6,
+        );
+      }
+    });
+    icon('icon-shadowstep', 0x312e81, (g) => {
+      g.fillStyle(0xc7d2fe, 0.3).fillCircle(12, 22, 7);
+      g.fillStyle(0xc7d2fe, 0.6).fillCircle(22, 22, 7);
+      g.fillStyle(0xffffff).fillCircle(32, 22, 7);
+    });
+    icon('icon-piercing', 0x374151, (g) => {
+      g.fillStyle(0xe5e7eb).fillTriangle(38, 22, 22, 14, 22, 30).fillRect(6, 19, 17, 6);
+      g.fillStyle(0x9ca3af).fillRect(6, 19, 5, 6);
+    });
+    icon('icon-volatile', 0x9a3412, (g) => {
+      g.fillStyle(0xfdba74);
+      for (let i = 0; i < 8; i++) {
+        const a = (i / 8) * Math.PI * 2;
+        g.fillTriangle(
+          22 + Math.cos(a) * 16,
+          22 + Math.sin(a) * 16,
+          22 + Math.cos(a + 0.4) * 7,
+          22 + Math.sin(a + 0.4) * 7,
+          22 + Math.cos(a - 0.4) * 7,
+          22 + Math.sin(a - 0.4) * 7,
+        );
+      }
+      g.fillStyle(0xfff7ed).fillCircle(22, 22, 5);
+    });
+    icon('icon-bloodpact', 0x581c87, (g) => {
+      g.fillStyle(0xe9d5ff).fillTriangle(22, 6, 36, 22, 8, 22).fillTriangle(22, 38, 36, 22, 8, 22);
+      g.fillStyle(0xdc2626).fillCircle(22, 22, 5);
+    });
+    // One-time cards
+    icon('icon-cache', 0x854d0e, (g) => {
+      g.fillStyle(0xfde047).fillCircle(22, 26, 11).fillRect(19, 8, 6, 8);
+      g.fillStyle(0xa16207).fillRect(15, 15, 14, 3);
+    });
+    icon('icon-gemstorm', 0x1e3a8a, (g) => {
+      g.fillStyle(0x93c5fd).fillTriangle(14, 10, 22, 4, 22, 16).fillTriangle(30, 20, 38, 14, 34, 28);
+      g.fillStyle(0xc084fc).fillTriangle(8, 28, 16, 22, 18, 34).fillTriangle(24, 30, 32, 28, 28, 38);
+    });
+    icon('icon-feast', 0x9a3412, (g) => {
+      g.fillStyle(0xfdba74).fillCircle(20, 20, 11).fillRect(26, 24, 12, 5);
+      g.fillStyle(0xfef3c7).fillCircle(17, 17, 4);
+    });
+    icon('icon-novaburst', 0x92400e, (g) => {
+      g.lineStyle(3, 0xfde68a).strokeCircle(22, 22, 8).strokeCircle(22, 22, 15);
+      g.fillStyle(0xffffff).fillCircle(22, 22, 4);
+    });
+    icon('icon-judgement', 0x713f12, (g) => {
+      g.fillStyle(0xfef08a).fillRect(20, 6, 4, 32).fillRect(8, 12, 28, 3);
+      g.fillTriangle(8, 15, 14, 15, 11, 25).fillTriangle(30, 15, 36, 15, 33, 25).fillRect(14, 36, 16, 3);
+    });
+    icon('icon-secondwind', 0x166534, (g) => {
+      drawHeart(g, 22, 22, 11, 0xbbf7d0);
+      g.fillStyle(0xffffff).fillTriangle(22, 4, 17, 12, 27, 12);
+    });
+    icon('icon-embers', 0x7c2d12, (g) => {
+      g.fillStyle(0xf97316).fillTriangle(22, 5, 33, 33, 11, 33);
+      g.fillStyle(0xfde68a).fillTriangle(22, 17, 28, 33, 16, 33);
+    });
+
     g.destroy();
     this.scene.start('WorldMap');
   }
