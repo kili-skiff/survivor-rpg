@@ -220,6 +220,13 @@ per phase, so a cycle brings about as many enemies as before, only in a shape. S
 - _ring:_ from 1 minute on, a ring of enemies closes in from all sides at once
 - _wall:_ from 1:30 on, a line of enemies crosses one side at once
 
+**Softer endings** (built): a fight should not end in an all-in that only luck decides.
+
+- _Survive:_ 22 s before the end the director announces a last surge ("The night throws everything at
+  you!"); after it nothing new comes, so the end is a peak you can make it through (`finale`).
+- _Find the light:_ when the fire is found, an 8 s breather (`calm`), and while you light it, its glow
+  slows enemies near the fire to half speed (`GOALS.light.holdBack*`).
+
 The ghouls' pounces keep running through their own global cooldown (`ChargeGate`,
 `CHARGE_COOLDOWN_MS`): the director does not touch it, so even a wave full of ghouls pounces one after
 another with breathers. Still open for the director: bat flocks that sweep from side to side, an arrow

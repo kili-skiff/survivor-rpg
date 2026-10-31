@@ -1,5 +1,7 @@
 import * as Phaser from 'phaser';
 import { BALANCE, BOONS, ELITE, LIGHT } from '../config/balance';
+import { DIRECTOR } from '../config/director';
+import { GOALS } from '../config/goals';
 import { ENEMIES } from '../config/enemies';
 import { PASSIVES } from '../config/passives';
 import { POTION_IDS, POTIONS } from '../config/potions';
@@ -440,6 +442,8 @@ export class GameScene extends Phaser.Scene {
     if (this.searched < goal.searchSec) return;
     const at = foundPlacement(Math.atan2(moveY, moveX), Math.random, this.viewW / 2, this.viewH / 2);
     this.watchfire.place(this.player.x + at.x, this.player.y + at.y);
+    // A breather, so the way to the fire is not blocked by fresh enemies.
+    this.enemies.calm(DIRECTOR.foundCalmSec);
     this.events.emit('firefound');
   }
 
@@ -619,6 +623,11 @@ export class GameScene extends Phaser.Scene {
     if (this.watchfire) {
       this.searchForFire(dt);
       this.watchfire.update(dt);
+      // Its light holds the night back while you light it.
+      if (this.watchfire.lighting) {
+        const { holdBackRadius, holdBackSlow } = GOALS.light;
+        this.enemies.slowAround(this.watchfire.x, this.watchfire.y, holdBackRadius, holdBackSlow);
+      }
       this.run.lit = this.watchfire.progress;
       this.run.found = this.watchfire.found;
     }
@@ -626,6 +635,10 @@ export class GameScene extends Phaser.Scene {
     this.numbers.update(dt);
 
     if (this.run.stats.regen > 0) this.heal(this.run.stats.regen * dt);
+    // Survival fights end with an announced last surge, then nothing new comes.
+    const goal = this.run.segment.goal;
+    if (goal.kind === 'survive' && goal.durationSec - this.run.time <= DIRECTOR.finaleLeadSec)
+      this.enemies.finale();
     const goalState = {
       time: this.run.time,
       kills: this.run.kills,

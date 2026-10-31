@@ -58,10 +58,18 @@ export class WatchfireSystem {
     return this.progressValue >= 1;
   }
 
+  /** The player stands at the found, not yet burning fire and lights it. */
+  get lighting(): boolean {
+    return this.foundValue && !this.lit && this.inRange();
+  }
+
+  private inRange(): boolean {
+    return Math.hypot(this.target.x - this.x, this.target.y - this.y) <= GOALS.light.radius;
+  }
+
   update(dt: number): void {
     if (!this.foundValue || this.lit) return;
-    const inRange = Math.hypot(this.target.x - this.x, this.target.y - this.y) <= GOALS.light.radius;
-    this.progressValue = advanceLighting(this.progressValue, inRange, dt);
+    this.progressValue = advanceLighting(this.progressValue, this.inRange(), dt);
     this.drawRing();
     if (this.lit) this.flare();
   }

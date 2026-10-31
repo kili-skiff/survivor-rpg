@@ -34,5 +34,8 @@ export const GOALS = {
     radius: 70,
     litSec: 6,
     drainSec: 8,
+    /** While you light it, enemies within this distance of the fire (px) walk at this share of their speed */
+    holdBackRadius: 150,
+    holdBackSlow: 0.5,
   },
 };

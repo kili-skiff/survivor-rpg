@@ -33,6 +33,9 @@ export interface DirectorParams {
   warningMult: number;
   breatherSec: number;
   breatherMult: number;
+  foundCalmSec: number;
+  finaleLeadSec: number;
+  finaleText: string;
   maxBank: number;
   maxPerFrame: number;
   sideSpread: number;
@@ -62,6 +65,15 @@ export const DIRECTOR: DirectorParams = {
   /** The breather after a surge: almost nothing spawns */
   breatherSec: 6,
   breatherMult: 0.15,
+  /** When the watchfire is found, a breather this long (s), so the player can reach it */
+  foundCalmSec: 8,
+  /**
+   * Survival fights end with an announced last surge (a swarm) this many seconds before the end; after it
+   * nothing new comes, so the end is a peak you can make it through, not a curve that rises to the last
+   * second.
+   */
+  finaleLeadSec: 22,
+  finaleText: 'The night throws everything at you!',
   /** Spawned enemies that are not yet in play are never banked beyond this (e.g. while at the enemy cap) */
   maxBank: 24,
   /** At most this many enemies are placed in one frame by the stream */
