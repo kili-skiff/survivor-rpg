@@ -100,6 +100,22 @@ export class BootScene extends Phaser.Scene {
       g.generateTexture(key, w, h);
     };
 
+    // Fight goal symbols (config/goals.ts): white on a dark disc, so they read on any map tile.
+    make('goal-survive', 32, 32, (g) => {
+      g.fillStyle(0x0d0b12, 0.8).fillCircle(16, 16, 16);
+      g.fillStyle(0xf5f5f4).fillRect(13, 3, 6, 4).fillRect(22, 7, 4, 3);
+      g.fillStyle(0xf5f5f4).fillCircle(16, 18, 10);
+      g.fillStyle(0x0d0b12).fillCircle(16, 18, 7.5);
+      g.lineStyle(2.5, 0xf5f5f4).lineBetween(16, 18, 16, 12).lineBetween(16, 18, 20, 20);
+    });
+    make('goal-hunt', 32, 32, (g) => {
+      g.fillStyle(0x0d0b12, 0.8).fillCircle(16, 16, 16);
+      g.fillStyle(0xf5f5f4).fillCircle(16, 14, 9).fillRoundedRect(10, 17, 12, 8, 2);
+      g.fillStyle(0x0d0b12).fillCircle(12.5, 14, 2.8).fillCircle(19.5, 14, 2.8);
+      g.fillTriangle(16, 17, 14.5, 20, 17.5, 20);
+      g.fillRect(13, 22, 1.5, 3).fillRect(17.5, 22, 1.5, 3);
+    });
+
     // Player
     make('player', 34, 34, (g) => {
       g.fillStyle(0x000000, 0.25).fillEllipse(17, 29, 22, 7);

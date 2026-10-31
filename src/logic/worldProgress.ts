@@ -22,6 +22,8 @@ export interface WorldProgress {
   expedition: Expedition | null;
   /** Watchfires the player has lit */
   litWatchfires: string[];
+  /** Expeditions finished so far (home or fallen); fight goals are rolled anew for each one */
+  expeditions: number;
 }
 
 export function createWorldProgress(seasonId: number, generatorVersion: number): WorldProgress {
@@ -33,6 +35,7 @@ export function createWorldProgress(seasonId: number, generatorVersion: number):
     cleared: [hexKey(ORIGIN)],
     waypoints: [],
     expedition: null,
+    expeditions: 0,
     litWatchfires: [],
   };
   return reveal(progress, ORIGIN);
@@ -144,5 +147,9 @@ export function parseWorldProgress(raw: unknown): WorldProgress | null {
     waypoints: isKeyList(d.waypoints) ? d.waypoints : [],
     expedition: parseExpedition(d.expedition),
     litWatchfires: isKeyList(d.litWatchfires) ? d.litWatchfires : [],
+    expeditions:
+      typeof d.expeditions === 'number' && Number.isFinite(d.expeditions)
+        ? Math.max(0, Math.floor(d.expeditions))
+        : 0,
   };
 }
