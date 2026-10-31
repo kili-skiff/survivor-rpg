@@ -7,9 +7,9 @@ export function spawnIntervalMs(t: number): number {
   return Math.max(260, 1100 - t * 3.2);
 }
 
-/** How many enemies spawn per wave. */
+/** How many enemies spawn per wave: one more every minute. */
 export function spawnBatchSize(t: number): number {
-  return 1 + Math.floor(t / 40);
+  return 1 + Math.floor(t / 60);
 }
 
 /**
@@ -22,7 +22,7 @@ export function baseSpawnRate(t: number): number {
 
 /** Maximum number of enemies alive at once. */
 export function maxEnemies(t: number, hardCap: number): number {
-  return Math.min(hardCap, Math.round(30 + t * 1.6));
+  return Math.min(hardCap, Math.round(30 + t * 1.2));
 }
 
 /**

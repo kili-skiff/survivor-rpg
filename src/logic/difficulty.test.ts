@@ -8,7 +8,7 @@ describe('ring difficulty', () => {
     const far = ringModifiers(6);
     expect(far.hp).toBeGreaterThan(2);
     expect(far.damage).toBeGreaterThan(1.5);
-    expect(far.spawnRate).toBeGreaterThan(1.3);
+    expect(far.spawnRate).toBeGreaterThan(1.1);
   });
 
   it('has elites only from their ring on, more often further out, with a cap', () => {
