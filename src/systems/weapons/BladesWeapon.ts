@@ -24,6 +24,7 @@ export class BladesWeapon implements Weapon {
     }
 
     this.effects.knockback = stats.knockback;
+    this.effects.splash = stats.splash;
     this.effects.percent = stats.percent;
     const radius = BLADES_BASE_RADIUS * stats.area;
     this.angle += Phaser.Math.DegToRad(stats.speed) * dt;

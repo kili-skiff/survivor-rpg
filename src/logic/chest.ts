@@ -13,8 +13,8 @@ export interface ChestReward {
 }
 
 /** Rolls whether a killed enemy leaves a chest; elites are far more likely to. */
-export function dropsChest(elite: boolean, rng: Rng): boolean {
-  return rng() < (elite ? CHEST.eliteDropChance : CHEST.dropChance);
+export function dropsChest(elite: boolean, rng: Rng, fortune = 0): boolean {
+  return rng() < (elite ? CHEST.eliteDropChance : CHEST.dropChance) * (1 + Math.max(0, fortune));
 }
 
 /** Usually one upgrade, sometimes three, rarely five. */
@@ -34,7 +34,7 @@ export function rollChest(loadout: Loadout, ring: number, rng: Rng): ChestReward
   const upgrades: UpgradeOption[] = [];
   let build = loadout;
   for (let i = 0; i < count; i++) {
-    const option = rollUpgradeOptions(build, rng, 1)[0];
+    const option = rollUpgradeOptions(build, rng, 1, false)[0];
     if (option.kind === 'heal') break;
     upgrades.push(option);
     build = applyUpgrade(build, option);

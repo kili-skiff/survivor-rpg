@@ -22,6 +22,7 @@ export class AuraWeapon implements Weapon {
   update(stats: WeaponStats, dms: number): void {
     const { player, enemies } = this.ctx;
     this.effects.knockback = stats.knockback;
+    this.effects.splash = stats.splash;
     this.effects.percent = stats.percent;
     const radius = AURA_BASE_RADIUS * stats.area;
     const pulse = 1 + Math.sin(this.ctx.now() / 180) * 0.03;

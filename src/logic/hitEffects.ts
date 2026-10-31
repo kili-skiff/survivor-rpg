@@ -1,7 +1,7 @@
 // What a hit does besides plain damage: a push, a burst around it, damage as a share of health.
 // Tools against a crowd that piles up. Pure and tested, no Phaser.
 
-import { HIT_EFFECTS } from '../config/balance';
+import { HIT_EFFECTS, ITEMS } from '../config/balance';
 
 /** The extra effects of a weapon hit (see WeaponStats). */
 export interface HitEffects {
@@ -73,4 +73,57 @@ export function splashDamage(damage: number): number {
 /** Whether an enemy (centre at distance `d`, body radius `r`) is inside a burst of `radius`. */
 export function inBurst(d: number, r: number, radius: number): boolean {
   return d <= radius + r;
+}
+
+/** What items and the situation do to every weapon hit (see PlayerStats). */
+export interface HitMods {
+  /** Everything that scales damage at the moment: momentum, last stand, Ember Surge */
+  damageMul: number;
+  crit: number;
+  critMul: number;
+  execute: number;
+  eliteMul: number;
+}
+
+export function neutralMods(): HitMods {
+  return { damageMul: 1, crit: 0, critMul: 2, execute: 0, eliteMul: 1 };
+}
+
+export interface HitResult {
+  damage: number;
+  crit: boolean;
+  executed: boolean;
+}
+
+/** The enemy a hit lands on, as far as the modifiers care. */
+export interface HitTarget {
+  hp: number;
+  maxHp: number;
+  elite: boolean;
+}
+
+/**
+ * Damage of one hit after the modifiers: damage scaling, extra against elites, a chance for a critical
+ * hit and the execute threshold (a hit that lands on an enemy below it takes all its health).
+ */
+export function resolveHit(base: number, mods: HitMods, target: HitTarget, rng: () => number): HitResult {
+  let damage = base * mods.damageMul * (target.elite ? mods.eliteMul : 1);
+  const crit = mods.crit > 0 && rng() < mods.crit;
+  if (crit) damage *= mods.critMul;
+  const threshold = mods.execute * (target.elite ? ITEMS.executeVsElite : 1);
+  const executed = threshold > 0 && target.maxHp > 0 && target.hp / target.maxHp <= threshold;
+  if (executed) damage = Math.max(damage, target.hp);
+  return { damage, crit, executed };
+}
+
+/** Damage scaling from the situation: moving, low health and temporary boosts. */
+export function situationalDamage(opts: {
+  moving: boolean;
+  momentum: number;
+  hpShare: number;
+  desperation: number;
+  surge: number;
+}): number {
+  const lost = 1 - Math.min(1, Math.max(0, opts.hpShare));
+  return (1 + (opts.moving ? opts.momentum : 0)) * (1 + opts.desperation * lost) * (1 + opts.surge);
 }
