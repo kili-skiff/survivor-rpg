@@ -1,5 +1,6 @@
 import * as Phaser from 'phaser';
 import { BALANCE } from '../../config/balance';
+import { assignShots } from '../../logic/focus';
 import { shotLifetimeMs } from '../../logic/vision';
 import type { WeaponStats } from '../../config/types';
 import type { HitEffects } from '../../logic/hitEffects';
@@ -8,10 +9,12 @@ import { Projectile } from '../../entities/Projectile';
 import type { CombatContext } from '../CombatContext';
 import { FIRST_SHOT_DELAY, type Weapon } from './Weapon';
 
-/** Angle offset for extra bolts when there are fewer targets than bolts (radians) */
-const SPREAD = 0.18;
+/** Angle between bolts fired at the same enemy (radians); small, so they still hit */
+const SPREAD = 0.05;
+/** How many of the nearest enemies focus fire looks at */
+const FOCUS_CANDIDATES = 8;
 
-/** Arcane bolt: fires at the nearest enemies. */
+/** Arcane bolt: fires at the nearest enemy, all bolts of a volley together until it will die (focus fire). */
 export class BoltWeapon implements Weapon {
   private readonly projectiles: Phaser.Physics.Arcade.Group;
   private timer = FIRST_SHOT_DELAY;
@@ -35,14 +38,25 @@ export class BoltWeapon implements Weapon {
 
     const { player, enemies } = this.ctx;
     const range = this.ctx.visionRange();
-    const targets = enemies.nearest(stats.count, range);
+    // Focus fire: the volley goes to the nearest enemy until the damage on its way will kill it.
+    const targets = enemies.nearest(FOCUS_CANDIDATES, range);
     if (targets.length === 0) {
       this.timer = 0;
       return;
     }
+    const pending = this.pendingDamage();
+    const plan = assignShots(
+      targets.map((e) => ({ hp: e.hp, pending: pending.get(e) ?? 0 })),
+      stats.count,
+      stats.damage,
+    );
+    const perTarget = new Map<Enemy, number>();
     for (let i = 0; i < stats.count; i++) {
-      const target = targets[i % targets.length];
-      const spread = i >= targets.length ? (i - targets.length + 1) * SPREAD : 0;
+      const target = targets[plan[i]];
+      // Bolts at the same enemy fan out a little, so they read as several bolts.
+      const k = perTarget.get(target) ?? 0;
+      perTarget.set(target, k + 1);
+      const spread = k === 0 ? 0 : (k % 2 === 1 ? 1 : -1) * Math.ceil(k / 2) * SPREAD;
       const angle = Math.atan2(target.y - player.y, target.x - player.x) + spread;
       const p = this.projectiles.get(player.x, player.y, 'bolt') as Projectile | null;
       if (!p) break;
@@ -56,8 +70,19 @@ export class BoltWeapon implements Weapon {
         this.ctx.now(),
         shotLifetimeMs(range, stats.speed, BALANCE.boltLifetimeMs),
       );
+      p.target = target;
     }
     this.timer = stats.cooldown;
+  }
+
+  /** Damage of the bolts in flight, per enemy they were fired at. */
+  private pendingDamage(): Map<Enemy, number> {
+    const out = new Map<Enemy, number>();
+    for (const p of this.projectiles.getChildren() as Projectile[]) {
+      if (!p.active || !p.target?.active || p.hits.has(p.target)) continue;
+      out.set(p.target, (out.get(p.target) ?? 0) + p.damage);
+    }
+    return out;
   }
 
   private onHit(p: Projectile, e: Enemy): void {

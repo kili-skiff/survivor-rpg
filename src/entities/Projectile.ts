@@ -7,6 +7,8 @@ export class Projectile extends Phaser.Physics.Arcade.Image {
   pierceLeft = 0;
   expiresAt = 0;
   readonly hits = new Set<Enemy>();
+  /** The enemy it was fired at (for focus fire), or null */
+  target: Enemy | null = null;
 
   fire(
     x: number,
@@ -31,6 +33,7 @@ export class Projectile extends Phaser.Physics.Arcade.Image {
 
   despawn(): void {
     this.hits.clear();
+    this.target = null;
     this.disableBody(true, true);
   }
 }
