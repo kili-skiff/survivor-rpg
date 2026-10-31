@@ -433,9 +433,11 @@ export class WorldMapScene extends Phaser.Scene {
 
     const o = this.outlines;
     o.clear();
+    // Reachable hexes: a thin, faint rim so the tiles and their symbols stay readable.
+    const targetPulse = 0.4 + Math.sin(this.time0 * 4) * 0.12;
     for (const key of targets) {
       const p = hexToPixelFlat(parseHexKey(key), this.hexSize);
-      o.lineStyle(3 * u, COLORS.accent, pulse);
+      o.lineStyle(1.5 * u, COLORS.accent, targetPulse);
       this.hexPath(o, p.x, p.y, this.hexSize - 3 * u);
       o.strokePath();
     }
