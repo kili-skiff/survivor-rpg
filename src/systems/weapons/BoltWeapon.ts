@@ -1,6 +1,6 @@
 import * as Phaser from 'phaser';
 import { BALANCE } from '../../config/balance';
-import { assignShots } from '../../logic/focus';
+import { assignShots, lockFirst } from '../../logic/focus';
 import { shotLifetimeMs } from '../../logic/vision';
 import type { WeaponStats } from '../../config/types';
 import type { HitEffects } from '../../logic/hitEffects';
@@ -14,10 +14,16 @@ const SPREAD = 0.05;
 /** How many of the nearest enemies focus fire looks at */
 const FOCUS_CANDIDATES = 8;
 
-/** Arcane bolt: fires at the nearest enemy, all bolts of a volley together until it will die (focus fire). */
+/**
+ * Arcane bolt: locks on to the nearest enemy and keeps firing at it until it dies or gets out of reach;
+ * all bolts of a volley go to it until the damage on its way will kill it (focus fire).
+ */
 export class BoltWeapon implements Weapon {
   private readonly projectiles: Phaser.Physics.Arcade.Group;
   private timer = FIRST_SHOT_DELAY;
+  /** The enemy the bolt is locked on to, and which life of that pooled enemy */
+  private locked: Enemy | null = null;
+  private lockedGeneration = 0;
   /** What a hit does besides damage; follows the weapon's level */
   private readonly effects: HitEffects = {};
 
@@ -38,8 +44,16 @@ export class BoltWeapon implements Weapon {
 
     const { player, enemies } = this.ctx;
     const range = this.ctx.visionRange();
-    // Focus fire: the volley goes to the nearest enemy until the damage on its way will kill it.
-    const targets = enemies.nearest(FOCUS_CANDIDATES, range);
+    // Focus fire: the bolt stays on the enemy it locked on to until that one dies or gets out of reach;
+    // without a lock it takes the nearest. A volley moves on once the damage on its way will kill it.
+    const locked = this.locked;
+    const keep =
+      locked !== null &&
+      locked.active &&
+      !locked.airborne &&
+      locked.generation === this.lockedGeneration &&
+      (locked.x - player.x) ** 2 + (locked.y - player.y) ** 2 <= range * range;
+    const targets = lockFirst(enemies.nearest(FOCUS_CANDIDATES, range), locked, keep);
     if (targets.length === 0) {
       this.timer = 0;
       return;
@@ -50,6 +64,9 @@ export class BoltWeapon implements Weapon {
       stats.count,
       stats.damage,
     );
+    const first = targets[plan[0]];
+    this.locked = first;
+    this.lockedGeneration = first.generation;
     const perTarget = new Map<Enemy, number>();
     for (let i = 0; i < stats.count; i++) {
       const target = targets[plan[i]];

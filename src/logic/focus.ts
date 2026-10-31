@@ -28,3 +28,12 @@ export function assignShots(targets: readonly FocusTarget[], shots: number, dama
   }
   return out;
 }
+
+/**
+ * The candidates with the locked target in front, so fire stays on one enemy until it dies. Without a
+ * lock, or when it is no longer valid (`keep` false), the order (nearest first) stays as it is.
+ */
+export function lockFirst<T>(candidates: readonly T[], locked: T | null, keep: boolean): T[] {
+  if (!locked || !keep) return [...candidates];
+  return [locked, ...candidates.filter((c) => c !== locked)];
+}

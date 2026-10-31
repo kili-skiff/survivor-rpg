@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { assignShots } from './focus';
+import { assignShots, lockFirst } from './focus';
 
 describe('assignShots', () => {
   it('sends the whole volley at the nearest enemy while it is not dead yet', () => {
@@ -47,5 +47,20 @@ describe('assignShots', () => {
 
   it('has no target without enemies', () => {
     expect(assignShots([], 2, 12)).toEqual([-1, -1]);
+  });
+});
+
+describe('lockFirst', () => {
+  it('puts the locked target first, even when others are nearer', () => {
+    expect(lockFirst(['a', 'b', 'c'], 'c', true)).toEqual(['c', 'a', 'b']);
+  });
+
+  it('adds the locked target when it is not among the nearest', () => {
+    expect(lockFirst(['a', 'b'], 'z', true)).toEqual(['z', 'a', 'b']);
+  });
+
+  it('keeps the nearest-first order without a valid lock', () => {
+    expect(lockFirst(['a', 'b'], null, true)).toEqual(['a', 'b']);
+    expect(lockFirst(['a', 'b'], 'b', false)).toEqual(['a', 'b']);
   });
 });
