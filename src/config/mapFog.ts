@@ -80,6 +80,20 @@ export const MAP_FOG = {
     /** Strength (additive, 0..1) */
     strength: 0.3,
   },
+  /**
+   * Hexes that are not cleared and not right next to you, the village or a lit watchfire are dimmed,
+   * so only your next steps stand out through the fog (which hexes: `logic/mapLight.ts`).
+   */
+  dim: {
+    /** Tile tint of a fully dimmed hex (white = unchanged) */
+    tint: 0x4d4d57,
+    /** Opacity of herb icons and place labels on a dimmed hex */
+    symbolAlpha: 0.4,
+    /** Opacity of a dimmed hex when there are no tile images (placeholder hexes) */
+    fillAlpha: 0.3,
+    /** Seconds a hex takes to light up or dim when the player moves */
+    fadeSec: 0.4,
+  },
   /** How much of the fog over unexplored hexes and outside the map is covered up again (0 = none, 1 = fully black) */
   unexploredCover: 0.82,
   /** The fog stops this far (in hexes) beyond the outermost hex; beyond it only background */
