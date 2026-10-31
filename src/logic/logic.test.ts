@@ -6,7 +6,6 @@ import { SKILLS } from '../config/skills';
 import { WEAPONS } from '../config/weapons';
 import { addXp, formatTime, xpToNext } from './progression';
 import { emptySave, loadSave, migrate, recordRun, SAVE_VERSION } from './save';
-import { isSegmentCleared, isSegmentWarning, segmentProgress, segmentRemaining } from './segment';
 import { enemyHpMultiplier, pickEnemy, spawnIntervalMs } from './spawning';
 import {
   applyLevels,
@@ -152,32 +151,6 @@ describe('spawning', () => {
   it('only picks unlocked enemies', () => {
     const rng = seeded(7);
     for (let i = 0; i < 200; i++) expect(pickEnemy(0, Object.values(ENEMIES), rng).id).toBe('bat');
-  });
-});
-
-describe('segment', () => {
-  const def = {
-    id: 'test',
-    name: 'Test',
-    durationSec: 100,
-    warningSec: 10,
-    difficultyOffsetSec: 0,
-    groundTint: 0,
-    herbs: null,
-  };
-
-  it('counts down and clears at the duration', () => {
-    expect(segmentRemaining(def, 0)).toBe(100);
-    expect(segmentRemaining(def, 130)).toBe(0);
-    expect(isSegmentCleared(def, 99.9)).toBe(false);
-    expect(isSegmentCleared(def, 100)).toBe(true);
-    expect(segmentProgress(def, 50)).toBe(0.5);
-  });
-
-  it('warns only in the last seconds', () => {
-    expect(isSegmentWarning(def, 80)).toBe(false);
-    expect(isSegmentWarning(def, 95)).toBe(true);
-    expect(isSegmentWarning(def, 100)).toBe(false);
   });
 });
 

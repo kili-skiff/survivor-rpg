@@ -101,6 +101,9 @@ scripts/ground/ Generates the ground tiles (Python + Pillow + numpy; our own art
 ## Workflow
 
 - Reply in the language the user writes in; everything in the repo stays English (rule 9).
+- **Plan before building.** For every feature, first lay out the plan (what, how, which files, open
+  questions) and wait for the user's go before writing code. Small fixes and number tweaks the user asks
+  for directly are the exception.
 - Work on a feature branch and open a pull request. The user tests the PR preview and merges.
 - The platform may append a session link to PR descriptions; remove it (rule 11).
 - Before UI changes go into a PR, check them in a real browser in portrait and landscape
@@ -132,7 +135,7 @@ describe the game as built; some of it changes in Milestone 2 (gold, camps).
 - [x] Behaviour per enemy type, as data in `config/enemies.ts`: the bat flies nearly straight over the crowd (`flies`), the ghoul is a pouncer (runs up, crouches over a landing circle, leaps in an arc, lands stunned; `logic/charge.ts`), the zombie and the colossus chase; types can be limited to rings (`minRing`) (`logic/behaviors.ts`). The `flank` behaviour (arc, aiming ahead) stays in the code for later types
 - [ ] More behaviours and new enemy types: ranged, orbiters, runners that pass by; bat flocks that sweep from side to side (a surge kind of the spawn director)
 - [ ] Elites with a mechanic, their own movement and fair health (target fight length)
-- [ ] Varied fight goals (kill N enemies, find the light or the dungeon, ... see `docs/vision.md`)
+- [ ] Varied fight goals (see `docs/vision.md`): each hex has a goal, shown on the map and rolled anew per expedition (`logic/goals.ts`, `config/goals.ts`). Built: survive, hunt (kill N). Next: find the light on watchfire hexes, hunt an elite
 - [x] Tools against a crowd that piles up, as level steps of the weapons (`logic/hitEffects.ts`): knockback with a push that slows down, bolt bursts, damage as a share of health (aura, blades), earlier pierce
 - [x] Wild builds, a first test batch: 19 new items without a limit (`config/passives.ts`), one-time cards (`config/boons.ts`) and the weapon Chain Lightning; values to be tuned by playing (see "Wild builds" in `docs/vision.md`)
 - [x] Card rarity (common, magic, legendary: frame colour and how often offered, `config/rarity.ts`) and weapon level steps in a random order (`weaponSteps`)

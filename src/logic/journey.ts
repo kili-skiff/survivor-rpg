@@ -40,7 +40,9 @@ export interface FightReport {
 /** Ends the expedition at home and moves its loot into the village stash. */
 function endExpeditionAtHome(save: SaveData, world: WorldProgress): SaveData {
   const loot = world.expedition?.loot ?? {};
-  return { ...save, stash: addLoot(save.stash, loot), world: { ...world, expedition: null } };
+  // Only an expedition that was under way counts as finished.
+  const expeditions = world.expeditions + (world.expedition ? 1 : 0);
+  return { ...save, stash: addLoot(save.stash, loot), world: { ...world, expedition: null, expeditions } };
 }
 
 /** The build a fight starts with: the expedition's build, or null for a fresh character. */
@@ -70,7 +72,8 @@ export function finishFight(
     const kept = lootAfterDeath(loot, BALANCE.lootKeptOnDeath);
     const lost: Loot = {};
     for (const [id, n] of Object.entries(loot)) if (n - (kept[id] ?? 0) > 0) lost[id] = n - (kept[id] ?? 0);
-    const progress = { ...applyFightResult(save.world, target, 'fallen'), expedition: null };
+    const fallen = applyFightResult(save.world, target, 'fallen');
+    const progress = { ...fallen, expedition: null, expeditions: fallen.expeditions + 1 };
     return {
       save: { ...save, stash: addLoot(save.stash, kept), world: progress },
       report: {

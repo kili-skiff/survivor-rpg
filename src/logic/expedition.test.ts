@@ -201,3 +201,28 @@ describe('watchfire quest reward', () => {
     expect(save.stash[GOLD_KEY]).toBeUndefined();
   });
 });
+
+describe('expedition count', () => {
+  const first = hexNeighbors(ORIGIN)[0];
+
+  it('counts an expedition that ends at home', () => {
+    const out = finishFight(emptySave(), world, first, 'cleared', build(), {}).save;
+    expect(out.world.expeditions).toBe(0);
+    expect(returnHome(out).world.expeditions).toBe(1);
+  });
+
+  it('counts an expedition that ends in death', () => {
+    const { save } = finishFight(emptySave(), world, first, 'fallen', build(), {});
+    expect(save.world.expeditions).toBe(1);
+  });
+
+  it('does not count going home without an expedition', () => {
+    expect(returnHome(emptySave()).world.expeditions).toBe(0);
+  });
+
+  it('is 0 in older saves', () => {
+    const old = emptySave() as unknown as { world: Record<string, unknown> };
+    delete old.world.expeditions;
+    expect(migrate(old).world.expeditions).toBe(0);
+  });
+});

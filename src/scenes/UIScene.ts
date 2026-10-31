@@ -11,7 +11,7 @@ import { describeEarned } from '../logic/deeds';
 import type { Announcement } from '../logic/director';
 import { formatTime, xpToNext } from '../logic/progression';
 import { safeStorage } from '../logic/save';
-import { isSegmentWarning, segmentRemaining } from '../logic/segment';
+import { goalCounter, goalLabel } from '../logic/goals';
 import { loadSettings, otherSide, writeSettings, type Settings } from '../logic/settings';
 import { RARITIES } from '../config/rarity';
 import { describeUpgrade, type UpgradeOption } from '../logic/upgrades';
@@ -463,10 +463,13 @@ export class UIScene extends Phaser.Scene {
 
     this.hpText.setText(`${Math.ceil(run.hp)}/${run.stats.maxHp}`);
     this.levelText.setText(`Level ${run.level}`);
-    // The timer counts down to the end of the segment.
-    this.timerText
-      .setText(formatTime(Math.ceil(segmentRemaining(run.segment, run.time))))
-      .setColor(isSegmentWarning(run.segment, run.time) ? css(COLORS.accent) : '#ffffff');
+    // The goal's counter: the time left, or the kills so far.
+    const counter = goalCounter(
+      run.segment.goal,
+      { time: run.time, kills: run.kills },
+      run.segment.warningSec,
+    );
+    this.timerText.setText(counter.text).setColor(counter.warning ? css(COLORS.accent) : '#ffffff');
     this.segmentText.setText(run.segment.name);
     this.killsText.setText(`☠ ${run.kills}`);
     // Gold (once there is some) and herbs stack below the kills on the right.
@@ -1103,7 +1106,7 @@ export class UIScene extends Phaser.Scene {
       .setOrigin(0.5)
       .setDepth(40);
     const goal = this.add
-      .text(W / 2, H * 0.3 + 34 * u, `Survive ${formatTime(seg.durationSec)}`, {
+      .text(W / 2, H * 0.3 + 34 * u, goalLabel(seg.goal), {
         ...style,
         fontSize: `${Math.round(16 * u)}px`,
         color: css(COLORS.accent),
@@ -1414,7 +1417,9 @@ export class UIScene extends Phaser.Scene {
       y += t.height + 8 * u;
     }
     const stats = [
-      `Time  ${formatTime(info.time)} / ${formatTime(info.segment.durationSec)}`,
+      info.segment.goal.kind === 'survive'
+        ? `Time  ${formatTime(info.time)} / ${formatTime(info.segment.goal.durationSec)}`
+        : `Time  ${formatTime(info.time)}`,
       `Level  ${info.level}`,
       `Kills  ${info.kills}`,
       ...(info.herbsTotal > 0 ? [`Herbs  ${info.herbsGathered} / ${info.herbsTotal}`] : []),

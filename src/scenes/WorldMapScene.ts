@@ -23,7 +23,6 @@ import {
   type Hex,
 } from '../logic/hex';
 import { hash32 } from '../logic/rng';
-import { formatTime } from '../logic/progression';
 import { loadSave, safeStorage, writeSave, type SaveData } from '../logic/save';
 import { lootCount, lootGained } from '../logic/expedition';
 import { returnHome, teleport, walkHome, walkThrough } from '../logic/journey';
@@ -38,6 +37,7 @@ import {
   travelKind,
   type TravelKind,
 } from '../logic/worldProgress';
+import { goalLabel } from '../logic/goals';
 import { seasonWorld, segmentForHex, type World, type WorldHex } from '../logic/worldgen';
 import { jumpTo } from '../dev/devLogic'; // DEV:
 import { devButtonStyle, isDevMode } from '../dev/devMode'; // DEV:
@@ -869,7 +869,7 @@ export class WorldMapScene extends Phaser.Scene {
             : undefined,
       };
     }
-    const seg = segmentForHex(h);
+    const seg = segmentForHex(h, progress.expeditions);
     const poi = h.poi ? ` · ${POIS[h.poi].name}` : '';
     const fireNote =
       h.poi !== 'watchfire'
@@ -883,7 +883,7 @@ export class WorldMapScene extends Phaser.Scene {
     return {
       title: `${BIOMES[h.biome].name}${poi}`,
       detail:
-        `Ring ${h.ring} · Survive ${formatTime(seg.durationSec)}${isCleared(progress, key) ? ' · cleared before' : ''}\n${status}`.trim(),
+        `Ring ${h.ring} · ${goalLabel(seg.goal)}${isCleared(progress, key) ? ' · cleared before' : ''}\n${status}`.trim(),
       herbs,
       action:
         kind === 'fight' ? { label: 'Enter area', run: () => this.fight(h.hex) } : here ? goHome : undefined,

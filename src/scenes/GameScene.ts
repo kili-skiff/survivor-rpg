@@ -33,7 +33,8 @@ import { applyBuffs, damageTakenMultiplier } from '../logic/potions';
 import { currentBuild, finishFight, returnHome, type FightReport } from '../logic/journey';
 import { loadSave, recordRun, safeStorage, writeSave, type SaveData } from '../logic/save';
 import { loadSettings } from '../logic/settings';
-import { isSegmentCleared, type RunOutcome } from '../logic/segment';
+import type { RunOutcome } from '../logic/segment';
+import { isGoalDone } from '../logic/goals';
 import {
   computePlayerStats,
   computeSkillStats,
@@ -158,6 +159,8 @@ export class GameScene extends Phaser.Scene {
   private viewH = 600;
   private hexKey: string | null = null;
   private endInfo: RunEndInfo | null = null;
+  /** DEV: "clear area" was pressed; the fight counts as won */
+  private devCleared = false;
 
   constructor() {
     super('Game');
@@ -180,6 +183,7 @@ export class GameScene extends Phaser.Scene {
     this.secondWinds = 0;
     this.surgeUntil = 0;
     this.endInfo = null;
+    this.devCleared = false;
 
     let controls = this.registry.get('input') as InputState | undefined;
     if (!controls) {
@@ -219,8 +223,10 @@ export class GameScene extends Phaser.Scene {
       this.onPlayerTouched(e as Enemy),
     );
 
+    // The save comes first: the hex's goal depends on how many expeditions are finished.
+    const saved = loadSave(safeStorage());
     const hexInfo = this.hexKey ? seasonWorld().hexes.get(this.hexKey) : undefined;
-    const segment = hexInfo ? segmentForHex(hexInfo) : DEFAULT_SEGMENT;
+    const segment = hexInfo ? segmentForHex(hexInfo, saved.world.expeditions) : DEFAULT_SEGMENT;
     this.ring = hexInfo?.ring ?? 1;
     this.enemies.setRing(this.ring);
     // Each biome has its own ground tile; without one, the grey placeholder is tinted instead.
@@ -232,7 +238,6 @@ export class GameScene extends Phaser.Scene {
     }
 
     // On an expedition the character keeps its build from the previous hex.
-    const saved = loadSave(safeStorage());
     const build = this.hexKey ? currentBuild(saved) : null;
     this.lanternLevel = saved.lanternLevel;
     this.deedBonus = deedBonus(saved.deeds);
@@ -482,9 +487,9 @@ export class GameScene extends Phaser.Scene {
     this.run.hp = this.run.stats.maxHp;
   }
 
-  // DEV: wins the fight at once (the segment timer runs out on the next frame).
+  // DEV: wins the fight at once (on the next frame), whatever its goal.
   devClearArea(): void {
-    if (this.run.alive) this.run.time = this.run.segment.durationSec;
+    if (this.run.alive) this.devCleared = true;
   }
 
   giveUp(): void {
@@ -565,7 +570,8 @@ export class GameScene extends Phaser.Scene {
     this.numbers.update(dt);
 
     if (this.run.stats.regen > 0) this.heal(this.run.stats.regen * dt);
-    if (isSegmentCleared(this.run.segment, this.run.time)) this.endRun('cleared');
+    const goalState = { time: this.run.time, kills: this.run.kills };
+    if (isGoalDone(this.run.segment.goal, goalState) || this.devCleared) this.endRun('cleared'); // DEV: clear area
   }
 
   /** Recomputes all stats after the loadout changed and creates newly acquired weapons. */

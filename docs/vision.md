@@ -234,11 +234,15 @@ waves with rests and ranged enemies.
 
 ## Varied fight goals
 
-Today every hex fight has the same goal: survive N minutes. That should become more varied, so
-that not every fight feels the same. Wanted (the exact plan is still open):
+Not every hex fight should be "survive N minutes". Built so far (`logic/goals.ts`, `config/goals.ts`):
+each hex has a goal, shown on the map before you go in and at the start of the fight; the counter at the
+top of the screen follows it. Goals are rolled from the hex and the number of finished expeditions
+(`WorldProgress.expeditions`), so a hex keeps its goal for one expedition and may have another on the
+next; the map itself does not change.
 
-- **Survive** a time (what we have now).
-- **Kill** a number of enemies, or a special target.
+- **Survive** a time (built).
+- **Hunt:** kill a number of enemies, more further out; no time limit, the spawn director keeps the
+  pressure up (built). Later also a special target, e.g. a marked elite.
 - **Find the light:** locate a watchfire, lantern or beacon in the dark and light it.
 - **Find the dungeon** entrance (or another place) in the area.
 - Perhaps: protect something, gather herbs, defeat an elite or a boss.

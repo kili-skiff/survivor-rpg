@@ -247,10 +247,16 @@ export interface EnemyDef {
 }
 
 /** One hex segment of an expedition. For now there is only a single default segment. */
+/** What a fight asks of the player (config/goals.ts, logic/goals.ts). */
+export type FightGoal = { kind: 'survive'; durationSec: number } | { kind: 'hunt'; kills: number };
+export type GoalKind = FightGoal['kind'];
+
 export interface SegmentDef {
   id: string;
   name: string;
-  /** Survive this long to clear the segment (seconds) */
+  /** What clears the fight */
+  goal: FightGoal;
+  /** How long the fight is meant to last (seconds): the time to survive, and what herbs are planned for */
   durationSec: number;
   /** The countdown turns into a warning colour for the last N seconds */
   warningSec: number;

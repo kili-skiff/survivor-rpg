@@ -1,6 +1,7 @@
 import type { BiomeId, PoiId, SegmentDef } from '../config/types';
 import { BIOMES, POIS, SEASON, WORLD } from '../config/world';
 import { hexDistance, hexesInRadius, hexKey, hexToPixel, ORIGIN, pixelToHex, type Hex } from './hex';
+import { goalForHex } from './goals';
 import { createRng, hash32, hashFloat, seedFromString } from './rng';
 
 export interface WorldHex {
@@ -196,14 +197,22 @@ function placePois(
   return { tower: tower.key, roadCamp: roadCamp?.key ?? null };
 }
 
-/** The fight you get when entering a hex. Further rings last longer and start harder. */
-export function segmentForHex(h: WorldHex): SegmentDef {
+/**
+ * The fight you get when entering a hex. Further rings last longer and start harder. `expedition` is the
+ * number of finished expeditions: the hex's goal stays the same for one expedition and changes with the next.
+ */
+export function segmentForHex(h: WorldHex, expedition = 0): SegmentDef {
   const biome = BIOMES[h.biome];
   const steps = Math.max(0, h.ring - 1);
+  const durationSec = Math.min(
+    WORLD.maxDurationSec,
+    WORLD.baseDurationSec + steps * WORLD.durationPerRingSec,
+  );
   return {
     id: `hex:${h.key}`,
     name: h.poi && h.poi !== 'village' ? `${biome.name} · ${POIS[h.poi].name}` : biome.name,
-    durationSec: Math.min(WORLD.maxDurationSec, WORLD.baseDurationSec + steps * WORLD.durationPerRingSec),
+    goal: goalForHex(h, durationSec, expedition, SEASON.seed),
+    durationSec,
     warningSec: WORLD.warningSec,
     difficultyOffsetSec: steps * WORLD.difficultyOffsetPerRingSec,
     groundTint: biome.groundTint,
