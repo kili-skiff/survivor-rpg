@@ -22,7 +22,7 @@ export const BALANCE = {
    * All enemies walk this share of the speed in their config (config/enemies.ts); one knob for the pace of
    * the whole horde. Leaps of pouncers are timed and not affected.
    */
-  enemySpeed: 0.72,
+  enemySpeed: 0.65,
 } as const;
 
 /** Further rings are harder: enemies get more health and damage and come in denser waves. */
