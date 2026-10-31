@@ -42,6 +42,7 @@ import {
   damageAfterArmor,
   skillMaxLevel,
   weaponMaxLevel,
+  weaponSteps,
   type Loadout,
 } from '../logic/stats';
 import { applyUpgrade, rollUpgradeOptions, type UpgradeOption } from '../logic/upgrades';
@@ -579,7 +580,12 @@ export class GameScene extends Phaser.Scene {
 
     this.weaponStats = {};
     for (const id of Object.keys(this.run.loadout.weapons) as WeaponId[]) {
-      this.weaponStats[id] = computeWeaponStats(id, this.run.loadout.weapons[id]!, this.run.stats);
+      this.weaponStats[id] = computeWeaponStats(
+        id,
+        this.run.loadout.weapons[id]!,
+        this.run.stats,
+        weaponSteps(this.run.loadout, id),
+      );
       if (!this.weapons.has(id)) this.weapons.set(id, createWeapon(id, this.ctx));
     }
     this.skillStats = {

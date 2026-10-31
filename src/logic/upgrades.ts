@@ -5,10 +5,11 @@ import { SKILLS } from '../config/skills';
 import type { BoonId, PassiveId, Rarity, SkillId, WeaponId } from '../config/types';
 import { MAX_WEAPONS, WEAPONS } from '../config/weapons';
 import type { Rng } from './spawning';
-import { skillMaxLevel, weaponMaxLevel, type Loadout } from './stats';
+import { remainingSteps, skillMaxLevel, weaponMaxLevel, weaponSteps, type Loadout } from './stats';
 
 export type UpgradeOption =
-  | { kind: 'weapon'; id: WeaponId; toLevel: number }
+  /** `step`: which of the weapon's level steps (index into its `levels`); drawn when the card is rolled */
+  | { kind: 'weapon'; id: WeaponId; toLevel: number; step?: number }
   | { kind: 'passive'; id: PassiveId; toLevel: number }
   | { kind: 'skill'; id: SkillId; toLevel: number }
   /** One-time effect (config/boons.ts); not part of the build */
@@ -104,18 +105,34 @@ export function rollUpgradeOptions(loadout: Loadout, rng: Rng, count = 3, boons 
         break;
       }
     }
-    picked.push(pool[index].option);
+    picked.push(withStep(pool[index].option, loadout, rng));
     pool.splice(index, 1);
   }
   if (picked.length === 0) picked.push({ kind: 'heal' });
   return picked;
 }
 
+/** A weapon card gets one of the weapon's missing level steps at random, so no two runs grow the same way. */
+function withStep(option: UpgradeOption, loadout: Loadout, rng: Rng): UpgradeOption {
+  if (option.kind !== 'weapon' || option.toLevel === 1 || option.step !== undefined) return option;
+  const left = remainingSteps(loadout, option.id);
+  if (left.length === 0) return option;
+  return { ...option, step: left[Math.floor(rng() * left.length) % left.length] };
+}
+
 /** Returns a new loadout (the old one stays unchanged). */
 export function applyUpgrade(loadout: Loadout, option: UpgradeOption): Loadout {
   switch (option.kind) {
-    case 'weapon':
-      return { ...loadout, weapons: { ...loadout.weapons, [option.id]: option.toLevel } };
+    case 'weapon': {
+      const weapons = { ...loadout.weapons, [option.id]: option.toLevel };
+      let steps: number[] = [];
+      if (option.toLevel > 1) {
+        // Without a drawn step (e.g. built by hand), the first missing one.
+        const step = option.step ?? remainingSteps(loadout, option.id)[0];
+        steps = [...weaponSteps(loadout, option.id), ...(step === undefined ? [] : [step])];
+      }
+      return { ...loadout, weapons, weaponSteps: { ...loadout.weaponSteps, [option.id]: steps } };
+    }
     case 'passive':
       return { ...loadout, passives: { ...loadout.passives, [option.id]: option.toLevel } };
     case 'skill':
@@ -134,7 +151,7 @@ export function describeUpgrade(option: UpgradeOption): UpgradeCard {
       return {
         title: def.name,
         badge: isNew ? 'NEW WEAPON' : `WEAPON · LEVEL ${option.toLevel}`,
-        text: isNew ? def.description : def.levels[option.toLevel - 2].text,
+        text: isNew ? def.description : def.levels[option.step ?? option.toLevel - 2].text,
         texture: def.texture,
         rarity: def.rarity,
         isNew,
