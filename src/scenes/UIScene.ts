@@ -34,6 +34,8 @@ interface PotionButton {
 }
 
 /** Warnings of a coming surge are red, so they stand out from the friendly hints */
+/** Hint colour when the watchfire is found */
+const FIRE_HINT_COLOR = 0xfb923c;
 const SURGE_COLOR = 0xff6a6a;
 
 type OverlayKind = 'none' | 'levelup' | 'pause' | 'runend' | 'chest';
@@ -66,6 +68,8 @@ export class UIScene extends Phaser.Scene {
   private timerText!: Phaser.GameObjects.Text;
   /** The goal's symbol, left of its counter */
   private goalIcon!: Phaser.GameObjects.Image;
+  /** Font size of the goal's counter (px); changes between numbers and words */
+  private counterSize = 0;
   private segmentText!: Phaser.GameObjects.Text;
   private levelText!: Phaser.GameObjects.Text;
   private hpText!: Phaser.GameObjects.Text;
@@ -199,6 +203,7 @@ export class UIScene extends Phaser.Scene {
     this.gs.events.on('herbbloom', this.onHerbBloom, this);
     this.gs.events.on('chestdrop', this.onChestDrop, this);
     this.gs.events.on('surge', this.onSurge, this);
+    this.gs.events.on('firefound', this.onFireFound, this);
     this.game.events.on(Phaser.Core.Events.HIDDEN, this.onHidden, this);
     this.events.once('shutdown', () => {
       this.scale.off('resize', this.onResize, this);
@@ -208,6 +213,7 @@ export class UIScene extends Phaser.Scene {
       this.gs.events.off('herbbloom', this.onHerbBloom, this);
       this.gs.events.off('chestdrop', this.onChestDrop, this);
       this.gs.events.off('surge', this.onSurge, this);
+      this.gs.events.off('firefound', this.onFireFound, this);
       this.game.events.off(Phaser.Core.Events.HIDDEN, this.onHidden, this);
     });
 
@@ -387,7 +393,8 @@ export class UIScene extends Phaser.Scene {
     const left = this.sa.left + m;
     const right = W - this.sa.right - m;
 
-    this.timerText.setFontSize(Math.round(22 * u)).setPosition(W / 2, top + 4 * u);
+    this.counterSize = 0; // set again by the next update, for the new size
+    this.timerText.setPosition(W / 2, top + 4 * u);
     this.segmentText.setFontSize(Math.round(11 * u)).setPosition(W / 2, top + 32 * u);
     this.levelText.setFontSize(Math.round(14 * u)).setPosition(left, top + 24 * u);
     this.hpText.setFontSize(Math.round(10 * u)).setPosition(left + 75 * u, top + 12 * u);
@@ -455,8 +462,30 @@ export class UIScene extends Phaser.Scene {
     g.fillStyle(COLORS.xpBack).fillRect(0, this.sa.top, W, xpH);
     g.fillStyle(COLORS.xp).fillRect(0, this.sa.top, W * xpFrac, xpH);
 
-    // Health bar
-    const hpW = 150 * u;
+    // The goal's counter: the time left, or the kills so far.
+    const counter = goalCounter(
+      run.segment.goal,
+      { time: run.time, kills: run.kills, lit: run.lit, found: run.found },
+      run.segment.warningSec,
+    );
+    // The light goal shows words ("Find the fire"), set smaller than a number.
+    const counterSize = Math.round((run.segment.goal.kind === 'light' ? 15 : 22) * this.u);
+    if (counterSize !== this.counterSize) {
+      this.counterSize = counterSize;
+      this.timerText.setFontSize(counterSize);
+    }
+    this.timerText.setText(counter.text).setColor(counter.warning ? css(COLORS.accent) : '#ffffff');
+    const iconSize = 20 * this.u;
+    this.goalIcon
+      .setDisplaySize(iconSize, iconSize)
+      .setPosition(
+        this.timerText.x - this.timerText.width / 2 - 6 * this.u,
+        this.timerText.y + this.timerText.height / 2,
+      );
+
+    // Health bar, as wide as there is room for next to the goal's counter, so they never overlap on a narrow screen.
+    const counterLeft = this.goalIcon.x - this.goalIcon.displayWidth - 8 * u;
+    const hpW = Phaser.Math.Clamp(counterLeft - left, 80 * u, 150 * u);
     const hpH = 12 * u;
     const hpY = top + 6 * u;
     const hpFrac = Phaser.Math.Clamp(run.hp / run.stats.maxHp, 0, 1);
@@ -467,20 +496,7 @@ export class UIScene extends Phaser.Scene {
 
     this.hpText.setText(`${Math.ceil(run.hp)}/${run.stats.maxHp}`);
     this.levelText.setText(`Level ${run.level}`);
-    // The goal's counter: the time left, or the kills so far.
-    const counter = goalCounter(
-      run.segment.goal,
-      { time: run.time, kills: run.kills },
-      run.segment.warningSec,
-    );
-    this.timerText.setText(counter.text).setColor(counter.warning ? css(COLORS.accent) : '#ffffff');
-    const iconSize = 20 * this.u;
-    this.goalIcon
-      .setDisplaySize(iconSize, iconSize)
-      .setPosition(
-        this.timerText.x - this.timerText.width / 2 - 6 * this.u,
-        this.timerText.y + this.timerText.height / 2,
-      );
+    this.hpText.setX(left + hpW / 2);
     this.segmentText.setText(run.segment.name);
     this.killsText.setText(`☠ ${run.kills}`);
     // Gold (once there is some) and herbs stack below the kills on the right.
@@ -585,6 +601,12 @@ export class UIScene extends Phaser.Scene {
       const size = (ind.rare ? 13 : 10) * u * pulse;
       const alpha = ind.freshness > 0 ? 1 : Phaser.Math.Clamp(1.1 - ind.distance / 500, 0.45, 1);
       this.drawEdgeArrow(g, ind.angle, size, ind.color, alpha);
+    }
+    const fire = this.gs.fireIndicator();
+    if (fire) {
+      // The goal of the fight: big and steady, so it is always easy to find.
+      const size = 16 * u * (1 + 0.12 * (0.5 + 0.5 * Math.sin(this.time.now / 220)));
+      this.drawEdgeArrow(g, fire.angle, size, fire.color, 1, true);
     }
     for (const ind of this.gs.chestIndicators()) {
       const size = 14 * u * (1 + 0.15 * (0.5 + 0.5 * Math.sin(this.time.now / 160)));
@@ -1118,6 +1140,10 @@ export class UIScene extends Phaser.Scene {
   /** The spawn director announces a wave, a ring or a wall a few seconds before it hits. */
   private onSurge(a: Announcement): void {
     this.showHint(a.text, SURGE_COLOR);
+  }
+
+  private onFireFound(): void {
+    this.showHint('A faint glow in the dark!', FIRE_HINT_COLOR);
   }
 
   /** Fades a line in below the timer for a moment; a second hint goes below the first. */

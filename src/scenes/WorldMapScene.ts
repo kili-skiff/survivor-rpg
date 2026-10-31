@@ -496,7 +496,10 @@ export class WorldMapScene extends Phaser.Scene {
       const near = hexDistance(at, hex.hex) <= GOALS.iconReach;
       const shown = near && this.isVisible(hex.key) && !isUsedUp(progress, hex.key);
       icon.setVisible(shown);
-      if (shown) icon.setTexture(GOALS.icons[segmentForHex(hex, progress.expeditions).goal.kind]);
+      if (shown) {
+        const goal = segmentForHex(hex, progress.expeditions, isLit(progress, hex.key)).goal;
+        icon.setTexture(GOALS.icons[goal.kind]);
+      }
     }
     for (const { hex, text } of this.poiLabels) {
       text.setVisible(this.isVisible(hex.key));
@@ -912,14 +915,14 @@ export class WorldMapScene extends Phaser.Scene {
             : undefined,
       };
     }
-    const seg = segmentForHex(h, progress.expeditions);
+    const seg = segmentForHex(h, progress.expeditions, isLit(progress, key));
     const poi = h.poi ? ` · ${POIS[h.poi].name}` : '';
     const fireNote =
       h.poi !== 'watchfire'
         ? ''
         : isLit(progress, key)
           ? 'The watchfire burns. '
-          : 'Cold watchfire: clear the area to light it. ';
+          : 'Cold watchfire: find it in the dark and light it. ';
     const status =
       fireNote +
       (here ? 'You are here.' : kind === 'blocked' ? 'Too far: travel to a hex next to it first.' : '');

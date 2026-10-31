@@ -34,7 +34,7 @@ import { currentBuild, finishFight, returnHome, type FightReport } from '../logi
 import { loadSave, recordRun, safeStorage, writeSave, type SaveData } from '../logic/save';
 import { loadSettings } from '../logic/settings';
 import type { RunOutcome } from '../logic/segment';
-import { isGoalDone } from '../logic/goals';
+import { foundPlacement, isGoalDone } from '../logic/goals';
 import {
   computePlayerStats,
   computeSkillStats,
@@ -61,6 +61,7 @@ import { PotionSystem } from '../systems/PotionSystem';
 import { visionRange } from '../logic/vision';
 import { LanternSystem } from '../systems/LanternSystem';
 import { LightingSystem } from '../systems/LightingSystem';
+import { WatchfireSystem } from '../systems/WatchfireSystem';
 import { godModeStats } from '../dev/devLogic'; // DEV:
 import { isDevMode } from '../dev/devMode'; // DEV:
 import type { DevFightStats } from '../dev/DevPanel'; // DEV:
@@ -92,6 +93,10 @@ export interface RunState {
   /** Herbs gathered in this fight */
   herbsGathered: number;
   herbsTotal: number;
+  /** How far the watchfire is lit, 0..1 (goal "find the light"; 0 otherwise) */
+  lit: number;
+  /** Whether the watchfire has been found (goal "find the light") */
+  found: boolean;
   loadout: Loadout;
   stats: PlayerStats;
 }
@@ -161,6 +166,10 @@ export class GameScene extends Phaser.Scene {
   private viewH = 600;
   private hexKey: string | null = null;
   private endInfo: RunEndInfo | null = null;
+  /** The cold watchfire of a "find the light" fight, or null */
+  private watchfire: WatchfireSystem | null = null;
+  /** Seconds the player has moved through the dark looking for the watchfire */
+  private searched = 0;
   /** DEV: "clear area" was pressed; the fight counts as won */
   private devCleared = false;
 
@@ -186,6 +195,7 @@ export class GameScene extends Phaser.Scene {
     this.surgeUntil = 0;
     this.endInfo = null;
     this.devCleared = false;
+    this.watchfire = null;
 
     let controls = this.registry.get('input') as InputState | undefined;
     if (!controls) {
@@ -229,7 +239,8 @@ export class GameScene extends Phaser.Scene {
     // The save comes first: the hex's goal depends on how many expeditions are finished.
     const saved = loadSave(safeStorage());
     const hexInfo = this.hexKey ? seasonWorld().hexes.get(this.hexKey) : undefined;
-    const segment = hexInfo ? segmentForHex(hexInfo, saved.world.expeditions) : DEFAULT_SEGMENT;
+    const fireLit = this.hexKey !== null && saved.world.litWatchfires.includes(this.hexKey);
+    const segment = hexInfo ? segmentForHex(hexInfo, saved.world.expeditions, fireLit) : DEFAULT_SEGMENT;
     this.ring = hexInfo?.ring ?? 1;
     this.enemies.setRing(this.ring);
     // Each biome has its own ground tile; without one, the grey placeholder is tinted instead.
@@ -260,10 +271,16 @@ export class GameScene extends Phaser.Scene {
       gold: 0,
       herbsGathered: 0,
       herbsTotal: 0,
+      lit: 0,
+      found: false,
       loadout,
       stats,
     };
     this.refreshStats();
+
+    // Find the light: the cold watchfire is hidden until the player has searched the dark long enough.
+    this.searched = 0;
+    if (segment.goal.kind === 'light') this.watchfire = new WatchfireSystem(this, this.player);
 
     // Fresh herbs every time a hex is entered. They bloom one by one at random moments;
     // nothing grows back during the fight.
@@ -282,6 +299,7 @@ export class GameScene extends Phaser.Scene {
       () => [
         ...[this.lantern.light(this.time.now)].filter((l) => l !== null),
         ...this.herbs.lights(),
+        ...[this.watchfire?.light() ?? null].filter((l) => l !== null),
         ...this.pickups.chests().map((c) => ({ ...c, radius: LIGHT.chestRadius, color: LIGHT.chestColor })),
       ],
       () => this.enemies.group.getChildren() as Enemy[],
@@ -407,6 +425,27 @@ export class GameScene extends Phaser.Scene {
       if (distance > 0) out.push({ angle: Math.atan2(dy, dx), distance, color: LIGHT.chestColor });
     }
     return out;
+  }
+
+  /**
+   * Searching counts only while the player moves. Once they have searched long enough, the fire shows up
+   * just outside the view in the direction they walk, so it feels like spotting it.
+   */
+  private searchForFire(dt: number): void {
+    const goal = this.run.segment.goal;
+    if (!this.watchfire || this.watchfire.found || goal.kind !== 'light') return;
+    const { moveX, moveY } = this.controls;
+    if (Math.hypot(moveX, moveY) <= 0.1) return;
+    this.searched += dt;
+    if (this.searched < goal.searchSec) return;
+    const at = foundPlacement(Math.atan2(moveY, moveX), Math.random, this.viewW / 2, this.viewH / 2);
+    this.watchfire.place(this.player.x + at.x, this.player.y + at.y);
+    this.events.emit('firefound');
+  }
+
+  /** Edge arrow to the cold watchfire while it is off screen (goal "find the light"). */
+  fireIndicator(): EdgeIndicator | null {
+    return this.run.alive && this.watchfire ? this.watchfire.indicator(this.viewW, this.viewH) : null;
   }
 
   /** Gathered, bloomed and upcoming herbs of this fight, for the HUD. */
@@ -577,11 +616,22 @@ export class GameScene extends Phaser.Scene {
     for (const [id, weapon] of this.weapons) weapon.update(this.weaponStats[id]!, dms, dt);
     this.pickups.update(dt, this.run.stats.magnet);
     this.herbs.update(dt, this.run.time, this.viewW, this.viewH);
+    if (this.watchfire) {
+      this.searchForFire(dt);
+      this.watchfire.update(dt);
+      this.run.lit = this.watchfire.progress;
+      this.run.found = this.watchfire.found;
+    }
     this.run.herbsGathered = this.herbs.gatheredCount;
     this.numbers.update(dt);
 
     if (this.run.stats.regen > 0) this.heal(this.run.stats.regen * dt);
-    const goalState = { time: this.run.time, kills: this.run.kills };
+    const goalState = {
+      time: this.run.time,
+      kills: this.run.kills,
+      lit: this.run.lit,
+      found: this.run.found,
+    };
     if (isGoalDone(this.run.segment.goal, goalState) || this.devCleared) this.endRun('cleared'); // DEV: clear area
   }
 
