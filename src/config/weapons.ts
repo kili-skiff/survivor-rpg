@@ -172,7 +172,7 @@ export const MAX_WEAPONS = 4;
 /** Base radius of the aura in px (multiplied by area) */
 export const AURA_BASE_RADIUS = 70;
 /** How far a boomerang flies out (px, times the area) and its hit reach (added to the enemy radius) */
-export const BOOMERANG_RANGE = 230;
+export const BOOMERANG_RANGE = 185;
 export const BOOMERANG_REACH = 16;
 /** The boomerang's loop: how far it bends to the side (share of its range) and how much the throw turns against the bend (radians) */
 export const BOOMERANG_CURVE = { width: 0.38, aimTilt: 0.35 };
