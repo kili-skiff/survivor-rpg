@@ -383,7 +383,8 @@ def deco_props(src: Sources) -> list[Prop]:
     add("cauldron", trim(cauldron), foot=(-12, 0, 24, 14), light=(0, 10, 90), glows=True)
     # Smithy: open barn, a forge (4 frames), anvil, firewood
     add("barn", crop(d, 9, 20, 12, 24), foot=(-46, 0, 92, 70))
-    anim("forge", [crop(s, 2 * i, 0, 2 * i + 2, 4) for i in range(4)], 6, foot=(-26, 0, 52, 30),
+    # The sheet's first forge is cold; the other three are the burning ones. All cut the same, so they do not jump.
+    anim("forge", [crop(s, 2 * i, 0, 2 * i + 2, 4, cut=False) for i in (1, 2, 3)], 6, foot=(-26, 0, 52, 30),
          light=(0, 30, 120))
     add("anvil", crop(s, 8, 13, 9, 14), foot=(-12, 0, 24, 10))
     add("firewood", crop(d, 12, 20, 14, 22), foot=(-26, 0, 52, 22))
