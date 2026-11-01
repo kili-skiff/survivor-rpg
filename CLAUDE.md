@@ -59,7 +59,7 @@ src/
              deeds, segments, world, map tiles, map fog, footsteps, character sprites, ground tiles, balancing (NO Phaser)
   logic/     Pure game logic (NO Phaser, tested): stats, XP, upgrades, spawning, segments, save data,
              hex math, seeded RNG, world generation, world progress, expeditions and journeys, footsteps,
-             potions (brewing, belt, buffs), lantern pendulum physics, merchant (embers, lanterns, recipes), ring difficulty, horde steering and enemy behaviours (swarm, behaviors), the spawn director (waves, breathers, rings and walls), chests,
+             potions (brewing, belt, buffs), lantern pendulum physics, merchant (embers, lanterns, recipes), the Hearth (ember upgrades), ring difficulty, horde steering and enemy behaviours (swarm, behaviors), the spawn director (waves, breathers, rings and walls), chests,
              quests, deeds, device settings, fog noise
   entities/  Pooled Phaser objects (Enemy, Projectile, Pickup)
   input/     InputState: one input layer for touch, keyboard, later gamepads
@@ -68,7 +68,7 @@ src/
     skills/    active skills (e.g. Frost Nova)
     PlayerController, PlayerHealthBar (small bar under the player's feet), LanternSystem (the carried lantern), EnemySystem, PickupSystem, HerbSystem, PotionSystem, LightingSystem,
     DamageNumbers
-  panels/    Village panels (CauldronPanel, MerchantPanel, DeedsPanel, DialoguePanel): drawn on top of any scene,
+  panels/    Village panels (CauldronPanel, MerchantPanel, DeedsPanel, ArmoryPanel, HearthPanel, DialoguePanel): drawn on top of any scene,
              logic lives in logic/
   scenes/    Boot (placeholder graphics), WorldMap (hex map, travel), Village (stash, belt, panels),
              Game (one fight, owns run state, wires systems), UI (HUD, touch, menus during a fight)
@@ -141,7 +141,7 @@ describe the game as built; some of it changes in Milestone 2 (gold, camps).
 - [x] Ring difficulty and elite enemies (golden ring, often leave a chest)
 - [x] Treasure chests (rare from anyone, likely from elites) with a slot-machine roll (gold, upgrades; equipment later)
 - [x] Intro quest: at the first start the elder hands over the lantern and points to the nearest watchfire; lighting it pays gold
-- [x] Deeds: exploration milestones (new rings, camps, watchfires, the tower) with small bonuses for good
+- [x] Deeds: exploration milestones (new rings, camps, watchfires, the tower); since the Hearth they pay embers and unlock upgrades instead of giving stats
 - [x] Spread the swarm: soft separation, sideways drift, reaction delay and varied speed, so enemies do not pile into one blob (`logic/swarm.ts`)
 - [ ] Finetune the swarm (work in progress): in tight crowds enemies seem to shove each other, so smooth their movement, soften the hard overlap push and maybe shrink the personal space; values in `SWARM`. This is about how enemies move, not when they come. Done so far: flyers (bats) keep their distance among themselves instead of stacking into one point, and each enemy sways and steps at its own pace (`rhythmJitter`). A loose blob around the player is fine, it belongs to the genre.
 - [x] Spawn director: pacing instead of a constant stream: build-up, announced surge (a swarm from one side, later a ring or a wall) and a breather; the strength of the stream is a smooth curve per ring and fight time (`SPAWN`, `logic/spawning.ts`) (`logic/director.ts`, values in `config/director.ts`)
@@ -173,7 +173,8 @@ Phase 1, main weapons (the main weapon is the backbone of the build and its upgr
 Phase 2, lasting progress:
 
 - [x] Gold becomes Embers, kept on death: embers caught in a fight go straight into the stash, whatever the outcome (`bankEmbers`); enemies, elites, chests, quests, hex rewards and the merchant pay embers; old gold became embers (save version 17)
-- [ ] The ember shop in the village: permanent upgrades (a flat list) and unlocks of extra weapons and cards
+- [x] The Hearth (ember shop) in the village: 10 permanent upgrades with ranks bought with embers (`config/emberUpgrades.ts`, `logic/hearth.ts`, `panels/HearthPanel.ts`); deeds pay embers and six of them unlock an upgrade; save version 18. Prices to be tuned by playing
+- [ ] Unlocks of extra weapons and cards at the Hearth (later: what you can find on runs grows with what you unlock)
 - [ ] Scaling pass once upgrades exist: rings 1–2 easy, from ring 3 on harder, a target per ring
 
 Phase 3, reasons for every direction:

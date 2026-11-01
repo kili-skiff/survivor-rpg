@@ -1,8 +1,8 @@
-import type { PlayerStats } from './types';
 import { WORLD } from './world';
 
-// Deeds: milestones of exploring the world. Each one is earned once and gives a small bonus for
-// good, kept when you fall and when the map is reset (like recipes).
+// Deeds: milestones of exploring the world. Each one is earned once, pays embers straight into the
+// stash, and some unlock an upgrade at the Hearth (config/emberUpgrades.ts, `unlockedBy`). Kept when you
+// fall and when the map is reset (like recipes).
 
 export type DeedId =
   | 'ring2'
@@ -32,10 +32,8 @@ export interface DeedDef {
   /** What you did, shown in the village */
   description: string;
   condition: DeedCondition;
-  /** Added to the player stats for good */
-  bonus: Partial<PlayerStats>;
-  /** Short text for the bonus, e.g. "+10 health" */
-  bonusText: string;
+  /** Embers paid into the stash when it is earned */
+  embers: number;
 }
 
 export const DEEDS: readonly DeedDef[] = [
@@ -44,71 +42,62 @@ export const DEEDS: readonly DeedDef[] = [
     name: 'Beyond the Fields',
     description: 'Reach ring 2.',
     condition: { kind: 'ring', ring: 2 },
-    bonus: { maxHp: 10 },
-    bonusText: '+10 health',
+    embers: 20,
   },
   {
     id: 'ring4',
     name: 'Into the Dark',
     description: 'Reach ring 4.',
     condition: { kind: 'ring', ring: 4 },
-    bonus: { might: 0.05 },
-    bonusText: '+5% damage',
+    embers: 40,
   },
   {
     id: 'ring6',
     name: 'Far Wanderer',
     description: 'Reach ring 6.',
     condition: { kind: 'ring', ring: 6 },
-    bonus: { maxHp: 10 },
-    bonusText: '+10 health',
+    embers: 60,
   },
   {
     id: 'ring8',
     name: 'Edge of the World',
     description: 'Reach ring 8, the outermost.',
     condition: { kind: 'ring', ring: 8 },
-    bonus: { armor: 1 },
-    bonusText: '+1 armor',
+    embers: 100,
   },
   {
     id: 'firstCamp',
     name: 'Fireside',
     description: 'Reach a camp.',
     condition: { kind: 'camps', count: 1 },
-    bonus: { regen: 0.3 },
-    bonusText: '+0.3 health/s',
+    embers: 20,
   },
   {
     id: 'firstWatchfire',
     name: 'First Flame',
     description: 'Light a watchfire.',
     condition: { kind: 'watchfires', count: 1 },
-    bonus: { light: 0.1 },
-    bonusText: '+10% light radius',
+    embers: 25,
   },
   {
     id: 'threeWatchfires',
     name: 'Keeper of Fires',
     description: 'Light three watchfires.',
     condition: { kind: 'watchfires', count: 3 },
-    bonus: { haste: -0.05 },
-    bonusText: '−5% cooldowns',
+    embers: 50,
   },
   {
     id: 'allWatchfires',
     name: 'Nightwatch',
     description: 'Light every watchfire.',
     condition: { kind: 'watchfires', count: WORLD.watchfires },
-    bonus: { moveSpeed: 16 },
-    bonusText: '+10% move speed',
+    embers: 100,
   },
   {
     id: 'tower',
     name: 'The Old Tower',
     description: 'Reach the old tower.',
     condition: { kind: 'tower' },
-    bonus: { might: 0.05 },
-    bonusText: '+5% damage',
+    embers: 150,
   },
 ];

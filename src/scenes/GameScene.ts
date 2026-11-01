@@ -21,7 +21,7 @@ import type { Pickup } from '../entities/Pickup';
 import { InputState } from '../input/InputState';
 import { addXp } from '../logic/progression';
 import { lootGained } from '../logic/expedition';
-import { deedBonus } from '../logic/deeds';
+import { hearthBonus } from '../logic/hearth';
 import { EMBERS } from '../config/merchant';
 import {
   bankEmbers,
@@ -168,7 +168,8 @@ export class GameScene extends Phaser.Scene {
   /** Lantern tiers bought from the merchant: a bigger light, for good */
   private lanternLevel = 0;
   /** Permanent bonuses from deeds, added to the player stats */
-  private deedBonus: Partial<PlayerStats> = {};
+  /** Permanent bonuses bought at the Hearth */
+  private hearthBonus: Partial<PlayerStats> = {};
   private lantern!: LanternSystem;
   private lighting!: LightingSystem;
   private ground!: Phaser.GameObjects.TileSprite;
@@ -203,6 +204,8 @@ export class GameScene extends Phaser.Scene {
   private endAfterMenu = false;
   /** DEV: "clear area" was pressed; the fight counts as won */
   private devCleared = false;
+  /** Embers caught in this fight, with parts of an ember (Greed); `run.embers` is the whole number */
+  private emberCount = 0;
   /** Level-ups in a row without a main weapon card (MAIN_WEAPON_OFFER) */
   private mainMisses = 0;
   /** DEV: the test arena: started with `arena: true`; its state while it runs */
@@ -231,6 +234,7 @@ export class GameScene extends Phaser.Scene {
     this.pendingChests = [];
     this.pendingLevelUps = 0;
     this.mainMisses = 0;
+    this.emberCount = 0;
     this.secondWinds = 0;
     this.surgeUntil = 0;
     this.endInfo = null;
@@ -314,11 +318,11 @@ export class GameScene extends Phaser.Scene {
     // On an expedition the character keeps its build from the previous hex.
     const build = this.hexKey ? currentBuild(saved) : null;
     this.lanternLevel = saved.lanternLevel;
-    this.deedBonus = deedBonus(saved.deeds);
+    this.hearthBonus = hearthBonus(saved.hearth);
     this.potions = new PotionSystem(saved.belt, now);
     // A fresh expedition starts with the main weapon chosen in the armory.
     const loadout = build?.loadout ?? createStartLoadout(saved.mainWeapon);
-    const stats = computePlayerStats(loadout, this.deedBonus);
+    const stats = computePlayerStats(loadout, this.hearthBonus);
     this.run = {
       started: true,
       alive: true,
@@ -447,7 +451,7 @@ export class GameScene extends Phaser.Scene {
   /** Takes what the chest held (after its roll was shown) and goes on with the fight. */
   takeChest(reward: ChestReward): void {
     if (!this.chestOpen) return;
-    this.run.embers += reward.embers;
+    this.gainEmbers(reward.embers);
     for (const option of reward.upgrades) this.run.loadout = applyUpgrade(this.run.loadout, option);
     if (reward.upgrades.length > 0) this.refreshStats();
     this.chestOpen = false;
@@ -856,7 +860,7 @@ export class GameScene extends Phaser.Scene {
   /** Recomputes all stats after the loadout changed and creates newly acquired weapons. */
   private refreshStats(): void {
     const prevMax = this.run.stats.maxHp;
-    this.run.stats = applyBuffs(computePlayerStats(this.run.loadout, this.deedBonus), this.potions.active);
+    this.run.stats = applyBuffs(computePlayerStats(this.run.loadout, this.hearthBonus), this.potions.active);
     this.run.stats.light *= lanternMultiplier(this.lanternLevel);
     if (this.devGodMode()) this.run.stats = godModeStats(this.run.stats); // DEV:
     this.lighting?.setRadiusScale(this.run.stats.light);
@@ -917,13 +921,23 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
+  /**
+   * Catches embers: Greed from the Hearth adds to them, and parts of an ember carry over to the next catch.
+   * Returns the whole embers this catch added.
+   */
+  private gainEmbers(n: number): number {
+    const before = Math.floor(this.emberCount);
+    this.emberCount += n * this.run.stats.emberGain;
+    this.run.embers = Math.floor(this.emberCount);
+    return this.run.embers - before;
+  }
+
   /** One-time cards (config/boons.ts): they act at once and are not part of the build. */
   private applyBoon(id: BoonId): void {
     const { x, y } = this.player;
     switch (id) {
       case 'cache': {
-        const embers = embersPerDrop(this.ring) * BOONS.cacheDrops;
-        this.run.embers += embers;
+        const embers = this.gainEmbers(embersPerDrop(this.ring) * BOONS.cacheDrops);
         this.numbers.show(x, y - 26, `+${embersText(embers)}`, '#fdba74', true);
         break;
       }
@@ -1076,8 +1090,8 @@ export class GameScene extends Phaser.Scene {
       return;
     }
     if (p.kind === 'embers') {
-      this.run.embers += p.value;
-      this.numbers.show(this.player.x, this.player.y - 26, `+${embersText(p.value)}`, '#fdba74', true);
+      const embers = this.gainEmbers(p.value);
+      this.numbers.show(this.player.x, this.player.y - 26, `+${embersText(embers)}`, '#fdba74', true);
       return;
     }
     if (p.kind === 'heal') {
@@ -1165,8 +1179,7 @@ export class GameScene extends Phaser.Scene {
         this.numbers.show(x, y - 26, 'full health', '#4ade80', true);
         break;
       case 'embers': {
-        const embers = embersPerDrop(this.ring) * REWARDS.embersBonusDrops;
-        this.run.embers += embers;
+        const embers = this.gainEmbers(embersPerDrop(this.ring) * REWARDS.embersBonusDrops);
         this.numbers.show(x, y - 26, `+${embersText(embers)}`, '#fdba74', true);
         break;
       }

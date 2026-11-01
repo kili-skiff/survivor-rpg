@@ -31,7 +31,8 @@ import { hash32 } from '../logic/rng';
 import { loadSave, safeStorage, writeSave, type SaveData } from '../logic/save';
 import { lootCount, lootGained } from '../logic/expedition';
 import { returnHome, teleport, walkHome, walkThrough } from '../logic/journey';
-import { deedBonus, describeEarned, earnDeeds } from '../logic/deeds';
+import { describeEarned, earnDeeds } from '../logic/deeds';
+import { hearthBonus } from '../logic/hearth';
 import { computePlayerStats } from '../logic/stats';
 import {
   isAtHome,
@@ -925,7 +926,7 @@ export class WorldMapScene extends Phaser.Scene {
     if (exp) {
       const b = exp.build;
       const hp = b
-        ? `HP ${Math.ceil(b.hp)}/${computePlayerStats(b.loadout, deedBonus(this.save.deeds)).maxHp} · Level ${b.level}`
+        ? `HP ${Math.ceil(b.hp)}/${computePlayerStats(b.loadout, hearthBonus(this.save.hearth)).maxHp} · Level ${b.level}`
         : 'Fresh start';
       const loot = lootCount(exp.loot);
       return `Expedition · ${hp} · ${exp.areasCleared} areas${loot > 0 ? ` · ${loot} loot` : ''}`;

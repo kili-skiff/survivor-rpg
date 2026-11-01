@@ -423,6 +423,20 @@ export class BootScene extends Phaser.Scene {
 
     // Chain Lightning, the items from config/passives.ts that came later, and the one-time cards.
     // Simple shapes on purpose; they are placeholders like the rest.
+    // Hearth upgrades without an item icon of their own
+    icon('icon-greed', 0x7c2d12, (g) => {
+      g.fillStyle(0xf97316, 0.4).fillCircle(22, 22, 13);
+      g.fillStyle(0xfb923c).fillCircle(22, 22, 8);
+      g.fillStyle(0xfde68a).fillTriangle(22, 9, 25, 22, 19, 22).fillTriangle(22, 35, 25, 22, 19, 22);
+      g.fillStyle(0xfef3c7).fillCircle(22, 22, 3.5);
+      g.fillStyle(0xfde68a).fillCircle(33, 12, 3).fillCircle(11, 32, 2.5);
+    });
+    icon('icon-pouch', 0x3f2a1d, (g) => {
+      g.fillStyle(0xa16207).fillRoundedRect(9, 14, 26, 22, 6);
+      g.fillStyle(0x854d0e).fillRect(9, 18, 26, 4);
+      g.fillStyle(0x60a5fa).fillRoundedRect(19, 6, 6, 12, 2);
+      g.fillStyle(0xfde68a).fillCircle(22, 27, 3);
+    });
     icon('icon-boomerang', 0x7c2d12, (g) => {
       g.fillStyle(0xfdba74).fillTriangle(8, 30, 22, 8, 26, 14).fillTriangle(8, 30, 36, 30, 30, 24);
       g.fillStyle(0xfed7aa).fillCircle(9, 29, 3);

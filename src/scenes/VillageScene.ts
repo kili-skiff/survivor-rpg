@@ -1,6 +1,8 @@
 import * as Phaser from 'phaser';
+import { HearthPanel } from '../panels/HearthPanel';
+import { beltSize, buyRank } from '../logic/hearth';
 import { HERBS } from '../config/herbs';
-import { POTION_IDS, POTION_RULES, POTIONS } from '../config/potions';
+import { POTION_IDS, POTIONS } from '../config/potions';
 import { FIRE_QUEST, TOWER_QUEST, VILLAGERS, type VillagerId } from '../config/quests';
 import type { HerbDef, PotionId } from '../config/types';
 import { grantTestLoot, toggleAllDeeds } from '../dev/devLogic'; // DEV:
@@ -41,7 +43,7 @@ const HERB_LIST: HerbDef[] = Object.values(HERBS);
 const POTIONS_BLOCK_H = 162;
 const STATIONS_BLOCK_H = 186;
 
-type PanelId = 'cauldron' | 'merchant' | 'deeds' | 'armory' | VillagerId;
+type PanelId = 'cauldron' | 'merchant' | 'deeds' | 'armory' | 'hearth' | VillagerId;
 
 /**
  * The village: shows the stash of everything brought home, the potion belt for the next
@@ -54,7 +56,8 @@ export class VillageScene extends Phaser.Scene {
   private sa: SafeArea = { top: 0, right: 0, bottom: 0, left: 0 };
   private objects: Phaser.GameObjects.GameObject[] = [];
   private openPanel: PanelId | null = null;
-  private panel: CauldronPanel | MerchantPanel | DeedsPanel | ArmoryPanel | DialoguePanel | null = null;
+  private panel:
+    CauldronPanel | MerchantPanel | DeedsPanel | ArmoryPanel | HearthPanel | DialoguePanel | null = null;
 
   constructor() {
     super('Village');
@@ -110,7 +113,7 @@ export class VillageScene extends Phaser.Scene {
   }
 
   private pack(id: PotionId): void {
-    const r = packPotion(this.save.stash, this.save.belt, id);
+    const r = packPotion(this.save.stash, this.save.belt, id, beltSize(this.save.hearth));
     if (r) this.commit({ ...this.save, ...r });
   }
 
@@ -297,6 +300,21 @@ export class VillageScene extends Phaser.Scene {
             : undefined,
         },
       );
+    } else if (this.openPanel === 'hearth') {
+      this.panel = new HearthPanel(
+        this,
+        { width: W, height: H, u, sa: this.sa },
+        {
+          stash: this.save.stash,
+          ranks: this.save.hearth,
+          deeds: this.save.deeds,
+          onBuy: (id) => {
+            const r = buyRank(this.save.stash, this.save.hearth, this.save.deeds, id);
+            if (r) this.commit({ ...this.save, stash: r.stash, hearth: r.ranks });
+          },
+          onClose: () => this.showPanel(null),
+        },
+      );
     } else if (this.openPanel === 'armory') {
       this.panel = new ArmoryPanel(
         this,
@@ -402,7 +420,7 @@ export class VillageScene extends Phaser.Scene {
     let y = y0 + 26 * u;
     const cardW = (x1 - x0 - gap * (n - 1)) / n;
     const cardH = 52 * u;
-    const beltFull = beltCount(this.save.belt) >= POTION_RULES.beltSize;
+    const beltFull = beltCount(this.save.belt) >= beltSize(this.save.hearth);
     POTION_IDS.forEach((id, i) => {
       const def = POTIONS[id];
       const cx = x0 + i * (cardW + gap);
@@ -430,13 +448,13 @@ export class VillageScene extends Phaser.Scene {
     y += cardH + 12 * u;
 
     const carried = beltCount(this.save.belt);
-    this.text(x0, y, `Belt  ${carried}/${POTION_RULES.beltSize}`, 16, { fontStyle: 'bold' });
+    this.text(x0, y, `Belt  ${carried}/${beltSize(this.save.hearth)}`, 16, { fontStyle: 'bold' });
     if (carried > 0) this.text(x1, y + 3 * u, 'Tap to unpack', 11, { color: '#a1a1aa' }).setOrigin(1, 0);
     y += 26 * u;
     const slots: PotionId[] = POTION_IDS.flatMap((id) => Array<PotionId>(this.save.belt[id] ?? 0).fill(id));
-    const slotW = (x1 - x0 - gap * (POTION_RULES.beltSize - 1)) / POTION_RULES.beltSize;
+    const slotW = (x1 - x0 - gap * (beltSize(this.save.hearth) - 1)) / beltSize(this.save.hearth);
     const slotH = 46 * u;
-    for (let i = 0; i < POTION_RULES.beltSize; i++) {
+    for (let i = 0; i < beltSize(this.save.hearth); i++) {
       const sx = x0 + i * (slotW + gap);
       const id = slots[i];
       if (id) {
@@ -457,7 +475,7 @@ export class VillageScene extends Phaser.Scene {
     const u = this.u;
     const gap = 10 * u;
     const villagersH = 46 * u;
-    const h = Phaser.Math.Clamp((maxY - y0 - gap * 2 - villagersH) / 2, 44 * u, 64 * u);
+    const h = Phaser.Math.Clamp((maxY - y0 - gap * 3 - villagersH) / 3, 40 * u, 64 * u);
     const g = this.track(this.add.graphics());
 
     // Cauldron and merchant side by side
@@ -482,11 +500,21 @@ export class VillageScene extends Phaser.Scene {
     station(x0, 'Cauldron', 'Brew potions.', 'cauldron');
     station(x0 + half + gap, 'Merchant', 'Lanterns, recipes, sell herbs.', 'merchant');
 
-    // Deeds and the armory (the main weapon for the next expedition)
+    // The Hearth (embers for good) and the armory (the main weapon for the next expedition)
+    y += h + gap;
+    const ranks = Object.values(this.save.hearth).reduce((sum, n) => sum + (n ?? 0), 0);
+    station(
+      x0,
+      'Hearth',
+      ranks > 0 ? `${ranks} ${ranks === 1 ? 'rank' : 'ranks'} bought.` : 'Embers for good.',
+      'hearth',
+    );
+    station(x0 + half + gap, 'Armory', `Main weapon: ${WEAPONS[this.save.mainWeapon].name}.`, 'armory');
+
+    // Deeds
     y += h + gap;
     const earned = DEEDS.filter((d) => this.save.deeds.includes(d.id)).length;
     station(x0, 'Deeds', `${earned} of ${DEEDS.length} earned.`, 'deeds');
-    station(x0 + half + gap, 'Armory', `Main weapon: ${WEAPONS[this.save.mainWeapon].name}.`, 'armory');
 
     // Villagers: tap to talk; a "!" means they have something new to say.
     y += h + gap;
