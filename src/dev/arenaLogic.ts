@@ -13,9 +13,9 @@ export const ARENA = {
   minRing: 1,
   maxRing: 6,
   /** Dummies: how many stand around the player and at which distances (px, taking turns; close ones for
-   * aura and blades, far ones for ranged weapons). Their health is a normal enemy's of the ring. */
-  dummies: 8,
-  dummyRadii: [65, 150],
+   * aura and blades at every size, far ones for ranged weapons). Their health is a normal enemy's of the ring. */
+  dummies: 9,
+  dummyRadii: [62, 95, 150],
   /** Damage per second is measured over this window (ms) */
   dpsWindowMs: 10000,
   /** How long the arena's countdown shows (it never ends the fight) */

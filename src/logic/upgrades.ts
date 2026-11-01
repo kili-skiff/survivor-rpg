@@ -4,7 +4,8 @@ import { PASSIVES } from '../config/passives';
 import { RARITIES } from '../config/rarity';
 import { SKILLS } from '../config/skills';
 import type { BoonId, PassiveId, Rarity, SkillId, WeaponId } from '../config/types';
-import { MAIN_WEAPONS, MAX_WEAPONS, WEAPONS } from '../config/weapons';
+import { MAIN_WEAPON_CARD_GUARANTEED, MAIN_WEAPONS, MAX_WEAPONS, WEAPONS } from '../config/weapons';
+import { mainWeaponOf } from './modifiers';
 import type { Rng } from './spawning';
 import { remainingSteps, skillMaxLevel, weaponMaxLevel, weaponSteps, type Loadout } from './stats';
 
@@ -121,7 +122,18 @@ function drawFrom(
 
 /** Draws up to `count` distinct upgrades, weighted, without replacement. */
 export function rollUpgradeOptions(loadout: Loadout, rng: Rng, count = 3, boons = true): UpgradeOption[] {
-  const picked = drawFrom(availableUpgrades(loadout, boons), loadout, rng, count);
+  const pool = availableUpgrades(loadout, boons);
+  // One card for the main weapon while it can still grow (at a random place among the cards).
+  const main = mainWeaponOf(loadout);
+  const mainIndex = pool.findIndex((e) => e.option.kind === 'weapon' && e.option.id === main);
+  if (MAIN_WEAPON_CARD_GUARANTEED && mainIndex >= 0 && count > 0) {
+    const [entry] = pool.splice(mainIndex, 1);
+    const rest = drawFrom(pool, loadout, rng, count - 1);
+    const at = Math.floor(rng() * (rest.length + 1)) % (rest.length + 1);
+    rest.splice(at, 0, withStep(entry.option, loadout, rng));
+    return rest;
+  }
+  const picked = drawFrom(pool, loadout, rng, count);
   if (picked.length === 0) picked.push({ kind: 'heal' });
   return picked;
 }

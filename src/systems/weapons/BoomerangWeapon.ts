@@ -245,7 +245,8 @@ export class BoomerangWeapon implements Weapon {
       // Pushed the way it flies; Undertow drags towards the player instead.
       const fromX = pull ? e.x + (e.x - player.x) : prevX;
       const fromY = pull ? e.y + (e.y - player.y) : prevY;
-      this.ctx.enemies.hit(e, stats.damage, fx, fromX, fromY);
+      const damage = f.orbiting ? stats.damage * MOD.orbit.damageMul : stats.damage;
+      this.ctx.enemies.hit(e, damage, fx, fromX, fromY);
     }
   }
 

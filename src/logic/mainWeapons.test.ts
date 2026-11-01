@@ -57,3 +57,33 @@ describe('the chosen main weapon in the save', () => {
     expect(migrate({ ...emptySave(), mainWeapon: 42 }).mainWeapon).toBe('bolt');
   });
 });
+
+describe('main weapon card', () => {
+  it('one of the cards is always for the main weapon while it can still grow', async () => {
+    const { rollUpgradeOptions } = await import('./upgrades');
+    const { createStartLoadout } = await import('./stats');
+    const { createRng } = await import('./rng');
+    const rng = createRng(11);
+    for (const main of ['bolt', 'boomerang'] as const) {
+      const loadout = createStartLoadout(main);
+      for (let i = 0; i < 50; i++) {
+        const options = rollUpgradeOptions(loadout, rng);
+        expect(options).toHaveLength(3);
+        expect(options.filter((o) => o.kind === 'weapon' && o.id === main)).toHaveLength(1);
+      }
+    }
+  });
+
+  it('a fully grown main weapon brings no card of its own', async () => {
+    const { rollUpgradeOptions } = await import('./upgrades');
+    const { WEAPONS } = await import('../config/weapons');
+    const { createRng } = await import('./rng');
+    const loadout = {
+      weapons: { bolt: WEAPONS.bolt.levels.length + 1 },
+      passives: {},
+      skills: { dash: 1, nova: 1 },
+    };
+    const options = rollUpgradeOptions(loadout, createRng(2));
+    expect(options.some((o) => o.kind === 'weapon' && o.id === 'bolt')).toBe(false);
+  });
+});

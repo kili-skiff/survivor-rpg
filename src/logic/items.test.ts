@@ -271,7 +271,8 @@ describe('rarity', () => {
     };
     const seen = { common: 0, magic: 0, legendary: 0 };
     for (let i = 0; i < 400; i++) {
-      for (const o of rollUpgradeOptions(createStartLoadout('bolt'), rng, 1)) {
+      // Without a main weapon, so no card is set aside for it.
+      for (const o of rollUpgradeOptions({ ...createStartLoadout('bolt'), weapons: { aura: 1 } }, rng, 1)) {
         seen[describeUpgrade(o).rarity] += 1;
       }
     }
