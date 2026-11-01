@@ -1,5 +1,7 @@
 import * as Phaser from 'phaser';
+import { LANTERN } from '../config/balance';
 import { FOOTSTEPS } from '../config/footsteps';
+import { LANTERN_LOOKS, lanternLook, type LanternLook } from '../config/merchant';
 import { MAP_FOG } from '../config/mapFog';
 import { BIOMES, POIS } from '../config/world';
 import { CHARACTER_SPRITES, SHEET } from '../config/sprites';
@@ -125,6 +127,10 @@ export class WorldMapScene extends Phaser.Scene {
   /** Night fog drifting over the whole map; the village and lit watchfires glow through it */
   private fog!: MapFog;
   private marker!: Phaser.GameObjects.Image;
+  /** The lantern in the watchman's hand and its chain; null when its texture is missing */
+  private mapLantern: Phaser.GameObjects.Image | null = null;
+  private lanternChain!: Phaser.GameObjects.Graphics;
+  private lanternLook!: LanternLook;
   private hud: Phaser.GameObjects.GameObject[] = [];
   private drag: DragState | null = null;
   /** Touch points on the map by pointer id, for two-finger zoom */
@@ -240,6 +246,13 @@ export class WorldMapScene extends Phaser.Scene {
       ? this.add.image(0, 0, playerSheet.key, SHEET.rows.down * SHEET.columns).setOrigin(0.5, 0.78)
       : this.add.image(0, 0, 'player');
     this.marker.setDepth(3);
+    // The lantern in his hand: the one bought in the village, the same sprite as in a fight.
+    this.lanternLook = lanternLook(this.save.lanternLevel);
+    const lanternKey = `lantern-${Math.max(0, Math.min(this.save.lanternLevel, LANTERN_LOOKS.length - 1))}`;
+    this.mapLantern = this.textures.exists(lanternKey)
+      ? this.add.image(0, 0, lanternKey).setOrigin(0.5, 0.1).setDepth(3.1)
+      : null;
+    this.lanternChain = this.add.graphics().setDepth(3.05);
     // Everything so far belongs to the map; the HUD camera only draws the HUD.
     this.hudCam.ignore([
       this.map,
@@ -247,6 +260,8 @@ export class WorldMapScene extends Phaser.Scene {
       this.outlines,
       this.fires,
       this.marker,
+      this.lanternChain,
+      ...(this.mapLantern ? [this.mapLantern] : []),
       ...this.tiles.map((t) => t.image),
       ...this.poiLabels.map((l) => l.text),
       ...this.herbIcons.map((h) => h.icon),
@@ -279,6 +294,28 @@ export class WorldMapScene extends Phaser.Scene {
     this.fog.update(deltaMs / 1000, this.time0, (key) => isLit(this.save.world, key), !this.devReveal());
     const pos = hexToPixelFlat(parseHexKey(this.save.world.position), this.hexSize);
     this.marker.setPosition(pos.x, pos.y - Math.abs(Math.sin(this.time0 * 3)) * 3 * this.u);
+    this.updateLantern();
+  }
+
+  /** Hangs the lantern from the watchman's hand and lets it sway with his bobbing. */
+  private updateLantern(): void {
+    const lantern = this.mapLantern;
+    const chain = this.lanternChain;
+    chain.clear();
+    // The elder hands it over at the very first start; until then his hands are empty.
+    const has = this.save.quests.fire !== 'offered' && this.marker.texture.key === CHARACTER_SPRITES.player.key;
+    lantern?.setVisible(has);
+    if (!lantern || !has) return;
+    // Same hand and drop as in a fight, scaled to the size of the watchman on the map.
+    const s = this.marker.scaleX;
+    const centreY = this.marker.y - (0.78 - 0.5) * this.marker.height * s;
+    const hx = this.marker.x + LANTERN.handX * s;
+    const hy = centreY + LANTERN.handY * s;
+    const lx = hx + Math.sin(this.time0 * 2.4) * 2 * s;
+    const ly = hy + LANTERN.drop * s - Math.cos(this.time0 * 3) * 0.8 * s;
+    const angle = Math.atan2(lx - hx, ly - hy);
+    lantern.setPosition(lx, ly).setRotation(-angle).setScale(s * this.lanternLook.scale);
+    chain.lineStyle(Math.max(1, s), 0x4a4038, 1).lineBetween(hx, hy, lx, ly);
   }
 
   // ---------------------------------------------------------------- first quest
