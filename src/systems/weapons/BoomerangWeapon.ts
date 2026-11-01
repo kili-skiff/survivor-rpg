@@ -89,6 +89,13 @@ export class BoomerangWeapon implements Weapon {
     this.timer = stats.cooldown;
   }
 
+  clear(): void {
+    for (const f of this.flights) {
+      f.flying = false;
+      f.image.setVisible(false);
+    }
+  }
+
   private launch(f: Flight, angle: number, side: number): void {
     const { player } = this.ctx;
     // Turned a little against the bend, so the way out sweeps across the target.

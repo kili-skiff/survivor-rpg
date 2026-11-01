@@ -23,7 +23,9 @@ The world, story and in-game terms (Embers, the Nest, watchfires) are in [docs/l
   Test helpers: "+herbs +gold" in the village; "reveal" (fog off on screen only) and "jump here" on the
   map; in a fight a foldable "DEV" panel (tap its header; it also names the active modes and hides while a
   menu is open) with "clear area", "god mode" (no damage, much stronger, whole screen lit), "spawn elite" and
-  "level up" (opens a level-up menu), "wild build" (every weapon and item at its highest level) and
+  "level up" (opens a level-up menu), "wild build" (every weapon and item at its highest level), "pick upgrade"
+  (a paused list of every upgrade that could come now, each weapon level step on its own; tap to take it),
+  "main weapon" (swaps the main weapon for the next one at level 1) and
   "invincible" (no damage taken or dealt, whole screen lit; for watching a horde in peace; replaces god mode),
   and a readout that is always visible: FPS (average, worst frame of the last half second; lights up below 50 FPS),
   living enemies, kills per minute (last 30 s) and the spawn director's phase with its pressure; "reset save" in the

@@ -121,6 +121,10 @@ export class BoltWeapon implements Weapon {
     if (p.pierceLeft <= 0) p.despawn();
   }
 
+  clear(): void {
+    for (const p of this.projectiles.getChildren() as Projectile[]) if (p.active) p.despawn();
+  }
+
   private expireProjectiles(): void {
     const now = this.ctx.now();
     for (const p of this.projectiles.getChildren() as Projectile[]) {
