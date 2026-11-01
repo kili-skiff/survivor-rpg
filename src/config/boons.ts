@@ -7,7 +7,7 @@ export const BOON_DEFS: Record<BoonId, BoonDef> = {
   cache: {
     id: 'cache',
     name: 'Hidden Cache',
-    description: 'A purse of gold.',
+    description: 'A pouch of embers.',
     texture: 'icon-cache',
     rarity: 'common',
   },

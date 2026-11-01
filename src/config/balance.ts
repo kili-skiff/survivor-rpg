@@ -116,7 +116,7 @@ export const ITEMS = {
 
 /** One-time cards (config/boons.ts). */
 export const BOONS = {
-  /** Hidden Cache: gold in normal drops (see goldPerDrop) */
+  /** Hidden Cache: embers in normal drops (see embersPerDrop) */
   cacheDrops: 12,
   /** Shockwave: radius, damage, share of health and push */
   shockRadius: 420,
@@ -183,9 +183,9 @@ export const CHEST = {
   /** Chance for 5 upgrades at once, else for 3, else 1 */
   fiveChance: 0.05,
   threeChance: 0.25,
-  /** Gold: this many normal drops (random in the range) */
-  goldMin: 2,
-  goldMax: 5,
+  /** Embers: this many normal drops (random in the range) */
+  embersMin: 2,
+  embersMax: 5,
 } as const;
 
 /**

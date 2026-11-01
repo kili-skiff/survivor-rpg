@@ -15,13 +15,14 @@ import {
 import { hexKey, ORIGIN, type Hex } from './hex';
 import type { SaveData } from './save';
 import type { RunOutcome } from './segment';
-import { deedBonus, earnDeeds } from './deeds';
+import { earnDeeds } from './deeds';
+import { hearthBonus } from './hearth';
 import { completeFireQuest } from './quests';
-import { GOLD_KEY } from '../config/merchant';
+import { EMBER_KEY } from '../config/merchant';
 import { computePlayerStats } from './stats';
 import type { World } from './worldgen';
 import {
-  addWaypoint,
+  homeIsFree,
   applyFightResult,
   isLit,
   lightWatchfire,
@@ -31,14 +32,14 @@ import {
 
 export interface FightReport {
   outcome: RunOutcome;
-  /** Reached a camp: healed and unlocked as a waypoint */
+  /** Rested at a lit watchfire: fully healed (it is a waypoint too) */
   rested: boolean;
   /** Lit a watchfire: the land around it is revealed */
   litWatchfire: boolean;
   /** Deeds earned by this fight (e.g. a new ring reached) */
   deeds: DeedDef[];
-  /** Gold from the first watchfire quest, earned by this fight (0 when none) */
-  questGold: number;
+  /** Embers from the first watchfire quest, earned by this fight (0 when none) */
+  questEmbers: number;
   /** Loot kept after a death (half of it), or null when the expedition goes on */
   lootKept: Loot | null;
   lootLost: Loot | null;
@@ -59,8 +60,8 @@ export function currentBuild(save: SaveData): ExpeditionBuild | null {
 
 /**
  * Applies the end of a fight in `target`.
- * - Cleared: you stand on the hex, your build and loot carry on. Camps heal you fully and
- *   become waypoints.
+ * - Cleared: you stand on the hex, your build and loot carry on. A watchfire lights up (if it was cold),
+ *   heals you fully and is a waypoint from then on.
  * - Fallen (or given up): the expedition ends, you wake up in the village and lose the loot
  *   (all of it, or what BALANCE.lootKeptOnDeath does not keep).
  */
@@ -88,7 +89,7 @@ export function finishFight(
         rested: false,
         litWatchfire: false,
         deeds: [],
-        questGold: 0,
+        questEmbers: 0,
         lootKept: kept,
         lootLost: lost,
       },
@@ -96,26 +97,27 @@ export function finishFight(
   }
 
   const key = hexKey(target);
-  const isCamp = world.hexes.get(key)?.poi === 'camp';
+  const fireHere = world.hexes.get(key)?.poi === 'watchfire';
   let progress = applyFightResult(save.world, target, 'cleared');
-  if (isCamp) progress = addWaypoint(progress, key);
-  const litWatchfire = world.hexes.get(key)?.poi === 'watchfire' && !isLit(progress, key);
+  const litWatchfire = fireHere && !isLit(progress, key);
   if (litWatchfire) progress = lightWatchfire(progress, key, WORLD.watchfireRevealRadius);
-  // Reaching a new ring, camp or watchfire can earn deeds; they are saved with this fight.
+  // A burning watchfire is a place to rest.
+  const rested = fireHere && isLit(progress, key);
+  // Reaching a new ring or lighting a watchfire can earn deeds; they are saved with this fight.
   const { save: earnedSave, earned } = earnDeeds({ ...save, world: progress }, world);
-  // The first watchfire you light completes the elder's quest and pays gold straight into the stash.
+  // The first watchfire you light completes the elder's quest and pays embers straight into the stash.
   const fire = completeFireQuest(earnedSave.quests, litWatchfire);
   const next: SaveData =
-    fire.gold > 0
+    fire.embers > 0
       ? {
           ...earnedSave,
           quests: fire.quests,
-          stash: addLoot(earnedSave.stash, { [GOLD_KEY]: fire.gold }),
+          stash: addLoot(earnedSave.stash, { [EMBER_KEY]: fire.embers }),
         }
       : earnedSave;
-  // Camps heal fully, including health from deeds earned right here.
-  const maxHp = computePlayerStats(build.loadout, deedBonus(next.deeds)).maxHp;
-  const nextBuild = isCamp ? { ...build, hp: maxHp } : build;
+  // Watchfires heal fully, including health from the Hearth.
+  const maxHp = computePlayerStats(build.loadout, hearthBonus(next.hearth)).maxHp;
+  const nextBuild = rested ? { ...build, hp: maxHp } : build;
   return {
     save: {
       ...next,
@@ -133,10 +135,10 @@ export function finishFight(
     },
     report: {
       outcome,
-      rested: isCamp,
+      rested,
       litWatchfire,
       deeds: earned,
-      questGold: fire.gold,
+      questEmbers: fire.embers,
       lootKept: null,
       lootLost: null,
     },
@@ -160,12 +162,30 @@ export function walkThrough(save: SaveData, target: Hex): SaveData {
   };
 }
 
+/** How you can go home from where you stand: for free, with a Phoenix Feather, or not at all. */
+export type HomeWay = 'free' | 'feather' | 'none';
+
+export function homeWay(save: SaveData): HomeWay {
+  if (homeIsFree(save.world)) return 'free';
+  return save.feathers > 0 ? 'feather' : 'none';
+}
+
+/**
+ * Going home after a won fight: free next to the village or at a lit watchfire, anywhere else it burns a
+ * Phoenix Feather. Null when there is no way home from here.
+ */
+export function goHome(save: SaveData): SaveData | null {
+  const way = homeWay(save);
+  if (way === 'none') return null;
+  return returnHome(way === 'feather' ? { ...save, feathers: save.feathers - 1 } : save);
+}
+
 /** Going home from wherever you are: the expedition ends and all its loot goes into the stash. */
 export function returnHome(save: SaveData): SaveData {
   return endExpeditionAtHome(save, walkTo(save.world, ORIGIN));
 }
 
-/** Teleporting: from a waypoint back to the village (keeps the loot), or from the village to a waypoint. */
+/** Teleporting: from a lit watchfire back to the village (keeps the loot), or from the village to one. */
 export function teleport(save: SaveData, target: Hex): SaveData {
   const moved = walkTo(save.world, target);
   if (hexKey(target) === hexKey(ORIGIN)) return endExpeditionAtHome(save, moved);

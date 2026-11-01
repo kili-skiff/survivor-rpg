@@ -4,7 +4,7 @@ import { PASSIVES } from '../config/passives';
 import { SKILLS } from '../config/skills';
 import { WEAPONS } from '../config/weapons';
 import { chestUpgradeCount, dropsChest, rollChest } from './chest';
-import { goldPerDrop } from './merchant';
+import { embersPerDrop } from './merchant';
 import { createStartLoadout, weaponMaxLevel, type Loadout } from './stats';
 
 function seeded(seed = 7) {
@@ -31,17 +31,17 @@ describe('treasure chest', () => {
     expect(chestUpgradeCount(() => 0.99)).toBe(1);
   });
 
-  it('rolls upgrades on the growing build and some gold', () => {
+  it('rolls upgrades on the growing build and some embers', () => {
     const rng = seeded();
     for (let i = 0; i < 50; i++) {
       const r = rollChest(createStartLoadout('bolt'), 3, rng);
       expect([1, 3, 5]).toContain(r.upgrades.length);
-      expect(r.gold).toBeGreaterThanOrEqual(goldPerDrop(3) * CHEST.goldMin);
+      expect(r.embers).toBeGreaterThanOrEqual(embersPerDrop(3) * CHEST.embersMin);
       expect(r.upgrades.every((u) => u.kind !== 'heal')).toBe(true);
     }
   });
 
-  it('gives gold instead of upgrades when everything is maxed', () => {
+  it('gives embers instead of upgrades when everything is maxed', () => {
     const maxed: Loadout = {
       weapons: Object.fromEntries(Object.keys(WEAPONS).map((id) => [id, weaponMaxLevel(id as never)])),
       passives: Object.fromEntries(Object.values(PASSIVES).map((p) => [p.id, p.maxLevel])),
@@ -51,6 +51,6 @@ describe('treasure chest', () => {
     };
     const r = rollChest(maxed, 1, () => 0.99);
     expect(r.upgrades).toEqual([]);
-    expect(r.gold).toBeGreaterThan(goldPerDrop(1) * CHEST.goldMax);
+    expect(r.embers).toBeGreaterThan(embersPerDrop(1) * CHEST.embersMax);
   });
 });

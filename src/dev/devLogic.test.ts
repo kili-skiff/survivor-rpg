@@ -19,9 +19,9 @@ import {
 } from './devLogic';
 
 describe('dev helpers', () => {
-  it('adds every herb and some gold to the stash and keeps what is there', () => {
+  it('adds every herb and some embers to the stash and keeps what is there', () => {
     const stash = grantTestLoot({ moonbloom: 2, healing: 1 }, 5, 50);
-    expect(stash.gold).toBe(50);
+    expect(stash.embers).toBe(50);
     expect(stash.moonbloom).toBe(7);
     expect(stash.healing).toBe(1);
     for (const id of Object.keys(HERBS)) expect(stash[id]).toBeGreaterThanOrEqual(5);
@@ -200,5 +200,17 @@ describe('random build', () => {
     const start = createStartLoadout('bolt');
     expect(randomBuild(start, 1, createRng(1))).toEqual(start);
     expect(randomBuild(start, 10, createRng(5))).toEqual(randomBuild(start, 10, createRng(5)));
+  });
+});
+
+describe('dev: all watchfires', () => {
+  it('lights every watchfire and puts them all out again', async () => {
+    const { toggleAllWatchfires } = await import('./devLogic');
+    const world = generateWorld(SEASON.seed, SEASON.generatorVersion);
+    const fires = [...world.hexes.values()].filter((h) => h.poi === 'watchfire').map((h) => h.key);
+    const lit = toggleAllWatchfires(world, emptySave());
+    expect([...lit.world.litWatchfires].sort()).toEqual([...fires].sort());
+    for (const k of fires) expect(isDiscovered(lit.world, k)).toBe(true);
+    expect(toggleAllWatchfires(world, lit).world.litWatchfires).toEqual([]);
   });
 });

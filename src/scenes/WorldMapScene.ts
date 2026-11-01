@@ -32,8 +32,9 @@ import { brightHexes } from '../logic/mapLight';
 import { hash32 } from '../logic/rng';
 import { loadSave, safeStorage, writeSave, type SaveData } from '../logic/save';
 import { lootCount, lootGained } from '../logic/expedition';
-import { returnHome, teleport, walkHome, walkThrough } from '../logic/journey';
-import { deedBonus, describeEarned, earnDeeds } from '../logic/deeds';
+import { goHome, homeWay, teleport, walkHome, walkThrough } from '../logic/journey';
+import { describeEarned, earnDeeds } from '../logic/deeds';
+import { hearthBonus } from '../logic/hearth';
 import { computePlayerStats } from '../logic/stats';
 import {
   isAtHome,
@@ -50,7 +51,7 @@ import { goalLabel } from '../logic/goals';
 import { REWARDS } from '../config/rewards';
 import { rewardLabel } from '../logic/rewards';
 import { seasonWorld, segmentForHex, type World, type WorldHex } from '../logic/worldgen';
-import { jumpTo } from '../dev/devLogic'; // DEV:
+import { jumpTo, toggleAllWatchfires } from '../dev/devLogic'; // DEV:
 import { devButtonStyle, isDevMode } from '../dev/devMode'; // DEV:
 import { safeArea, viewportSize, type SafeArea } from '../ui/display';
 import { MapFog } from '../ui/mapFog';
@@ -63,6 +64,8 @@ const FOG_EDGE = 0x2b2638;
 const VILLAGE_FILL = 0x8a6a2a;
 /** Pointer movement (in CSS px) after which a touch counts as dragging the map */
 const DRAG_THRESHOLD = 8;
+/** How long "Return to village" must be held, so a stray tap never ends the expedition (ms) */
+const HOLD_TO_CONFIRM_MS = 1000;
 /** Map zoom limits (1 = default size) */
 const MIN_ZOOM = 0.5;
 const MAX_ZOOM = 2.5;
@@ -132,6 +135,8 @@ export class WorldMapScene extends Phaser.Scene {
   private lanternChain!: Phaser.GameObjects.Graphics;
   private lanternLook!: LanternLook;
   private hud: Phaser.GameObjects.GameObject[] = [];
+  /** The running fill of a hold-to-confirm button, if one is being held */
+  private holdTween: Phaser.Tweens.Tween | null = null;
   private drag: DragState | null = null;
   /** Touch points on the map by pointer id, for two-finger zoom */
   private touches = new Map<number, { x: number; y: number }>();
@@ -233,7 +238,7 @@ export class WorldMapScene extends Phaser.Scene {
       // Below the fog, like the tiles they sit on.
       const icon = this.add.image(0, 0, GOALS.icons.survive).setDepth(0.31);
       this.goalIcons.push({ hex: h, icon });
-      this.rewardIcons.push({ hex: h, icon: this.add.image(0, 0, REWARDS.icons.gold).setDepth(0.31) });
+      this.rewardIcons.push({ hex: h, icon: this.add.image(0, 0, REWARDS.icons.embers).setDepth(0.31) });
     }
     this.fog = new MapFog(
       this,
@@ -282,6 +287,8 @@ export class WorldMapScene extends Phaser.Scene {
     this.scale.on('resize', this.onResize, this);
     this.events.once('shutdown', () => {
       this.scale.off('resize', this.onResize, this);
+      this.holdTween?.remove();
+      this.holdTween = null;
       this.introPanel?.destroy();
       this.introPanel = null;
     });
@@ -578,7 +585,7 @@ export class WorldMapScene extends Phaser.Scene {
     for (const { hex, text } of this.poiLabels) {
       text.setVisible(this.isVisible(hex.key));
       text.setAlpha(Phaser.Math.Linear(MAP_FOG.dim.symbolAlpha, 1, this.lightOf(hex.key)));
-      text.setColor(progress.waypoints.includes(hex.key) ? css(COLORS.accent) : '#ffffff');
+      text.setColor(isLit(progress, hex.key) ? css(COLORS.accent) : '#ffffff');
     }
   }
 
@@ -846,6 +853,8 @@ export class WorldMapScene extends Phaser.Scene {
   }
 
   private buildHud(): void {
+    this.holdTween?.remove();
+    this.holdTween = null;
     for (const o of this.hud) o.destroy();
     this.hud = [];
     const { width: W, height: H } = this.scale;
@@ -858,7 +867,11 @@ export class WorldMapScene extends Phaser.Scene {
       fontStyle: 'bold',
       color: css(COLORS.accent),
     });
-    if (isDevMode()) this.devRevealButton(W - this.sa.right - 16 * u, this.sa.top + 14 * u); // DEV:
+    if (isDevMode()) {
+      // DEV: reveal and light all watchfires, side by side in the header.
+      const reveal = this.devRevealButton(W - this.sa.right - 16 * u, this.sa.top + 14 * u);
+      this.devFiresButton(reveal.x - reveal.width - 8 * u, this.sa.top + 14 * u);
+    }
     if (questGoals(this.save.quests, this.world, this.save.world).length > 0) {
       this.trackingButton(W - this.sa.right - 16 * u, this.headerH + 10 * u);
     }
@@ -906,11 +919,12 @@ export class WorldMapScene extends Phaser.Scene {
       });
     }
     if (info.action) {
+      const { label, run, hold } = info.action;
       if (this.isWide()) {
         const right = W - this.sa.right - 16 * u;
-        this.button(right - 110 * u, panelY + 52 * u, info.action.label, info.action.run);
+        this.button(right - 110 * u, panelY + 52 * u, label, run, hold);
       } else {
-        this.button(W / 2, panelY + 138 * u, info.action.label, info.action.run);
+        this.button(W / 2, panelY + 138 * u, label, run, hold);
       }
     }
   }
@@ -942,9 +956,20 @@ export class WorldMapScene extends Phaser.Scene {
     });
   }
 
+  // DEV: lights every watchfire (they become waypoints), or puts them all out again.
+  private devFiresButton(x: number, y: number): void {
+    const fires = [...this.world.hexes.values()].filter((h) => h.poi === 'watchfire');
+    const allLit = fires.every((h) => isLit(this.save.world, h.key));
+    const label = allLit ? 'DEV  fires out' : 'DEV  light fires';
+    const t = this.text(x, y, label, 12, devButtonStyle(this.u, allLit)).setOrigin(1, 0);
+    t.setInteractive({ useHandCursor: true }).on('pointerup', () =>
+      this.commit(toggleAllWatchfires(this.world, this.save)),
+    );
+  }
+
   /** Dev mode only: shows the whole map without saving anything as discovered. */
   // DEV: lifts the fog on screen only; nothing is saved as discovered.
-  private devRevealButton(x: number, y: number): void {
+  private devRevealButton(x: number, y: number): Phaser.GameObjects.Text {
     const on = this.devReveal();
     const t = this.text(x, y, on ? 'DEV  fog off' : 'DEV  reveal', 12, devButtonStyle(this.u, on)).setOrigin(
       1,
@@ -954,6 +979,7 @@ export class WorldMapScene extends Phaser.Scene {
       this.registry.set('devReveal', !on);
       this.buildHud();
     });
+    return t;
   }
 
   /** Header line: the expedition while out, otherwise the season summary. */
@@ -962,12 +988,13 @@ export class WorldMapScene extends Phaser.Scene {
     if (exp) {
       const b = exp.build;
       const hp = b
-        ? `HP ${Math.ceil(b.hp)}/${computePlayerStats(b.loadout, deedBonus(this.save.deeds)).maxHp} · Level ${b.level}`
+        ? `HP ${Math.ceil(b.hp)}/${computePlayerStats(b.loadout, hearthBonus(this.save.hearth)).maxHp} · Level ${b.level}`
         : 'Fresh start';
       const loot = lootCount(exp.loot);
       return `Expedition · ${hp} · ${exp.areasCleared} areas${loot > 0 ? ` · ${loot} loot` : ''}`;
     }
-    return `${plural(this.save.segmentsCleared, 'area')} cleared · ${plural(this.save.world.waypoints.length, 'waypoint')}`;
+    const feathers = this.save.feathers > 0 ? ` · ${plural(this.save.feathers, 'Phoenix Feather')}` : '';
+    return `${plural(this.save.segmentsCleared, 'area')} cleared · ${plural(this.save.world.litWatchfires.length, 'watchfire')} lit${feathers}`;
   }
 
   private describeSelection(): {
@@ -979,21 +1006,39 @@ export class WorldMapScene extends Phaser.Scene {
     goalIcon?: string;
     /** Symbol of the reward, next to the goal's */
     rewardIcon?: string;
-    action?: { label: string; run: () => void };
+    /** `hold`: the button must be held down for a moment before it runs */
+    action?: { label: string; run: () => void; hold?: boolean };
   } {
     const progress = this.save.world;
     if (!this.selected && isAtHome(progress)) {
       return {
         title: 'Village',
-        detail: 'Tap a glowing hex to set out. Camps you reach become waypoints you can travel to from here.',
+        detail:
+          'Tap a glowing hex to set out. Watchfires you light become waypoints you can travel to from here.',
         action: { label: 'Enter village', run: () => this.enterVillage() },
       };
     }
-    const goHome = { label: 'Return to village', run: () => this.goHome() };
+    // Going home: free next to the village and at a lit watchfire, elsewhere it burns a Phoenix Feather.
+    const way = homeWay(this.save);
+    const goHome =
+      way === 'none'
+        ? undefined
+        : {
+            label: way === 'free' ? 'Return to village' : `Phoenix Feather (${this.save.feathers} left)`,
+            run: () => this.goHome(),
+            // Held to confirm, so a stray tap does not end the expedition.
+            hold: true,
+          };
+    const homeNote =
+      way === 'free'
+        ? 'Move on, or go home and keep all your loot.'
+        : way === 'feather'
+          ? 'Move on, or burn a Phoenix Feather to go home with all your loot.'
+          : 'No way home from here without a Phoenix Feather: reach a lit watchfire or the land next to the village.';
     if (!this.selected) {
       return {
         title: 'Choose your path',
-        detail: 'Tap a glowing hex next to you to move on, or go home and keep all your loot.',
+        detail: `Tap a glowing hex next to you to move on. ${homeNote}`,
         action: goHome,
       };
     }
@@ -1039,7 +1084,7 @@ export class WorldMapScene extends Phaser.Scene {
         kind === 'walk'
           ? { label: 'Go home', run: () => this.walkHome(h.hex) }
           : kind === 'teleport'
-            ? { label: 'Return to village', run: () => this.teleport(h.hex) }
+            ? { label: 'Return to village', run: () => this.teleport(h.hex), hold: true }
             : undefined;
       return {
         title: 'Village',
@@ -1053,18 +1098,10 @@ export class WorldMapScene extends Phaser.Scene {
     }
     if (kind === 'teleport') {
       return {
-        title: `${BIOMES[h.biome].name} · Camp`,
-        detail: `Waypoint · Ring ${h.ring}. Travel here to start a new expedition from this camp.`,
+        title: `${BIOMES[h.biome].name} · Watchfire`,
+        detail: `Waypoint · Ring ${h.ring}. Travel here to start a new expedition from this watchfire.`,
         herbs,
         action: { label: 'Travel here', run: () => this.teleport(h.hex) },
-      };
-    }
-    if (here && h.poi === 'camp' && progress.waypoints.includes(key)) {
-      return {
-        title: `${BIOMES[h.biome].name} · Camp`,
-        detail: 'A safe camp. Move on, or go home and keep your loot.',
-        herbs,
-        action: goHome,
       };
     }
     if (isUsedUp(progress, key)) {
@@ -1073,7 +1110,7 @@ export class WorldMapScene extends Phaser.Scene {
         detail:
           (h.poi === 'watchfire' && isLit(progress, key) ? 'The watchfire burns. ' : '') +
           (here
-            ? 'You are here. Move on, or go home and keep all your loot.'
+            ? `You are here. ${homeNote}`
             : 'Cleared on this expedition: empty until you return home. Walk through without a fight.'),
         action: here
           ? goHome
@@ -1105,21 +1142,62 @@ export class WorldMapScene extends Phaser.Scene {
     };
   }
 
-  private button(x: number, y: number, label: string, onClick: () => void): void {
+  /** A panel button. With `hold` it runs only after being held down for HOLD_TO_CONFIRM_MS. */
+  private button(x: number, y: number, label: string, onClick: () => void, hold = false): void {
     const u = this.u;
     const w = 220 * u;
     const h = 48 * u;
     const g = this.fixed(this.add.graphics().setDepth(11));
-    const draw = (hover: boolean) => {
+    /** progress 0..1 is the share of the hold that is done; it fills the button from the left */
+    const draw = (hover: boolean, progress = 0) => {
       g.clear();
       g.fillStyle(COLORS.accent, hover ? 1 : 0.92).fillRoundedRect(x - w / 2, y - h / 2, w, h, 12 * u);
+      if (progress > 0) {
+        // Darker bar inside the button, clipped to rounded corners by staying inset.
+        g.fillStyle(0x1c1917, 0.35).fillRoundedRect(
+          x - w / 2,
+          y - h / 2,
+          Math.max(w * progress, 12 * u),
+          h,
+          12 * u,
+        );
+      }
     };
     draw(false);
-    this.text(x, y, label, 17, { fontStyle: 'bold', color: '#1c1917' }).setOrigin(0.5).setDepth(12);
+    this.text(x, y, hold ? `Hold: ${label}` : label, hold ? 15 : 17, {
+      fontStyle: 'bold',
+      color: '#1c1917',
+    })
+      .setOrigin(0.5)
+      .setDepth(12);
     const zone = this.fixed(this.add.zone(x, y, w, h).setDepth(13).setInteractive({ useHandCursor: true }));
     zone.on('pointerover', () => draw(true));
-    zone.on('pointerout', () => draw(false));
-    zone.on('pointerup', onClick);
+    if (!hold) {
+      zone.on('pointerout', () => draw(false));
+      zone.on('pointerup', onClick);
+      return;
+    }
+    const cancel = () => {
+      this.holdTween?.remove();
+      this.holdTween = null;
+      draw(false);
+    };
+    zone.on('pointerdown', () => {
+      this.holdTween?.remove();
+      this.holdTween = this.tweens.addCounter({
+        from: 0,
+        to: 1,
+        duration: HOLD_TO_CONFIRM_MS,
+        onUpdate: (tween) => draw(true, tween.getValue() ?? 0),
+        onComplete: () => {
+          this.holdTween = null;
+          onClick();
+        },
+      });
+    });
+    // Letting go or sliding off the button cancels; nothing happens on a short tap.
+    zone.on('pointerup', cancel);
+    zone.on('pointerout', cancel);
   }
 
   // ---------------------------------------------------------------- input & actions
@@ -1237,9 +1315,10 @@ export class WorldMapScene extends Phaser.Scene {
     this.centerOn(hex);
   }
 
-  /** Going home from anywhere: keeps all the loot (portal scrolls could cost something later). */
+  /** Going home after a won fight: free next to the village or at a lit watchfire, else a Phoenix Feather. */
   private goHome(): void {
-    this.arriveHome(returnHome(this.save));
+    const next = goHome(this.save);
+    if (next) this.arriveHome(next);
   }
 
   private teleport(hex: Hex): void {

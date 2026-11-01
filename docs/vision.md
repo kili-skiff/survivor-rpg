@@ -18,18 +18,12 @@ the story is sprinkled in lightly and never forced.
 Decisions from the lore and design session (October 2026) that the current code does not follow yet.
 The sections below already describe the target; this list is the to-do for the code.
 
-- **Gold becomes Embers** (same role: the long-term currency, spent at traders). Unlike gold today,
-  embers are **kept on death**.
-- **Camps go away.** Lit watchfires take over their role: rest, healing, waypoints and fast travel
-  between each other and the village.
 - **Death:** you always wake up in the village (the Nest). Kept: embers, permanent upgrades, weapons,
   lanterns, rescued villagers, potions in the belt. Lost: level-ups, ores, herbs, seeds and weapon
   fragments of the current expedition.
 - **One character, no class and no skill tree.** Build identity comes from the **main weapon**,
   chosen before an expedition, each with its own special skill (see Weapons). Permanent bonuses are a
   flat list bought with embers.
-- **Phoenix Feather** instead of portal scrolls: bought with embers, takes you home with everything
-  you carry after a cleared hex, away from a watchfire. It is no escape from a fight in progress.
 - **Event hexes** marked with "?" (see The world).
 - **Core systems are in the village from the start** (blacksmith, herbalist, trader). Villagers you
   rescue only bring special unlocks (see Village).
@@ -60,7 +54,8 @@ The sections below already describe the target; this list is the to-do for the c
 - **Hexes reset after an expedition:** a hex cleared on an expedition is used up (it stays lit on the
   map while the rest is dimmed) and can be walked through without a fight; when you return home everything fills again.
 - **Waypoints are lit watchfires.** You rest and heal there, travel between lit watchfires and the
-  village, and can start expeditions from them. Camps go away. A watchfire reveals the land around it
+  village, and can start expeditions from them (built: camps are gone, about 13 watchfires, one on the
+  road and two in every direction). A watchfire reveals the land around it
   on the map, but hexes stay dark in a fight: watchfires give orientation, not protection.
 - **A large map:** one map per season (from a seed), about 8–10 rings (217–331 hexes). Lit watchfires
   stay lit for the whole season, so a season feels like a campaign over weeks. To keep a big map from
@@ -72,7 +67,7 @@ The sections below already describe the target; this list is the to-do for the c
 
 **Hex rewards** (built, `config/rewards.ts`, `logic/rewards.ts`): like the doors in Hades, every hex with
 a fight shows what clearing it brings, next to its goal (on the hexes next to you), rolled anew for every
-expedition: _gold_ (more gold drops, a bonus at the end), a _treasure chest_ at the end, a _rare card_
+expedition: _embers_ (more ember drops, a bonus at the end), a _treasure chest_ at the end, a _rare card_
 (a choice of magic or legendary cards, from ring 2), _full health_, or a _herb harvest_ (twice the blooms,
 where herbs grow). You pick your way by what you need. Later: embers, unlocks, villagers, ores, and
 richer rewards further out.
@@ -108,7 +103,8 @@ playable in the fight area (e.g. walking up to a shrine), or a mix.
   - _Per segment:_ enemies, timer, segment goal.
 - Your in-run build keeps growing across segments, like one long Vampire Survivors run with breaks.
 - **Risk vs. reward:** after every cleared hex you choose to continue or go home. From a lit watchfire
-  or next to the village going home is free; from anywhere else it takes a **Phoenix Feather**
+  or next to the village going home is free; from anywhere else it takes a **Phoenix Feather** (built:
+  30 embers at the merchant, carry up to 3)
   (bought with embers), which brings you home with everything you carry. The feather only works
   between hexes, after a fight is won: once a fight has started there is no way out but winning or
   falling.
@@ -182,7 +178,7 @@ One character for everyone; weapons are the build, in the spirit of Hades (decid
     elites, faster skills, damage while moving or at low health, thorns, dodge, extra pierce, bursts on
     every hit, and a Blood Pact that trades tougher enemies for damage. The item bonuses are folded into the
     weapons' numbers in `logic/stats.ts`; the situational ones in `logic/hitEffects.ts`.
-  - _One-time cards_ (`config/boons.ts`): act at once and are not part of the build (gold, all gems fly
+  - _One-time cards_ (`config/boons.ts`): act at once and are not part of the build (embers, all gems fly
     to you, full health, a shockwave, wiping the screen, a revive, a short damage surge). They are
     offered next to the other cards but never come out of chests.
   - _Chain Lightning_ is a new weapon: a strike that jumps from enemy to enemy; later levels add strikes,
@@ -307,8 +303,8 @@ rule set in `config/` plus its check in `logic/`; the fight only reports progres
 ## Endgame: the old tower
 
 - After your first return home, the village elder asks you to find an **old tower** at the edge of
-  the map. Accepting reveals and marks it; a scout points out a **camp close to the village** in the
-  tower's direction as a first stop. Further camps on the way you find yourself.
+  the map. Accepting reveals and marks it. A watchfire two steps out on the road to it is the first stop;
+  the watchfires further out you find yourself.
 - The way there is the incentive to travel far. Standing next to the tower completes the quest;
   its gate is **sealed for now**.
 - What happens inside is still open: for example ever harder floors as an endless endgame, with
@@ -388,28 +384,26 @@ Every part of the map should hold a reason to go there.
 The ideas below are **not decided**; they are collected here so nothing gets lost, and are picked
 up one by one.
 
-- **Watchfires** (prototype): old watchfires scattered over the map, one in each direction. Their
-  glow shows through the fog; lighting one (clearing its hex) reveals the land around it. Decided:
-  they become the waypoints (rest, healing, fast travel) and replace camps; on the larger map there
-  should be more of them (see The world).
+- **Watchfires** (built): one on the road to the tower and two in each direction. Their glow shows
+  through the fog; lighting one (the "find the light" fight) reveals the land around it, heals you and
+  makes it a waypoint (rest, fast travel, going home for free). Camps are gone.
 - **Places with a story in each direction**, each unlocking something in the village (the village
   grows by exploring; the villagers to rescue live here, see Village):
   - an abandoned mine in the hills: a lost master smith, ores, weapon variants
   - a herb witch's hut in the mire: rare potion recipes
   - a crypt of fallen guardians in the graveyard: a boss and the first equipment
   - a trading post or second village far out: a better merchant, selling loot, a far waypoint
-- **Embers** (decided, replacing gold): the currency. Monsters release the light they ate and you
+- **Embers** (built, replaced gold): the currency. Monsters release the light they ate and you
   catch it in your lantern; traders accept embers because only they keep forges, lamps and potions
-  going. Kept on death. Spent on lanterns, ember upgrades, recipes and Phoenix Feathers.
-- **Gold** (built, to become embers): rare and slow, the long-term currency. Dropped rarely in fights (later mostly by
-  elites and chests); herbs, ores and items can be sold for it. Part of the expedition loot (lost on
-  death).
+  going. Rare from normal enemies, more from elites, chests and hex rewards; herbs can be sold for them.
+  They count at once: whatever you catch in a fight goes straight into the stash, also when you fall.
+  Spent on lanterns, ember upgrades, recipes and Phoenix Feathers.
 - **Merchant** (built, village): four lantern tiers (light +30%, +70%, +130%, for good; the
   Sunstone Lantern lights up the whole screen and could later come from a special place instead), potion recipes
   (start with the healing potion, buy the others), buys herbs. Later maybe seeds or maps; merchant
   points of interest on the map could sell rarer goods.
 - **Treasure chest** (built): any enemy may leave a chest by chance, elites far more often. Tapping
-  it pops the lid, then its reels spin like a slot machine before stopping on the rewards: gold and usually one upgrade, sometimes
+  it pops the lid, then its reels spin like a slot machine before stopping on the rewards: embers and usually one upgrade, sometimes
   three, rarely five. Later also equipment you keep (e.g. armour).
 - **Lantern and light radius:** a better lantern means a bigger light radius in fights. For now
   light is only visual (see Look and feel); later it could matter for gameplay.
@@ -420,15 +414,18 @@ up one by one.
   Weapons, so this would cover other slots such as armour, ring and amulet at most): slots such as lantern, armour, ring and amulet,
   equipped in the village, permanent. Rare drops from elites, chests and dungeons count as loot until
   you are home. An inventory shows what you found, also during a fight and on the map.
-- **Deeds** (built): milestones of exploring, each earned once and giving a small bonus for good:
-  reaching rings 2, 4, 6 and 8, the first camp, one, three and all watchfires, and the old tower.
+- **Deeds** (built): milestones of exploring, each earned once: reaching rings 2, 4, 6 and 8, the
+  one, two, five and all watchfires, and the old tower. Each pays embers into the stash, and six
+  of them unlock an upgrade at the Hearth, so exploring opens up the shop (they no longer give stats).
   Saved the moment they are earned, so they stay when you fall, and kept when the map is reset.
   The village shows which are earned and which are still open. They give the watchfires a real
   purpose and make even a failed expedition count. Open: whether a new season lets you earn them
-  again; more deeds later (e.g. first elite, a dungeon cleared), maybe a reward in gold or a recipe.
-- **Ember upgrades** (decided, grew out of the trainer idea): a flat list of permanent bonuses bought
-  with embers (e.g. health, speed, pickup radius, a fourth belt slot), like the permanent power-ups in
-  Vampire Survivors. No tree layout needed.
+  again; more deeds later (e.g. first elite, a dungeon cleared), maybe a recipe as a reward.
+- **Ember upgrades at the Hearth** (built, grew out of the trainer idea): a flat list of permanent
+  bonuses bought with embers, like the power-ups in Vampire Survivors: health, damage, pickup radius,
+  experience, speed, recovery, more embers, armor, cooldowns and a fourth belt slot. Each has a few
+  ranks; rank n costs n times the first. Some are locked until a deed opens them. No refunds, so the
+  choices count. Prices to be tuned by playing.
 - **Layers of progression:** character (deeds, ember upgrades), weapons (main weapons, upgrades,
   variants), lantern, village (rescued villagers, garden), knowledge (recipes), world (how far you get,
   up to the tower).

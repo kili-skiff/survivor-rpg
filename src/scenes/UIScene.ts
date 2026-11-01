@@ -1,4 +1,5 @@
 import * as Phaser from 'phaser';
+import { embersText } from '../logic/merchant';
 import { LIGHT } from '../config/balance';
 import { PASSIVES } from '../config/passives';
 import { HERBS } from '../config/herbs';
@@ -80,7 +81,7 @@ export class UIScene extends Phaser.Scene {
   private hpText!: Phaser.GameObjects.Text;
   private killsText!: Phaser.GameObjects.Text;
   private herbText!: Phaser.GameObjects.Text;
-  private goldText!: Phaser.GameObjects.Text;
+  private emberText!: Phaser.GameObjects.Text;
   private pauseBtn!: Phaser.GameObjects.Text;
   private devPanel: DevPanel | null = null; // DEV:
   private devPicker: DevUpgradePicker | null = null; // DEV: pick any upgrade by hand
@@ -161,7 +162,7 @@ export class UIScene extends Phaser.Scene {
     this.hpText = this.add.text(0, 0, '', textStyle(10)).setOrigin(0.5, 0.5).setDepth(1);
     this.killsText = this.add.text(0, 0, '', textStyle(14)).setOrigin(1, 0);
     this.herbText = this.add.text(0, 0, '', { ...textStyle(13), color: '#bbf7d0' }).setOrigin(1, 0);
-    this.goldText = this.add.text(0, 0, '', { ...textStyle(13), color: '#fde047' }).setOrigin(1, 0);
+    this.emberText = this.add.text(0, 0, '', { ...textStyle(13), color: '#fdba74' }).setOrigin(1, 0);
     this.pauseBtn = this.add
       .text(0, 0, 'II', { ...textStyle(18), backgroundColor: '#00000066', padding: { x: 12, y: 6 } })
       .setOrigin(1, 0)
@@ -510,13 +511,13 @@ export class UIScene extends Phaser.Scene {
     this.hpText.setX(left + hpW / 2);
     this.segmentText.setText(run.segment.name);
     this.killsText.setText(`☠ ${run.kills}`);
-    // Gold (once there is some) and herbs stack below the kills on the right.
+    // Embers (once there is some) and herbs stack below the kills on the right.
     let rightY = this.killsText.y + this.killsText.height + 4 * u;
-    this.goldText
+    this.emberText
       .setFontSize(Math.round(13 * u))
-      .setText(run.gold > 0 ? `${run.gold} gold` : '')
+      .setText(run.embers > 0 ? embersText(run.embers) : '')
       .setPosition(this.killsText.x, rightY);
-    if (run.gold > 0) rightY += this.goldText.height + 2 * u;
+    if (run.embers > 0) rightY += this.emberText.height + 2 * u;
     this.herbText.setText(run.herbsTotal > 0 ? 'Herbs' : '').setPosition(this.killsText.x, rightY);
     this.drawHerbSlots(g);
 
@@ -730,7 +731,7 @@ export class UIScene extends Phaser.Scene {
 
   /**
    * The chest's reels spin through upgrade icons and stop one after another on what it holds;
-   * then the gold appears and "Take" applies everything. Tapping while they spin stops them all.
+   * then the embers appear and "Take" applies everything. Tapping while they spin stops them all.
    */
   private showChest(): void {
     if (!this.chestReward) return;
@@ -849,11 +850,11 @@ export class UIScene extends Phaser.Scene {
     });
   }
 
-  /** A handful of coins jump out of the opened chest. */
+  /** A handful of embers jump out of the opened chest. */
   private burstCoins(x: number, y: number, spread: number): void {
     for (let i = 0; i < 14; i++) {
       const coin = this.add
-        .image(x + (Math.random() - 0.5) * spread * 0.4, y, 'coin')
+        .image(x + (Math.random() - 0.5) * spread * 0.4, y, 'ember')
         .setDepth(53)
         .setScale(this.u * (1.6 + Math.random() * 0.8));
       this.overlay.push(coin);
@@ -949,9 +950,9 @@ export class UIScene extends Phaser.Scene {
       this.chestRevealed = n;
       for (const e of this.chestEvents) e.remove();
       this.chestEvents = [];
-      this.text(W / 2, afterY, `+${reward.gold} gold`, 20, {
+      this.text(W / 2, afterY, `+${embersText(reward.embers)}`, 20, {
         fontStyle: 'bold',
-        color: '#fde047',
+        color: '#fdba74',
         stroke: '#000',
         strokeThickness: 4,
       });
@@ -1467,13 +1468,13 @@ export class UIScene extends Phaser.Scene {
     return groups;
   }
 
-  // DEV: the damage meter sits on the right below the counters (kills, gold, herbs), which come and go.
+  // DEV: the damage meter sits on the right below the counters (kills, embers, herbs), which come and go.
   private placeDevDamageBox(): void {
     if (!this.devDamageBox) return;
     const u = this.u;
     let bottom = this.killsText.y + this.killsText.height;
-    if (this.goldText.visible && this.goldText.text)
-      bottom = Math.max(bottom, this.goldText.y + this.goldText.height);
+    if (this.emberText.visible && this.emberText.text)
+      bottom = Math.max(bottom, this.emberText.y + this.emberText.height);
     // The herb label has a row of herb dots under it.
     if (this.herbText.text) bottom = Math.max(bottom, this.herbText.y + this.herbText.height + 14 * u);
     const right = this.scale.width - this.sa.right - 12 * u;
@@ -1572,8 +1573,9 @@ export class UIScene extends Phaser.Scene {
       const lost = r.lootLost ? Object.values(r.lootLost).reduce((a, b) => a + b, 0) : 0;
       return `Expedition lost. You wake up in the village${lost > 0 ? ` and lost ${lost} ${lost === 1 ? 'item' : 'items'}` : ''}.`;
     }
-    if (r.litWatchfire) return 'Watchfire lit: the land around it is revealed.';
-    if (r.rested) return 'Camp reached: fully healed, waypoint unlocked.';
+    if (r.litWatchfire)
+      return 'Watchfire lit: the land around it is revealed, you are healed and can travel here.';
+    if (r.rested) return 'Rested at the watchfire: fully healed.';
     return 'Your expedition continues.';
   }
 
@@ -1611,7 +1613,7 @@ export class UIScene extends Phaser.Scene {
     } else {
       y += 10 * u;
     }
-    // Deeds earned by this fight: permanent bonuses, so they get their own gold line.
+    // Deeds earned by this fight: permanent bonuses, so they get their own line.
     const deeds = info.report?.deeds ?? [];
     if (deeds.length > 0) {
       const t = this.text(W / 2, y - 6 * u, describeEarned(deeds), 14, {
@@ -1622,16 +1624,16 @@ export class UIScene extends Phaser.Scene {
       }).setOrigin(0.5, 0);
       y += t.height + 8 * u;
     }
-    const questGold = info.report?.questGold ?? 0;
-    if (questGold > 0) {
+    const questEmbers = info.report?.questEmbers ?? 0;
+    if (questEmbers > 0) {
       const t = this.text(
         W / 2,
         y - 6 * u,
-        `Quest complete: Light the Watchfires. Reward: ${questGold} gold`,
+        `Quest complete: Light the Watchfires. Reward: ${embersText(questEmbers)}`,
         14,
         {
           fontStyle: 'bold',
-          color: '#fde047',
+          color: '#fdba74',
           align: 'center',
           wordWrap: { width: W - 48 * u },
         },
@@ -1645,7 +1647,8 @@ export class UIScene extends Phaser.Scene {
       `Level  ${info.level}`,
       `Kills  ${info.kills}`,
       ...(info.herbsTotal > 0 ? [`Herbs  ${info.herbsGathered} / ${info.herbsTotal}`] : []),
-      ...(info.gold > 0 ? [`Gold  ${info.gold}`] : []),
+      // Embers count at once, so a fall keeps them too.
+      ...(info.embers > 0 ? [`Embers  ${info.embers}${info.outcome === 'fallen' ? ' (kept)' : ''}`] : []),
     ];
     const block = this.text(W / 2, y, stats.join(wide ? '   ·   ' : '\n'), wide ? 17 : 20, {
       lineSpacing: 10 * u,
@@ -1663,13 +1666,26 @@ export class UIScene extends Phaser.Scene {
     ).setOrigin(0.5, 0);
     y += summary.height;
     const mapLabel = this.isTouch ? 'Back to map' : 'Back to map (Enter)';
-    if (!this.gs.canReturnHome()) {
+    const home = this.gs.homeWayAfterFight();
+    if (!this.gs.canReturnHome() || home.way === 'none') {
+      // Won far out without a Phoenix Feather: say how to get home.
+      if (this.gs.canReturnHome()) {
+        const hint = this.text(
+          W / 2,
+          y + 12 * u,
+          'No Phoenix Feather: go home from a lit watchfire or next to the village.',
+          12,
+          { color: '#a1a1aa', align: 'center', wordWrap: { width: W - 48 * u } },
+        ).setOrigin(0.5, 0);
+        y += hint.height + 12 * u;
+      }
       const buttonY = Math.min(Math.max(y + 50 * u, H * 0.72), H - this.sa.bottom - 34 * u);
       this.button(W / 2, buttonY, mapLabel, () => this.gs.returnToMap());
       return;
     }
-    // Won on an expedition: move on, or go home with all the loot.
-    const homeLabel = 'Hold to go home';
+    // Won on an expedition: move on, or go home with all the loot (far out it burns a Phoenix Feather).
+    const homeLabel =
+      home.way === 'free' ? 'Hold to go home' : `Hold: Phoenix Feather (${home.feathers} left)`;
     const homeHoldMs = 600;
     if (wide) {
       const buttonY = Math.min(Math.max(y + 46 * u, H * 0.72), H - this.sa.bottom - 34 * u);

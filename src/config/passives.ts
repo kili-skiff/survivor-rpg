@@ -28,6 +28,7 @@ export const BASE_PLAYER_STATS: PlayerStats = {
   thorns: 0,
   dodge: 0,
   curse: 0,
+  emberGain: 1,
 };
 
 export const PASSIVES: Record<PassiveId, PassiveDef> = {

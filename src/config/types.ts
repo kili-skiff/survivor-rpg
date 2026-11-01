@@ -95,6 +95,8 @@ export interface PlayerStats {
   dodge: number;
   /** Enemies get this much more health (0.2 = +20%) */
   curse: number;
+  /** Multiplies the embers you catch (1 = as is) */
+  emberGain: number;
 }
 
 export interface WeaponStats {
@@ -258,7 +260,7 @@ export type GoalKind = FightGoal['kind'];
 export type RolledGoalKind = Exclude<GoalKind, 'light'>;
 
 /** What clearing a hex brings on top of the fight itself (config/rewards.ts, logic/rewards.ts). */
-export type RewardKind = 'gold' | 'chest' | 'card' | 'heal' | 'herbs';
+export type RewardKind = 'embers' | 'chest' | 'card' | 'heal' | 'herbs';
 
 export interface SegmentDef {
   id: string;
@@ -282,7 +284,7 @@ export interface SegmentDef {
 }
 
 export type BiomeId = 'meadow' | 'forest' | 'swamp' | 'graveyard' | 'hills';
-export type PoiId = 'village' | 'camp' | 'merchant' | 'dungeon' | 'tower' | 'watchfire';
+export type PoiId = 'village' | 'merchant' | 'dungeon' | 'tower' | 'watchfire';
 
 export interface BiomeDef {
   id: BiomeId;

@@ -1,18 +1,20 @@
 // Versioned save data: old saves are migrated instead of discarded.
 
+import { parseHearth, type HearthRanks } from './hearth';
+import { bankEmbers } from './merchant';
 import { SEASON } from '../config/world';
 import { parseLoot, type Loot } from './expedition';
 import { parseBelt, type Belt } from './potions';
 import { parseDeeds } from './deeds';
 import type { DeedId } from '../config/deeds';
 import { freshQuests, parseQuests, type QuestProgress } from './quests';
-import { LANTERN_TIERS, STARTING_RECIPES } from '../config/merchant';
+import { LANTERN_TIERS, STARTING_RECIPES, PHOENIX_FEATHER } from '../config/merchant';
 import { POTION_IDS } from '../config/potions';
 import type { PotionId, WeaponId } from '../config/types';
 import { MAIN_WEAPONS, START_WEAPON } from '../config/weapons';
 import { createWorldProgress, parseWorldProgress, type WorldProgress } from './worldProgress';
 
-export const SAVE_VERSION = 16;
+export const SAVE_VERSION = 19;
 const SAVE_KEY = 'survivor-rpg.save';
 
 export interface SaveData {
@@ -39,6 +41,10 @@ export interface SaveData {
   recipes: PotionId[];
   /** Added in version 10: deeds earned by exploring; kept when the map is reset */
   deeds: DeedId[];
+  /** Added in version 18: ranks bought at the Hearth (logic/hearth.ts) */
+  hearth: HearthRanks;
+  /** Added in version 19: Phoenix Feathers carried (each takes you home once after a won fight) */
+  feathers: number;
 }
 
 export interface RunResult {
@@ -69,6 +75,8 @@ export function emptySave(): SaveData {
     mainWeapon: START_WEAPON,
     recipes: [...STARTING_RECIPES],
     deeds: [],
+    hearth: {},
+    feathers: 0,
   };
 }
 
@@ -94,7 +102,7 @@ export function migrate(raw: unknown): SaveData {
   // (version 2 added `segmentsCleared`, version 3 `world`, version 4 `stash`, waypoints and expeditions,
   // version 5 `belt`, version 6 `cleared` hexes of the current expedition, version 7 `quests`,
   // version 8 `litWatchfires` in the world progress, version 9 `lanternLevel` and `recipes`, version 10 `deeds`, version 11 `fire` quest stage in the quests, version 12 `weaponSteps` in the
-  // expedition build's loadout; parseLoadout fills it in: without it, weapons count their first steps in order, version 13 `expeditions` in the world progress (missing = 0), version 14 `path` in the expedition (missing = start and current position), version 15 `mainWeapon` (missing = Arcane Bolt), version 16 `modifiers` in the expedition build's loadout (missing = none)).
+  // expedition build's loadout; parseLoadout fills it in: without it, weapons count their first steps in order, version 13 `expeditions` in the world progress (missing = 0), version 14 `path` in the expedition (missing = start and current position), version 15 `mainWeapon` (missing = Arcane Bolt), version 16 `modifiers` in the expedition build's loadout (missing = none), version 17 gold became embers: `gold` in the stash and in the expedition's loot moves to `embers` in the stash, since embers count at once, version 18 `hearth`: ranks bought at the Hearth (missing = none; deeds no longer give stats), version 19 `feathers`: Phoenix Feathers (missing = none; camps and waypoints are gone, lit watchfires are the waypoints)).
   const data2 = raw as Partial<SaveData> & {
     world?: unknown;
     stash?: unknown;
@@ -104,8 +112,10 @@ export function migrate(raw: unknown): SaveData {
     mainWeapon?: unknown;
     recipes?: unknown;
     deeds?: unknown;
+    hearth?: unknown;
+    feathers?: unknown;
   };
-  return {
+  return goldToEmbers({
     version: SAVE_VERSION,
     bestTime: Number(data.bestTime) || base.bestTime,
     bestKills: Number(data.bestKills) || base.bestKills,
@@ -120,7 +130,40 @@ export function migrate(raw: unknown): SaveData {
     mainWeapon: parseMainWeapon(data2.mainWeapon),
     recipes: parseRecipes(data2.recipes),
     deeds: parseDeeds(data2.deeds),
-  };
+    hearth: parseHearth(data2.hearth),
+    feathers: parseFeathers(data2.feathers),
+  });
+}
+
+/** Loot key of gold before version 17 */
+const OLD_GOLD_KEY = 'gold';
+
+/**
+ * Version 17: gold became embers. Gold in the stash and gold the expedition was carrying both become
+ * embers in the stash (embers are never part of the expedition's loot).
+ */
+function goldToEmbers(save: SaveData): SaveData {
+  const expedition = save.world.expedition;
+  const carried = expedition?.loot[OLD_GOLD_KEY] ?? 0;
+  const stored = save.stash[OLD_GOLD_KEY] ?? 0;
+  if (carried + stored <= 0) return save;
+  const stash = { ...save.stash };
+  delete stash[OLD_GOLD_KEY];
+  const world =
+    expedition && carried > 0
+      ? (() => {
+          const loot = { ...expedition.loot };
+          delete loot[OLD_GOLD_KEY];
+          return { ...save.world, expedition: { ...expedition, loot } };
+        })()
+      : save.world;
+  return bankEmbers({ ...save, stash, world }, carried + stored);
+}
+
+function parseFeathers(raw: unknown): number {
+  return typeof raw === 'number' && Number.isFinite(raw)
+    ? Math.max(0, Math.min(PHOENIX_FEATHER.max, Math.floor(raw)))
+    : 0;
 }
 
 function parseMainWeapon(raw: unknown): WeaponId {
