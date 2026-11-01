@@ -22,6 +22,8 @@ export interface DevFightStats {
   nowMs: number;
   /** The spawn director's phase and the strength of the stream */
   director?: { phase: string; pressure: number };
+  /** More lines for the readout (the test arena's numbers) */
+  extra?: string[];
 }
 
 /**
@@ -88,6 +90,7 @@ export class DevPanel {
         enemies: s.enemies,
         killsPerMinute: this.kills.update(s.kills, s.nowMs),
         director: s.director,
+        extra: s.extra,
       }),
     );
     this.layout(this.left, this.top, this.u);

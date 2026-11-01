@@ -13,7 +13,7 @@ export class BladesWeapon implements Weapon {
   private readonly blades: Phaser.GameObjects.Image[] = [];
   private angle = 0;
   /** What a hit does besides damage; follows the weapon's level */
-  private readonly effects: HitEffects = {};
+  private readonly effects: HitEffects = { source: 'blades' };
 
   constructor(private readonly ctx: CombatContext) {}
 

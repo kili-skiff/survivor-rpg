@@ -13,7 +13,7 @@ export class AuraWeapon implements Weapon {
   private readonly image: Phaser.GameObjects.Image;
   private timer = FIRST_SHOT_DELAY;
   /** What a pulse does besides damage; follows the weapon's level */
-  private readonly effects: HitEffects = {};
+  private readonly effects: HitEffects = { source: 'aura' };
 
   constructor(private readonly ctx: CombatContext) {
     this.image = ctx.scene.add.image(0, 0, 'aura').setDepth(1).setBlendMode(Phaser.BlendModes.ADD);

@@ -122,6 +122,8 @@ export interface DevReadout {
   killsPerMinute: number;
   /** What the spawn director is doing: its phase and how strong the stream is right now */
   director?: { phase: string; pressure: number };
+  /** More lines at the end (the test arena's numbers) */
+  extra?: string[];
 }
 
 /** The lines of the dev readout: frame rate, the state of the fight and the pace of the spawn director. */
@@ -131,6 +133,7 @@ export function readoutLabel(r: DevReadout): string {
     `${r.enemies} enemies · ${Math.round(r.killsPerMinute)} kills/min`,
   ];
   if (r.director) lines.push(`${r.director.phase} · x${r.director.pressure.toFixed(1)}`);
+  if (r.extra) lines.push(...r.extra);
   return lines.join('\n');
 }
 

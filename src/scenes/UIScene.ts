@@ -181,6 +181,19 @@ export class UIScene extends Phaser.Scene {
             { label: () => 'level up', run: () => this.gs.devLevelUp() },
             { label: () => 'wild build', run: () => this.gs.devWildBuild() },
             { label: () => 'pick upgrade', run: () => this.openDevPicker() },
+            // The test arena's controls, only there.
+            ...(this.gs.devArenaState()
+              ? [
+                  {
+                    label: () => `mode: ${this.gs.devArenaState()?.mode ?? ''}`,
+                    run: () => this.gs.devArenaToggleMode(),
+                  },
+                  { label: () => 'ring −', run: () => this.gs.devArenaRing(-1) },
+                  { label: () => 'ring +', run: () => this.gs.devArenaRing(1) },
+                  { label: () => 'reset stats', run: () => this.gs.devArenaReset() },
+                  { label: () => 'leave arena', run: () => this.gs.devLeaveArena() },
+                ]
+              : []),
             {
               label: () => {
                 const id = devMainWeapon(this.gs.run.loadout);

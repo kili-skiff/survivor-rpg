@@ -20,7 +20,10 @@ The world, story and in-game terms (Embers, the Nest, watchfires) are in [docs/l
 - `npm run check` – typecheck, lint, tests and build. **Run before every commit.**
 - `npm run build:single` – everything in one HTML file (dist-single/) for quick sharing
 - Dev mode: on in `npm run dev`, and in any build with `?dev` in the URL (e.g. a PR preview).
-  Test helpers: "+herbs +gold" in the village; "reveal" (fog off on screen only) and "jump here" on the
+  Test helpers: "+herbs +gold" and "arena" in the village (the test arena: a fight outside the map that
+  saves nothing, the whole screen lit, no goal; falling only counts and refills health; switch between a
+  horde of a chosen ring and standing dummies; the readout adds damage per second, total damage, kills per
+  minute and the share of each weapon and modifier effect; "reset stats", "leave arena"; `dev/arenaLogic.ts`); "reveal" (fog off on screen only) and "jump here" on the
   map; in a fight a foldable "DEV" panel (tap its header; it also names the active modes and hides while a
   menu is open) with "clear area", "god mode" (no damage, much stronger, whole screen lit), "spawn elite" and
   "level up" (opens a level-up menu), "wild build" (every weapon and item at its highest level), "pick upgrade"
@@ -156,7 +159,8 @@ Phase 1, main weapons (the build is the main weapon; weapons from cards are extr
 
 - [x] Main weapons: the armory in the village to choose one before an expedition (free for now, saved as `mainWeapon`), Arcane Bolt and a second one, the boomerang (flies a wide loop out and back, hits both ways; `systems/weapons/BoomerangWeapon.ts`). Main weapons come only from the armory; cards bring their level steps. Dev: "pick upgrade" and "main weapon" to try steps and compare weapons
 - [x] Modifiers for main weapons, like the Daedalus hammer in Hades: at level 5, 10, 15 … a choice of three modifiers of the main weapon replaces the cards (`config/modifiers.ts`, `logic/modifiers.ts`). Bolt: Heavy Bolt or Volley, Ricochet, Spark Chain, Blast Tip, Frost Bolt. Boomerang: Whirl or Undertow, Wide Blade, Orbit, Keen Edge, Ember Trail. Most stack, the opposites exclude each other; values in `MOD`, to be tuned by playing
-- [ ] Extra weapons as extras: tune blades, aura and Chain Lightning back to support the main weapon; a dev test arena that compares weapons (kills per minute, damage per second)
+- [x] A dev test arena that compares weapons: damage per second, kills per minute and the share of each weapon and modifier effect, against a horde of a chosen ring or standing dummies
+- [ ] Extra weapons as extras: tune blades, aura and Chain Lightning back to support the main weapon (measure in the arena first)
 
 Phase 2, lasting progress:
 

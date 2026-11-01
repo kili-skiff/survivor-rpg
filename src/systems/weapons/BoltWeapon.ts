@@ -14,6 +14,8 @@ import { FIRST_SHOT_DELAY, type Weapon } from './Weapon';
 const SPREAD = 0.05;
 /** How many of the nearest enemies focus fire looks at */
 const FOCUS_CANDIDATES = 8;
+/** Spark Chain hits do nothing besides damage */
+const SPARK_FX: HitEffects = { source: 'sparkchain' };
 
 /**
  * Arcane bolt: locks on to the nearest enemy and keeps firing at it until it dies, gets out of reach
@@ -27,7 +29,7 @@ export class BoltWeapon implements Weapon {
   private locked: Enemy | null = null;
   private lockedGeneration = 0;
   /** What a hit does besides damage; follows the weapon's level */
-  private readonly effects: HitEffects = {};
+  private readonly effects: HitEffects = { source: 'bolt' };
   private area = 1;
   /** Spark Chain: the short lines from a hit to the enemy the spark jumped to */
   private readonly sparks: { x1: number; y1: number; x2: number; y2: number; until: number }[] = [];
@@ -173,7 +175,7 @@ export class BoltWeapon implements Weapon {
     const n = this.nearestTo(x, y, MOD.spark.range * this.area, (c) => c === from);
     if (!n) return;
     this.sparks.push({ x1: x, y1: y, x2: n.x, y2: n.y, until: this.ctx.now() + MOD.spark.showMs });
-    this.ctx.enemies.hit(n, damage * MOD.spark.share, {}, x, y);
+    this.ctx.enemies.hit(n, damage * MOD.spark.share, SPARK_FX, x, y);
   }
 
   private drawSparks(): void {
