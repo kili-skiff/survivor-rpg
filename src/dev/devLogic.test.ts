@@ -214,3 +214,24 @@ describe('dev: all watchfires', () => {
     expect(toggleAllWatchfires(world, lit).world.litWatchfires).toEqual([]);
   });
 });
+
+describe('dev autopilot', () => {
+  it('runs away from a close enemy and circles when nothing is near', async () => {
+    const { autopilotDirection, AUTOPILOT } = await import('./devLogic');
+    const home = { x: 0, y: 0 };
+    // An enemy right to the east: it goes west (plus a little sideways).
+    const flee = autopilotDirection(100, 0, [{ x: 130, y: 0 }], home);
+    expect(flee.x).toBeLessThan(-0.5);
+    // Alone, it circles: sideways to the line from home.
+    const circle = autopilotDirection(100, 0, [], home);
+    expect(Math.abs(circle.x)).toBeLessThan(0.1);
+    expect(Math.abs(circle.y)).toBeCloseTo(1);
+    // Far out, it heads back.
+    const back = autopilotDirection(AUTOPILOT.orbitRadius * 3, 0, [], home);
+    expect(back.x).toBeLessThan(0);
+    // Enemies far away do not matter.
+    expect(autopilotDirection(0, 0, [{ x: 1000, y: 0 }], { x: 0, y: 0 })).toEqual(
+      autopilotDirection(0, 0, [], { x: 0, y: 0 }),
+    );
+  });
+});

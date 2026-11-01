@@ -79,7 +79,13 @@ import { visionRange } from '../logic/vision';
 import { LanternSystem } from '../systems/LanternSystem';
 import { LightingSystem } from '../systems/LightingSystem';
 import { WatchfireSystem } from '../systems/WatchfireSystem';
-import { devMainWeapon, devSwapMainWeapon, godModeStats, randomBuild } from '../dev/devLogic'; // DEV:
+import {
+  autopilotDirection,
+  devMainWeapon,
+  devSwapMainWeapon,
+  godModeStats,
+  randomBuild,
+} from '../dev/devLogic'; // DEV:
 import {
   ARENA,
   buildSummary,
@@ -213,6 +219,8 @@ export class GameScene extends Phaser.Scene {
   /** DEV: the test arena: started with `arena: true`; its state while it runs */
   private devArenaOn = false;
   private devArena: ArenaState | null = null;
+  /** DEV: where the autopilot circles around */
+  private devAutopilotHome: { x: number; y: number } | null = null;
   /** DEV: the damage meter of this fight (null outside dev mode) */
   private devMeter: DamageMeter | null = null;
 
@@ -241,6 +249,7 @@ export class GameScene extends Phaser.Scene {
     this.surgeUntil = 0;
     this.endInfo = null;
     this.devCleared = false;
+    this.devAutopilotHome = null;
     this.rewardGiven = false;
     this.endAfterMenu = false;
     this.watchfire = null;
@@ -574,6 +583,26 @@ export class GameScene extends Phaser.Scene {
     return this.devGodMode() || this.devInvincible() || this.devArenaOn;
   }
 
+  // DEV: the autopilot, kept for the session in the registry.
+  devAutopilot(): boolean {
+    return isDevMode() && this.registry.get('devAutopilot') === true;
+  }
+
+  devToggleAutopilot(): void {
+    const on = !this.devAutopilot();
+    this.registry.set('devAutopilot', on);
+    this.devAutopilotHome = { x: this.player.x, y: this.player.y };
+  }
+
+  // DEV: where the autopilot wants to go this frame, or null when it is off.
+  private devAutopilotMove(): { x: number; y: number } | null {
+    if (!this.devAutopilot()) return null;
+    this.devAutopilotHome ??= { x: this.player.x, y: this.player.y };
+    const near: { x: number; y: number }[] = [];
+    for (const e of this.enemies.active()) if (!e.airborne && !e.devPinned) near.push(e);
+    return autopilotDirection(this.player.x, this.player.y, near, this.devAutopilotHome);
+  }
+
   // DEV: the damage meter of this fight.
   devDamageMeter(): DamageMeter | null {
     return this.devMeter;
@@ -622,6 +651,7 @@ export class GameScene extends Phaser.Scene {
     if (!arena) return;
     arena.meter.reset();
     arena.falls = 0;
+    arena.taken = 0;
     if (arena.mode === 'dummies' && this.run.alive) {
       this.enemies.devClearAll();
       this.devPlaceDummies();
@@ -829,13 +859,15 @@ export class GameScene extends Phaser.Scene {
     this.handleSkillInput();
     this.handlePotionInput();
     if (this.potions.update()) this.refreshStats();
-    this.player.update(this.controls.moveX, this.controls.moveY, this.run.stats.moveSpeed, this.enemies);
+    // DEV: the autopilot kites like a player (for measuring a ring); otherwise the controls steer.
+    const move = this.devAutopilotMove() ?? { x: this.controls.moveX, y: this.controls.moveY };
+    this.player.update(move.x, move.y, this.run.stats.moveSpeed, this.enemies);
     this.healthBar.update(this.player.x, this.player.y, this.run.hp / this.run.stats.maxHp);
     this.updateGround();
     this.lantern.update(dt);
     this.lighting.update(this.time.now);
     this.enemies.mods.damageMul = situationalDamage({
-      moving: Math.hypot(this.controls.moveX, this.controls.moveY) > 0.1,
+      moving: Math.hypot(move.x, move.y) > 0.1,
       momentum: this.run.stats.momentum,
       hpShare: this.run.hp / this.run.stats.maxHp,
       desperation: this.run.stats.desperation,
@@ -1060,6 +1092,7 @@ export class GameScene extends Phaser.Scene {
     if (thorns > 0) this.enemies.damage(e, thorns, 0, 0, '#a3e635');
     const dmg = damageAfterArmor(e.damage, this.run.stats.armor) * damageTakenMultiplier(this.potions.active);
     this.run.hp -= dmg;
+    if (this.devArena) this.devArena.taken += dmg; // DEV: arena: damage taken
     this.numbers.show(this.player.x, this.player.y - 22, `-${Math.round(dmg)}`, '#ff6b81', true);
     if (this.run.hp <= 0 && this.secondWinds > 0) {
       this.secondWinds -= 1;
