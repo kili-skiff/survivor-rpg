@@ -176,8 +176,11 @@ export class EnemySystem {
     e.hp -= amount;
     if (e.devPinned && e.hp <= 0) e.hp = e.maxHp; // DEV: arena dummies never die
     e.flashUntil = this.now() + 70;
-    e.x += knockX;
-    e.y += knockY;
+    if (!e.devPinned) {
+      // DEV: arena dummies are never nudged
+      e.x += knockX;
+      e.y += knockY;
+    }
     this.numbers.show(e.x, e.y - e.def.radius - 4, String(Math.round(amount)), color);
     if (e.hp <= 0) {
       this.onKilled(e);

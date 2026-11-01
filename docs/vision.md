@@ -139,7 +139,9 @@ One character for everyone; weapons are the build, in the spirit of Hades (decid
   volley. Boomerang: two at once, spinning at the turn or pulling enemies in, a longer loop. Most of them
   stack (wild builds); a few true opposites exclude each other, so there are real choices.
 - **Extra weapons from cards** (blades, aura, Chain Lightning; later e.g. a mortar or a fire trail) are
-  extras for more cleave: they support the main weapon, they do not replace it.
+  where the wildness of a build comes from: the main weapon is the backbone and its upgrades are clearly
+  felt, the extras turn a run into something wild. In a grown build the main weapon deals about 35–50% of
+  the damage, the extras the rest.
 - **Special skill per weapon:** each main weapon brings its own active skill (e.g. Frost Nova on the
   staff). The dash stays universal.
 - **During a run:** level-up cards offer modifiers and levels for the main weapon, extra weapons and items.

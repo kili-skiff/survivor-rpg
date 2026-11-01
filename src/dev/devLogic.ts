@@ -17,6 +17,8 @@ import {
   applyUpgrade,
   availableUpgrades,
   describeUpgrade,
+  mainWeaponCanGrow,
+  offersMainWeapon,
   rollUpgradeOptions,
   type UpgradeOption,
 } from '../logic/upgrades';
@@ -150,6 +152,7 @@ export function readoutParts(r: DevReadout): { summary: string; details: string 
  */
 export function randomBuild(start: Loadout, level: number, rng: () => number): Loadout {
   let loadout = start;
+  let misses = 0;
   for (let l = 2; l <= level; l++) {
     if (isModifierLevel(l)) {
       const mods = rollModifierOptions(loadout, rng);
@@ -161,7 +164,8 @@ export function randomBuild(start: Loadout, level: number, rng: () => number): L
         continue;
       }
     }
-    const options = rollUpgradeOptions(loadout, rng, 3, false);
+    const options = rollUpgradeOptions(loadout, rng, 3, false, misses);
+    if (mainWeaponCanGrow(loadout)) misses = offersMainWeapon(options, loadout) ? 0 : misses + 1;
     loadout = applyUpgrade(loadout, pickLikeAPlayer(options, loadout, rng));
   }
   return loadout;
