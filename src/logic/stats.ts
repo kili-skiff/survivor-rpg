@@ -1,3 +1,4 @@
+import type { ModifierId } from '../config/modifiers';
 import { ITEMS } from '../config/balance';
 import { BASE_PLAYER_STATS, PASSIVES } from '../config/passives';
 import { SKILLS } from '../config/skills';
@@ -22,6 +23,8 @@ export interface Loadout {
   weaponSteps?: Partial<Record<WeaponId, number[]>>;
   passives: Partial<Record<PassiveId, number>>;
   skills: Record<SkillId, number>;
+  /** Modifiers of the main weapon taken in this run (config/modifiers.ts); missing = none */
+  modifiers?: ModifierId[];
 }
 
 export function createStartLoadout(startWeapon: WeaponId): Loadout {

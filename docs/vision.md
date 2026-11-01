@@ -136,7 +136,7 @@ One character for everyone; weapons are the build, in the spirit of Hades (decid
   the **boomerang** (flies a wide loop out and back and hits both ways, also behind you; built). Later e.g. sword (swings
   in an arc in front of you) and spear (pierces a line). Free to choose for now; further main weapons
   are unlocked with weapon fragments that bosses drop.
-- **Modifiers** for the main weapon (decided, not built yet), like the Daedalus hammer in Hades: cards
+- **Modifiers** for the main weapon (built: three to choose from at level 5, 10, 15 …), like the Daedalus hammer in Hades: cards
   that change how the weapon behaves, not just its numbers. Bolt: split, ricochet, homing, heavy bolt or
   volley. Boomerang: two at once, spinning at the turn or pulling enemies in, a longer loop. Most of them
   stack (wild builds); a few true opposites exclude each other, so there are real choices.

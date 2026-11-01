@@ -1,3 +1,4 @@
+import { parseModifiers } from './modifiers';
 import { PASSIVES } from '../config/passives';
 import { SKILLS } from '../config/skills';
 import type { PassiveId, SkillId, WeaponId } from '../config/types';
@@ -144,6 +145,8 @@ function parseLoadout(raw: unknown): Loadout | null {
   };
   const steps = parseWeaponSteps(d.weaponSteps, weapons);
   if (Object.keys(steps).length > 0) loadout.weaponSteps = steps;
+  const modifiers = parseModifiers(d.modifiers);
+  if (modifiers.length > 0) loadout.modifiers = modifiers;
   return loadout;
 }
 

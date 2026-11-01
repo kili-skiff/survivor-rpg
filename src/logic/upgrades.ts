@@ -1,4 +1,5 @@
 import { BOON_DEFS } from '../config/boons';
+import { MODIFIERS, type ModifierId } from '../config/modifiers';
 import { PASSIVES } from '../config/passives';
 import { RARITIES } from '../config/rarity';
 import { SKILLS } from '../config/skills';
@@ -14,6 +15,8 @@ export type UpgradeOption =
   | { kind: 'skill'; id: SkillId; toLevel: number }
   /** One-time effect (config/boons.ts); not part of the build */
   | { kind: 'boon'; id: BoonId }
+  /** A modifier of the main weapon (config/modifiers.ts); only offered at modifier levels */
+  | { kind: 'modifier'; id: ModifierId }
   | { kind: 'heal' };
 
 export interface UpgradeCard {
@@ -164,6 +167,8 @@ export function applyUpgrade(loadout: Loadout, option: UpgradeOption): Loadout {
       return { ...loadout, passives: { ...loadout.passives, [option.id]: option.toLevel } };
     case 'skill':
       return { ...loadout, skills: { ...loadout.skills, [option.id]: option.toLevel } };
+    case 'modifier':
+      return { ...loadout, modifiers: [...(loadout.modifiers ?? []), option.id] };
     case 'boon':
     case 'heal':
       return loadout;
@@ -205,6 +210,17 @@ export function describeUpgrade(option: UpgradeOption): UpgradeCard {
         texture: def.texture,
         rarity: def.rarity,
         isNew: false,
+      };
+    }
+    case 'modifier': {
+      const def = MODIFIERS[option.id];
+      return {
+        title: def.name,
+        badge: `${WEAPONS[def.weapon].name.toUpperCase()} MODIFIER`,
+        text: def.description,
+        texture: def.texture,
+        rarity: 'legendary',
+        isNew: true,
       };
     }
     case 'boon': {

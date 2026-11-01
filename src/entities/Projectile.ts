@@ -9,6 +9,8 @@ export class Projectile extends Phaser.Physics.Arcade.Image {
   readonly hits = new Set<Enemy>();
   /** The enemy it was fired at (for focus fire), or null */
   target: Enemy | null = null;
+  /** How often it can still bounce on to another enemy after its last hit (Ricochet) */
+  bounces = 0;
 
   fire(
     x: number,
@@ -25,6 +27,8 @@ export class Projectile extends Phaser.Physics.Arcade.Image {
     this.pierceLeft = pierce;
     this.expiresAt = now + lifetime;
     this.hits.clear();
+    this.bounces = 0;
+    this.setScale(1).clearTint();
     this.setRotation(angle);
     this.setDepth(4);
     this.body!.setCircle(5, this.width / 2 - 5, this.height / 2 - 5);

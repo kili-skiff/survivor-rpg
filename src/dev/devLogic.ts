@@ -1,6 +1,7 @@
 // Dev-only game logic (no Phaser, tested). See devMode.ts for how to remove dev tools.
 
 import { DEEDS, type DeedId } from '../config/deeds';
+import { MODIFIERS } from '../config/modifiers';
 import { HERBS } from '../config/herbs';
 import { GOLD_KEY } from '../config/merchant';
 import type { PlayerStats, WeaponId } from '../config/types';
@@ -11,6 +12,7 @@ import type { SaveData } from '../logic/save';
 import type { World } from '../logic/worldgen';
 import type { Loadout } from '../logic/stats';
 import { remainingSteps } from '../logic/stats';
+import { availableModifiers } from '../logic/modifiers';
 import { availableUpgrades, describeUpgrade, type UpgradeOption } from '../logic/upgrades';
 import { isLit, walkTo } from '../logic/worldProgress';
 
@@ -140,8 +142,8 @@ export interface DevUpgradeEntry {
 }
 
 /** The tabs of the dev upgrade list. */
-export type DevUpgradeGroup = 'weapons' | 'items' | 'other';
-export const DEV_UPGRADE_GROUPS: readonly DevUpgradeGroup[] = ['weapons', 'items', 'other'];
+export type DevUpgradeGroup = 'weapons' | 'mods' | 'items' | 'other';
+export const DEV_UPGRADE_GROUPS: readonly DevUpgradeGroup[] = ['weapons', 'mods', 'items', 'other'];
 
 /**
  * Every upgrade that could come now, for picking by hand: each missing level step of a weapon is its
@@ -160,6 +162,12 @@ export function devUpgradeList(loadout: Loadout): DevUpgradeEntry[] {
       const group = o.kind === 'weapon' ? 'weapons' : o.kind === 'passive' ? 'items' : 'other';
       out.push({ option: o, label: `${card.title}${level}: ${card.text}`, group });
     }
+  }
+  // Modifiers of the main weapon, which otherwise only come at modifier levels.
+  for (const id of availableModifiers(loadout)) {
+    const option: UpgradeOption = { kind: 'modifier', id };
+    const card = describeUpgrade(option);
+    out.push({ option, label: `${card.title}: ${card.text}`, group: 'mods' });
   }
   return out;
 }
@@ -185,5 +193,7 @@ export function devSwapMainWeapon(loadout: Loadout): Loadout {
   if (current === undefined) weapons[next] = 1;
   if (current) delete weaponSteps[current];
   delete weaponSteps[next];
-  return { ...loadout, weapons, weaponSteps };
+  // Modifiers belong to the weapon that is put away.
+  const modifiers = (loadout.modifiers ?? []).filter((id) => MODIFIERS[id].weapon !== current);
+  return { ...loadout, weapons, weaponSteps, modifiers };
 }
