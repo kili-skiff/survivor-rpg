@@ -49,7 +49,7 @@ import { goalLabel } from '../logic/goals';
 import { REWARDS } from '../config/rewards';
 import { rewardLabel } from '../logic/rewards';
 import { seasonWorld, segmentForHex, type World, type WorldHex } from '../logic/worldgen';
-import { jumpTo } from '../dev/devLogic'; // DEV:
+import { jumpTo, toggleAllWatchfires } from '../dev/devLogic'; // DEV:
 import { devButtonStyle, isDevMode } from '../dev/devMode'; // DEV:
 import { safeArea, viewportSize, type SafeArea } from '../ui/display';
 import { MapFog } from '../ui/mapFog';
@@ -830,7 +830,11 @@ export class WorldMapScene extends Phaser.Scene {
       fontStyle: 'bold',
       color: css(COLORS.accent),
     });
-    if (isDevMode()) this.devRevealButton(W - this.sa.right - 16 * u, this.sa.top + 14 * u); // DEV:
+    if (isDevMode()) {
+      // DEV: reveal and light all watchfires, side by side in the header.
+      const reveal = this.devRevealButton(W - this.sa.right - 16 * u, this.sa.top + 14 * u);
+      this.devFiresButton(reveal.x - reveal.width - 8 * u, this.sa.top + 14 * u);
+    }
     if (questGoals(this.save.quests, this.world, this.save.world).length > 0) {
       this.trackingButton(W - this.sa.right - 16 * u, this.headerH + 10 * u);
     }
@@ -915,9 +919,20 @@ export class WorldMapScene extends Phaser.Scene {
     });
   }
 
+  // DEV: lights every watchfire (they become waypoints), or puts them all out again.
+  private devFiresButton(x: number, y: number): void {
+    const fires = [...this.world.hexes.values()].filter((h) => h.poi === 'watchfire');
+    const allLit = fires.every((h) => isLit(this.save.world, h.key));
+    const label = allLit ? 'DEV  fires out' : 'DEV  light fires';
+    const t = this.text(x, y, label, 12, devButtonStyle(this.u, allLit)).setOrigin(1, 0);
+    t.setInteractive({ useHandCursor: true }).on('pointerup', () =>
+      this.commit(toggleAllWatchfires(this.world, this.save)),
+    );
+  }
+
   /** Dev mode only: shows the whole map without saving anything as discovered. */
   // DEV: lifts the fog on screen only; nothing is saved as discovered.
-  private devRevealButton(x: number, y: number): void {
+  private devRevealButton(x: number, y: number): Phaser.GameObjects.Text {
     const on = this.devReveal();
     const t = this.text(x, y, on ? 'DEV  fog off' : 'DEV  reveal', 12, devButtonStyle(this.u, on)).setOrigin(
       1,
@@ -927,6 +942,7 @@ export class WorldMapScene extends Phaser.Scene {
       this.registry.set('devReveal', !on);
       this.buildHud();
     });
+    return t;
   }
 
   /** Header line: the expedition while out, otherwise the season summary. */

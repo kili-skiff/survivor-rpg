@@ -22,7 +22,8 @@ import {
   rollUpgradeOptions,
   type UpgradeOption,
 } from '../logic/upgrades';
-import { isLit, walkTo } from '../logic/worldProgress';
+import { isLit, lightWatchfire, walkTo } from '../logic/worldProgress';
+import { WORLD } from '../config/world';
 
 /** Adds `amount` of every herb and `embers` embers to the stash. */
 export function grantTestLoot(stash: Loot, amount: number, embers: number): Loot {
@@ -256,4 +257,17 @@ export function devSwapMainWeapon(loadout: Loadout): Loadout {
   // Modifiers belong to the weapon that is put away.
   const modifiers = (loadout.modifiers ?? []).filter((id) => MODIFIERS[id].weapon !== current);
   return { ...loadout, weapons, weaponSteps, modifiers };
+}
+
+/**
+ * Lights every watchfire on the map (each reveals the land around it), or puts them all out when every one
+ * already burns. The map then earns the watchfire deeds as usual (with their embers).
+ */
+export function toggleAllWatchfires(world: World, save: SaveData): SaveData {
+  const fires = [...world.hexes.values()].filter((h) => h.poi === 'watchfire').map((h) => h.key);
+  if (fires.every((k) => isLit(save.world, k)))
+    return { ...save, world: { ...save.world, litWatchfires: [] } };
+  let progress = save.world;
+  for (const key of fires) progress = lightWatchfire(progress, key, WORLD.watchfireRevealRadius);
+  return { ...save, world: progress };
 }
