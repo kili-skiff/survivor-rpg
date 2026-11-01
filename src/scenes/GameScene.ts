@@ -15,7 +15,7 @@ import type {
   WeaponId,
   WeaponStats,
 } from '../config/types';
-import { WEAPONS } from '../config/weapons';
+import { START_WEAPON, WEAPONS } from '../config/weapons';
 import type { Enemy } from '../entities/Enemy';
 import type { Pickup } from '../entities/Pickup';
 import { InputState } from '../input/InputState';
@@ -64,7 +64,16 @@ import { visionRange } from '../logic/vision';
 import { LanternSystem } from '../systems/LanternSystem';
 import { LightingSystem } from '../systems/LightingSystem';
 import { WatchfireSystem } from '../systems/WatchfireSystem';
-import { devSwapMainWeapon, godModeStats } from '../dev/devLogic'; // DEV:
+import { devMainWeapon, devSwapMainWeapon, godModeStats, randomBuild } from '../dev/devLogic'; // DEV:
+import {
+  ARENA,
+  buildSummary,
+  dummyPositions,
+  logLine,
+  newArenaState,
+  stepRing,
+  type ArenaState,
+} from '../dev/arenaLogic'; // DEV:
 import { isDevMode } from '../dev/devMode'; // DEV:
 import type { DevFightStats } from '../dev/DevPanel'; // DEV:
 import { castFrostNova } from '../systems/skills/frostNova';
@@ -77,6 +86,8 @@ import { COLORS, css } from '../ui/theme';
 export interface GameSceneData {
   /** Hex on the world map this fight takes place in. Without it a default segment is used. */
   hexKey?: string;
+  /** DEV: the test arena (a fight outside the map that saves nothing) */
+  arena?: boolean;
 }
 
 export interface RunState {
@@ -178,6 +189,9 @@ export class GameScene extends Phaser.Scene {
   private endAfterMenu = false;
   /** DEV: "clear area" was pressed; the fight counts as won */
   private devCleared = false;
+  /** DEV: the test arena: started with `arena: true`; its state while it runs */
+  private devArenaOn = false;
+  private devArena: ArenaState | null = null;
 
   constructor() {
     super('Game');
@@ -185,6 +199,7 @@ export class GameScene extends Phaser.Scene {
 
   init(data: GameSceneData): void {
     this.hexKey = data?.hexKey ?? null;
+    this.devArenaOn = isDevMode() && data?.arena === true; // DEV: test arena
   }
 
   create(): void {
@@ -249,8 +264,22 @@ export class GameScene extends Phaser.Scene {
     const saved = loadSave(safeStorage());
     const hexInfo = this.hexKey ? seasonWorld().hexes.get(this.hexKey) : undefined;
     const fireLit = this.hexKey !== null && saved.world.litWatchfires.includes(this.hexKey);
-    const segment = hexInfo ? segmentForHex(hexInfo, saved.world.expeditions, fireLit) : DEFAULT_SEGMENT;
+    let segment = hexInfo ? segmentForHex(hexInfo, saved.world.expeditions, fireLit) : DEFAULT_SEGMENT;
     this.ring = hexInfo?.ring ?? 1;
+    // DEV: the test arena: no goal that ends it, its own ring, every bit of damage measured.
+    this.devArena = this.devArenaOn ? newArenaState() : null;
+    if (this.devArena) {
+      const arena = this.devArena;
+      segment = {
+        ...DEFAULT_SEGMENT,
+        id: 'arena',
+        name: 'Test arena',
+        goal: { kind: 'survive', durationSec: ARENA.durationSec },
+        durationSec: ARENA.durationSec,
+      };
+      this.ring = arena.ring;
+      this.enemies.devOnDamage = (source, amount) => arena.meter.add(source, amount, this.clock);
+    }
     this.enemies.setRing(this.ring);
     // Each biome has its own ground tile; without one, the grey placeholder is tinted instead.
     const groundTile = segment.biome ? GROUND_TEXTURES[segment.biome] : undefined;
@@ -510,9 +539,64 @@ export class GameScene extends Phaser.Scene {
     this.run.hp = this.run.stats.maxHp;
   }
 
-  // DEV: whole screen lit, in god mode and in invincible mode.
+  // DEV: whole screen lit, in god mode, in invincible mode and in the test arena.
   private devFullLight(): boolean {
-    return this.devGodMode() || this.devInvincible();
+    return this.devGodMode() || this.devInvincible() || this.devArenaOn;
+  }
+
+  // DEV: the test arena's state (null outside the arena).
+  devArenaState(): ArenaState | null {
+    return this.devArena;
+  }
+
+  // DEV: switches the arena between a horde and standing dummies; starts the measuring over.
+  devArenaToggleMode(): void {
+    const arena = this.devArena;
+    if (!arena || !this.run.alive) return;
+    arena.mode = arena.mode === 'horde' ? 'dummies' : 'horde';
+    this.enemies.devClearAll();
+    if (arena.mode === 'dummies') this.devPlaceDummies();
+    arena.meter.reset();
+  }
+
+  // DEV: the dummies stand in a circle around the player.
+  private devPlaceDummies(): void {
+    for (const p of dummyPositions(this.player.x, this.player.y)) {
+      this.enemies.devSpawnDummy(ENEMIES.zombie, p.x, p.y);
+    }
+  }
+
+  // DEV: a harder or easier ring (horde and dummies); starts the measuring over.
+  devArenaRing(delta: number): void {
+    const arena = this.devArena;
+    if (!arena) return;
+    arena.ring = stepRing(arena.ring, delta);
+    this.ring = arena.ring;
+    this.enemies.setRing(arena.ring);
+    arena.meter.reset();
+    // Dummies get the health of the new ring.
+    if (arena.mode === 'dummies' && this.run.alive) {
+      this.enemies.devClearAll();
+      this.devPlaceDummies();
+    }
+  }
+
+  // DEV: starts the measuring over (e.g. after changing the build); dummies come back around the player.
+  devArenaReset(): void {
+    const arena = this.devArena;
+    if (!arena) return;
+    arena.meter.reset();
+    arena.falls = 0;
+    if (arena.mode === 'dummies' && this.run.alive) {
+      this.enemies.devClearAll();
+      this.devPlaceDummies();
+    }
+  }
+
+  // DEV: leaves the arena for the village; nothing of it is saved.
+  devLeaveArena(): void {
+    this.scene.stop('UI');
+    this.scene.start('Village');
   }
 
   // DEV: numbers for the dev panel (the game clock stops while paused).
@@ -568,13 +652,76 @@ export class GameScene extends Phaser.Scene {
   // DEV: swaps the main weapon for the next one at level 1, to compare them in the same fight.
   devSwapMainWeapon(): void {
     if (!this.run.alive) return;
-    this.run.loadout = devSwapMainWeapon(this.run.loadout);
+    this.devSetLoadout(devSwapMainWeapon(this.run.loadout));
+  }
+
+  // DEV: takes a new loadout; weapons it no longer has are put away.
+  private devSetLoadout(loadout: Loadout): void {
+    this.run.loadout = loadout;
     for (const [id, weapon] of this.weapons) {
       if (this.run.loadout.weapons[id]) continue;
       weapon.clear?.();
       this.weapons.delete(id);
     }
     this.refreshStats();
+  }
+
+  // DEV: the level for "random build", kept for the session.
+  devBuildLevel(): number {
+    return (this.registry.get('devBuildLevel') as number | undefined) ?? 10;
+  }
+
+  devStepBuildLevel(delta: number): void {
+    this.registry.set('devBuildLevel', Math.min(40, Math.max(1, this.devBuildLevel() + delta)));
+  }
+
+  // DEV: a build as it could come in a real run at the chosen level, with the current main weapon.
+  devRandomBuild(): void {
+    if (!this.run.alive) return;
+    const level = this.devBuildLevel();
+    const main = devMainWeapon(this.run.loadout) ?? START_WEAPON;
+    this.devSetLoadout(randomBuild(createStartLoadout(main), level, Math.random));
+    this.run.level = level;
+    this.run.xp = 0;
+    this.run.hp = this.run.stats.maxHp;
+    this.devArena?.meter.reset();
+  }
+
+  // DEV: saves the arena's current measurement in the log (kept for the session).
+  devArenaLog(): void {
+    const arena = this.devArena;
+    if (!arena) return;
+    const line = logLine({
+      ...arena,
+      now: this.clock,
+      build: buildSummary(this.run.loadout, this.run.level),
+    });
+    this.registry.set('devArenaLog', [...this.devArenaLogLines(), line]);
+    this.numbers.show(this.player.x, this.player.y - 34, 'logged', '#f0abfc', true);
+  }
+
+  devArenaLogLines(): string[] {
+    return (this.registry.get('devArenaLog') as string[] | undefined) ?? [];
+  }
+
+  // DEV: copies the log as text (to paste it somewhere), and writes it to the console as well.
+  devArenaCopy(): void {
+    const text = this.devArenaLogLines().join('\n');
+    console.info(text);
+    const done = (msg: string) => this.numbers.show(this.player.x, this.player.y - 34, msg, '#f0abfc', true);
+    try {
+      navigator.clipboard.writeText(text).then(
+        () => done(`copied ${this.devArenaLogLines().length}`),
+        () => done('copy failed'),
+      );
+    } catch {
+      done('copy failed');
+    }
+  }
+
+  // DEV: empties the log.
+  devArenaClearLog(): void {
+    this.registry.set('devArenaLog', []);
   }
 
   // DEV: wins the fight at once (on the next frame), whatever its goal.
@@ -652,7 +799,9 @@ export class GameScene extends Phaser.Scene {
       desperation: this.run.stats.desperation,
       surge: this.clock < this.surgeUntil ? BOONS.surgeBonus : 0,
     });
-    this.enemies.spawn(dms, this.run.time + this.run.segment.difficultyOffsetSec, this.run.time);
+    if (this.devArena?.mode !== 'dummies') {
+      this.enemies.spawn(dms, this.run.time + this.run.segment.difficultyOffsetSec, this.run.time);
+    } // DEV: no horde while the arena shows dummies
     this.enemies.update();
     for (const [id, weapon] of this.weapons) weapon.update(this.weaponStats[id]!, dms, dt);
     this.pickups.update(dt, this.run.stats.magnet);
@@ -673,6 +822,7 @@ export class GameScene extends Phaser.Scene {
       lit: this.run.lit,
       found: this.run.found,
     };
+    if (this.devArena) return; // DEV: the test arena has no goal
     if (isGoalDone(this.run.segment.goal, goalState) || this.devCleared) this.reachGoal(); // DEV: clear area
   }
 
@@ -833,6 +983,7 @@ export class GameScene extends Phaser.Scene {
     if (
       !e.active ||
       (e.airborne && !landing) ||
+      e.devPinned || // DEV: arena dummies never hurt
       !this.run.alive ||
       this.devGodMode() ||
       this.devInvincible() ||
@@ -857,6 +1008,14 @@ export class GameScene extends Phaser.Scene {
       this.numbers.show(this.player.x, this.player.y - 34, 'second wind!', '#fde047', true);
       return;
     }
+    if (this.run.hp <= 0 && this.devArena) {
+      // DEV: in the test arena falling only counts; health fills up again.
+      this.devArena.falls += 1;
+      this.run.hp = this.run.stats.maxHp;
+      this.player.protect(BOONS.windProtectMs);
+      this.numbers.show(this.player.x, this.player.y - 34, 'fell!', '#f87171', true);
+      return;
+    }
     if (this.run.hp <= 0) {
       this.run.hp = 0;
       this.player.showDefeated();
@@ -867,6 +1026,7 @@ export class GameScene extends Phaser.Scene {
 
   private onEnemyKilled(e: Enemy): void {
     this.run.kills += 1;
+    this.devArena?.meter.kill(this.clock); // DEV: arena meter
     if (Math.random() < BALANCE.healDropChance) this.pickups.drop(e.x, e.y, 'heal', BALANCE.healAmount);
     else this.pickups.drop(e.x, e.y, 'xp', e.def.xp * (e.elite ? ELITE.xp : 1) * this.run.stats.xpGain);
     if (this.run.stats.bloodthirst > 0) this.heal(this.run.stats.bloodthirst);
@@ -997,6 +1157,11 @@ export class GameScene extends Phaser.Scene {
   /** Ends the segment, either cleared or fallen, and reports the result to the HUD. */
   private endRun(outcome: RunOutcome): void {
     if (!this.run.alive) return;
+    if (this.devArena) {
+      // DEV: giving up in the test arena goes home; nothing is saved.
+      this.devLeaveArena();
+      return;
+    }
     this.run.alive = false;
     this.run.outcome = outcome;
     this.player.stop();

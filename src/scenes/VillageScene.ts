@@ -196,10 +196,15 @@ export class VillageScene extends Phaser.Scene {
     // DEV: test buttons; in landscape side by side, in portrait stacked.
     if (isDevMode()) {
       const herbsBtn = this.devButton(right, y + 4 * u);
+      // The test arena: left of the herbs button (in landscape left of "reset save" too).
+      let arenaRight = herbsBtn.x - herbsBtn.width - 10 * u;
       if (SHOW_RESET_BUTTON || isDevMode()) {
-        if (wide) this.resetButton(herbsBtn.x - herbsBtn.width - 10 * u, y + 4 * u);
-        else this.resetButton(right, y + 40 * u);
+        if (wide) {
+          const reset = this.resetButton(arenaRight, y + 4 * u);
+          arenaRight = reset.x - reset.width - 10 * u;
+        } else this.resetButton(right, y + 40 * u);
       }
+      this.arenaButton(arenaRight, y + 4 * u);
     } else if (SHOW_RESET_BUTTON) {
       this.resetButton(right, y + 4 * u);
     }
@@ -519,7 +524,7 @@ export class VillageScene extends Phaser.Scene {
   }
 
   /** Resets the save (needs a second tap within 3 s); device settings stay. */
-  private resetButton(x: number, y: number): void {
+  private resetButton(x: number, y: number): Phaser.GameObjects.Text {
     const armed = this.registry.get('resetArmed') === true;
     const label = armed ? 'Tap again to reset' : 'Reset save';
     const t = this.text(x, y, label, 12, {
@@ -543,6 +548,15 @@ export class VillageScene extends Phaser.Scene {
       writeSave(safeStorage(), emptySave());
       this.scene.restart({});
     });
+    return t;
+  }
+
+  // DEV: starts the test arena (a fight outside the map that saves nothing).
+  private arenaButton(x: number, y: number): void {
+    const t = this.text(x, y, 'DEV  arena', 12, devButtonStyle(this.u)).setOrigin(1, 0);
+    t.setInteractive({ useHandCursor: true }).on('pointerup', () =>
+      this.scene.start('Game', { arena: true }),
+    );
   }
 
   // DEV: a small button that adds 5 of every herb and 50 gold to the stash.

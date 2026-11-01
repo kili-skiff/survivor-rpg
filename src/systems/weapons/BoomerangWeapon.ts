@@ -20,6 +20,8 @@ const WHIRL_SPIN = 2.5;
 const TAU = Math.PI * 2;
 /** Embers stay a bit see-through, so a trail does not cover the fight */
 const EMBER_ALPHA = 0.55;
+/** Embers do nothing besides damage */
+const EMBER_FX: HitEffects = { source: 'embertrail' };
 
 /** How often and when an enemy was hit on one way (Keen Edge allows more than one hit) */
 type Hits = Map<Enemy, { n: number; at: number }>;
@@ -73,7 +75,7 @@ export class BoomerangWeapon implements Weapon {
   /** Throws alternate between bending left and right */
   private nextSide = 1;
   /** What a hit does besides damage; follows the weapon's level */
-  private readonly effects: HitEffects = {};
+  private readonly effects: HitEffects = { source: 'boomerang' };
 
   constructor(private readonly ctx: CombatContext) {
     this.flights = Array.from({ length: POOL }, () => ({
@@ -263,7 +265,7 @@ export class BoomerangWeapon implements Weapon {
       f.tickLeft = MOD.whirl.tickMs;
       for (const e of this.ctx.enemies.active()) {
         if (e.airborne || !this.touches(e, f.image, reach * 1.3)) continue;
-        this.ctx.enemies.hit(e, stats.damage, this.effects, f.image.x, f.image.y);
+        this.ctx.enemies.hit(e, stats.damage, { ...this.effects, source: 'whirl' }, f.image.x, f.image.y);
       }
     }
     // The way back starts fresh, so everything can be hit once more.
@@ -328,7 +330,7 @@ export class BoomerangWeapon implements Weapon {
         if (e.airborne) continue;
         const r = em.radius + e.def.radius;
         if ((e.x - em.image.x) ** 2 + (e.y - em.image.y) ** 2 > r * r) continue;
-        this.ctx.enemies.hit(e, em.damage, {}, em.image.x, em.image.y);
+        this.ctx.enemies.hit(e, em.damage, EMBER_FX, em.image.x, em.image.y);
       }
     }
   }

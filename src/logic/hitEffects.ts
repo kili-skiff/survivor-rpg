@@ -5,6 +5,8 @@ import { HIT_EFFECTS, ITEMS } from '../config/balance';
 
 /** The extra effects of a weapon hit (see WeaponStats). */
 export interface HitEffects {
+  /** What dealt the hit: a weapon or modifier id (for the dev test arena's damage meter) */
+  source?: string;
   knockback?: number;
   splash?: number;
   percent?: number;

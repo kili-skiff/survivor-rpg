@@ -13,7 +13,7 @@ export class ChainWeapon implements Weapon {
   private timer = FIRST_SHOT_DELAY;
   private readonly fx: LightningFx;
   /** What a hit does besides damage; follows the weapon's level */
-  private readonly effects: HitEffects = {};
+  private readonly effects: HitEffects = { source: 'chain' };
   /** Reused every strike */
   private readonly path: number[] = [];
 

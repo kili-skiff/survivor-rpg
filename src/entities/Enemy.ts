@@ -46,6 +46,8 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite implements SwarmAgent {
   landY = 0;
   slowUntil = 0;
   slowFactor = 1;
+  /** DEV: a test-arena dummy: stands still, never hurts, is never moved ahead */
+  devPinned = false;
   flashUntil = 0;
   lastBladeHit = 0;
   lastDashHit = 0;
@@ -112,6 +114,7 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite implements SwarmAgent {
     this.charge = newChargeState(Math.random() * CHARGE_MAX_DELAY_MS);
     this.slowUntil = 0;
     this.slowFactor = 1;
+    this.devPinned = false; // DEV:
     this.flashUntil = 0;
     this.lastBladeHit = 0;
     this.lastDashHit = 0;

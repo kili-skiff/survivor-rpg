@@ -12,7 +12,8 @@ import {
   godModeStats,
   grantTestLoot,
   jumpTo,
-  readoutLabel,
+  readoutParts,
+  randomBuild,
   RollingRate,
   toggleAllDeeds,
 } from './devLogic';
@@ -86,18 +87,19 @@ describe('fps window', () => {
   });
 
   it('formats a readable two-line readout', () => {
-    const label = readoutLabel({ fps: { fps: 59.6, worstMs: 21.4 }, enemies: 187, killsPerMinute: 41.6 });
-    expect(label).toBe('60 fps · worst 21 ms\n187 enemies · 42 kills/min');
+    const parts = readoutParts({ fps: { fps: 59.6, worstMs: 21.4 }, enemies: 187, killsPerMinute: 41.6 });
+    expect(parts.summary).toBe('60 fps · 187 enemies');
+    expect(parts.details).toBe('worst 21 ms · 42 kills/min');
   });
 
   it('adds the pace of the spawn director as a third line', () => {
-    const label = readoutLabel({
+    const parts = readoutParts({
       fps: { fps: 60, worstMs: 16 },
       enemies: 10,
       killsPerMinute: 5,
       director: { phase: 'surge', pressure: 2 },
     });
-    expect(label).toBe('60 fps · worst 16 ms\n10 enemies · 5 kills/min\nsurge · x2.0');
+    expect(parts.details).toBe('worst 16 ms · 5 kills/min\nsurge · x2.0');
   });
 });
 
@@ -174,5 +176,29 @@ describe('dev upgrade picker', () => {
     expect(swapped.weaponSteps?.bolt).toBeUndefined();
     expect(swapped.passives).toEqual({ might: 2 });
     expect(devMainWeapon(devSwapMainWeapon(swapped))).toBe('bolt');
+  });
+});
+
+describe('random build', () => {
+  it('takes one upgrade per level and a modifier at the modifier levels', async () => {
+    const { createStartLoadout } = await import('../logic/stats');
+    const { createRng } = await import('../logic/rng');
+    const start = createStartLoadout('boomerang');
+    const build = randomBuild(start, 12, createRng(3));
+    const levels = (l: Partial<Record<string, number>>) =>
+      Object.values(l).reduce((s, v) => s! + (v ?? 0), 0)!;
+    const steps = levels(build.weapons) + levels(build.passives) + levels(build.skills);
+    // 11 level-ups: 2 modifiers (level 5 and 10) and 9 cards.
+    expect(build.modifiers).toHaveLength(2);
+    expect(steps - levels(start.weapons) - levels(start.skills)).toBe(9);
+    expect(build.weapons.boomerang).toBeGreaterThanOrEqual(1);
+  });
+
+  it('level 1 is the start build, and the same seed gives the same build', async () => {
+    const { createStartLoadout } = await import('../logic/stats');
+    const { createRng } = await import('../logic/rng');
+    const start = createStartLoadout('bolt');
+    expect(randomBuild(start, 1, createRng(1))).toEqual(start);
+    expect(randomBuild(start, 10, createRng(5))).toEqual(randomBuild(start, 10, createRng(5)));
   });
 });

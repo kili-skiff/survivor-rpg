@@ -20,13 +20,21 @@ The world, story and in-game terms (Embers, the Nest, watchfires) are in [docs/l
 - `npm run check` – typecheck, lint, tests and build. **Run before every commit.**
 - `npm run build:single` – everything in one HTML file (dist-single/) for quick sharing
 - Dev mode: on in `npm run dev`, and in any build with `?dev` in the URL (e.g. a PR preview).
-  Test helpers: "+herbs +gold" in the village; "reveal" (fog off on screen only) and "jump here" on the
-  map; in a fight a foldable "DEV" panel (tap its header; it also names the active modes and hides while a
-  menu is open) with "clear area", "god mode" (no damage, much stronger, whole screen lit), "spawn elite" and
-  "level up" (opens a level-up menu), "wild build" (every weapon and item at its highest level), "pick upgrade"
+  Test helpers: "+herbs +gold" and "arena" in the village (the test arena: a fight outside the map that
+  saves nothing, the whole screen lit, no goal; falling only counts and refills health; switch between a
+  horde of a chosen ring and standing dummies; the readout adds damage per second, total damage, kills per
+  minute and the share of each weapon and modifier effect in a box on the right (tap to fold it); "reset", "leave"; "log"
+  saves a measurement with its build, "copy" copies all of them as text; dummies have a normal enemy's health
+  and fill up instead of dying; `dev/arenaLogic.ts`); "reveal" (fog off on screen only) and "jump here" on the
+  map; in a fight a foldable "DEV" panel (its header shows the frame rate and enemies and names the active
+  modes; tapped, it shows the details and the buttons in short groups; it hides while a menu is open) with
+  "clear" (wins the fight), "god" (no damage, much stronger, whole screen lit), "elite" (spawns one) and
+  "level up" (opens a level-up menu), "wild" (every weapon and item at its highest level), "🎲 build L10"
+  with − and + (a random build as a real run could bring at that level: three cards per level-up, one taken
+  the way a typical player leans, a random modifier at modifier levels), "pick upgrade"
   (a paused list of every upgrade that could come now, each weapon level step on its own, and a "mods" tab
   with the modifiers of the main weapon; tap to take it),
-  "main weapon" (swaps the main weapon for the next one at level 1) and
+  "weapon" (swaps the main weapon for the next one at level 1) and
   "invincible" (no damage taken or dealt, whole screen lit; for watching a horde in peace; replaces god mode),
   and a readout that is always visible: FPS (average, worst frame of the last half second; lights up below 50 FPS),
   living enemies, kills per minute (last 30 s) and the spawn director's phase with its pressure; "reset save" in the
@@ -156,7 +164,8 @@ Phase 1, main weapons (the build is the main weapon; weapons from cards are extr
 
 - [x] Main weapons: the armory in the village to choose one before an expedition (free for now, saved as `mainWeapon`), Arcane Bolt and a second one, the boomerang (flies a wide loop out and back, hits both ways; `systems/weapons/BoomerangWeapon.ts`). Main weapons come only from the armory; cards bring their level steps. Dev: "pick upgrade" and "main weapon" to try steps and compare weapons
 - [x] Modifiers for main weapons, like the Daedalus hammer in Hades: at level 5, 10, 15 … a choice of three modifiers of the main weapon replaces the cards (`config/modifiers.ts`, `logic/modifiers.ts`). Bolt: Heavy Bolt or Volley, Ricochet, Spark Chain, Blast Tip, Frost Bolt. Boomerang: Whirl or Undertow, Wide Blade, Orbit, Keen Edge, Ember Trail. Most stack, the opposites exclude each other; values in `MOD`, to be tuned by playing
-- [ ] Extra weapons as extras: tune blades, aura and Chain Lightning back to support the main weapon; a dev test arena that compares weapons (kills per minute, damage per second)
+- [x] A dev test arena that compares weapons: damage per second, kills per minute and the share of each weapon and modifier effect, against a horde of a chosen ring or standing dummies
+- [ ] Extra weapons as extras: tune blades, aura and Chain Lightning back to support the main weapon (measure in the arena first)
 
 Phase 2, lasting progress:
 

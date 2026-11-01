@@ -104,6 +104,8 @@ export class EnemySystem {
 
   /** DEV: while true, nothing hurts enemies (invincible mode); set by the scene. */
   devNoDamage = false;
+  /** DEV: told about every bit of damage dealt (the test arena's meter); `source` names what dealt it */
+  devOnDamage: ((source: string, amount: number) => void) | null = null;
 
   // DEV: spawns one elite of the given type at the edge of the view.
   devSpawnElite(def: EnemyDef, fightTime: number): void {
@@ -118,6 +120,20 @@ export class EnemySystem {
       this.ring.damage * ELITE.damage,
       true,
     );
+  }
+
+  // DEV: a test-arena dummy at (x, y): health like a normal enemy of the ring (so hits that take a share of
+  // health stay fair), but it fills up again instead of dying; it stands still and never hurts.
+  devSpawnDummy(def: EnemyDef, x: number, y: number): void {
+    const e = this.group.get(x, y, def.texture) as Enemy | null;
+    if (!e) return;
+    e.spawn(def, x, y, this.ring.hp, 0, false);
+    e.devPinned = true;
+  }
+
+  // DEV: removes every enemy (switching the test arena's mode).
+  devClearAll(): void {
+    for (const e of this.active()) e.despawn();
   }
 
   /** Sets the difficulty for the ring of this fight's hex. */
@@ -154,9 +170,11 @@ export class EnemySystem {
     return best.map((b) => b.e);
   }
 
-  damage(e: Enemy, amount: number, knockX = 0, knockY = 0, color = '#ffffff'): void {
+  damage(e: Enemy, amount: number, knockX = 0, knockY = 0, color = '#ffffff', source = 'other'): void {
     if (!e.active || e.airborne || this.devNoDamage) return; // DEV: invincible mode deals no damage
+    this.devOnDamage?.(source, e.devPinned ? amount : Math.min(amount, Math.max(0, e.hp))); // DEV: arena meter
     e.hp -= amount;
+    if (e.devPinned && e.hp <= 0) e.hp = e.maxHp; // DEV: arena dummies never die
     e.flashUntil = this.now() + 70;
     e.x += knockX;
     e.y += knockY;
@@ -180,20 +198,21 @@ export class EnemySystem {
     const result = resolveHit(damage, this.mods, e, Math.random);
     const bonus = percentDamage(fx.percent ?? 0, e.maxHp, e.elite);
     const color = result.executed ? '#f87171' : result.crit ? '#fde047' : '#ffffff';
-    this.damage(e, result.damage + bonus, knockX, knockY, color);
+    this.damage(e, result.damage + bonus, knockX, knockY, color, fx.source);
     if (e.active && fx.knockback) {
       const speed = pushSpeed(fx.knockback, e.def.knockResist ?? 0, e.elite);
       addPush(e.push, speed, fromX, fromY, e.x, e.y);
     }
-    if (fx.splash) this.burst(x, y, fx.splash, splashDamage(result.damage), e);
+    if (fx.splash) this.burst(x, y, fx.splash, splashDamage(result.damage), e, fx.source);
   }
 
   /** Hurts every enemy near (x, y) except `skip`, with a ring to show where. */
-  private burst(x: number, y: number, radius: number, amount: number, skip: Enemy): void {
+  private burst(x: number, y: number, radius: number, amount: number, skip: Enemy, source?: string): void {
     this.bursts.add(x, y, radius);
     for (const n of this.active()) {
       if (n === skip || n.airborne) continue;
-      if (inBurst(Math.hypot(n.x - x, n.y - y), n.radius, radius)) this.damage(n, amount);
+      if (inBurst(Math.hypot(n.x - x, n.y - y), n.radius, radius))
+        this.damage(n, amount, 0, 0, '#ffffff', source);
     }
   }
 
@@ -295,6 +314,13 @@ export class EnemySystem {
     }
 
     for (const e of this.active()) {
+      if (e.devPinned) {
+        // DEV: test-arena dummies stand still.
+        e.setVelocity(0, 0);
+        e.push.x = 0;
+        e.push.y = 0;
+        continue;
+      }
       const dx = px - e.x;
       const dy = py - e.y;
       const d = Math.hypot(dx, dy) || 1;

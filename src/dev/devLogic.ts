@@ -12,8 +12,14 @@ import type { SaveData } from '../logic/save';
 import type { World } from '../logic/worldgen';
 import type { Loadout } from '../logic/stats';
 import { remainingSteps } from '../logic/stats';
-import { availableModifiers } from '../logic/modifiers';
-import { availableUpgrades, describeUpgrade, type UpgradeOption } from '../logic/upgrades';
+import { availableModifiers, isModifierLevel, rollModifierOptions } from '../logic/modifiers';
+import {
+  applyUpgrade,
+  availableUpgrades,
+  describeUpgrade,
+  rollUpgradeOptions,
+  type UpgradeOption,
+} from '../logic/upgrades';
 import { isLit, walkTo } from '../logic/worldProgress';
 
 /** Adds `amount` of every herb and `gold` gold to the stash. */
@@ -124,14 +130,64 @@ export interface DevReadout {
   director?: { phase: string; pressure: number };
 }
 
-/** The lines of the dev readout: frame rate, the state of the fight and the pace of the spawn director. */
-export function readoutLabel(r: DevReadout): string {
-  const lines = [
-    `${Math.round(r.fps.fps)} fps · worst ${Math.round(r.fps.worstMs)} ms`,
-    `${r.enemies} enemies · ${Math.round(r.killsPerMinute)} kills/min`,
-  ];
-  if (r.director) lines.push(`${r.director.phase} · x${r.director.pressure.toFixed(1)}`);
-  return lines.join('\n');
+/**
+ * The dev readout in two parts: a short summary that sits in the panel's header (frame rate, enemies),
+ * and the details shown when the panel is open (worst frame, kills per minute, the spawn director's pace).
+ */
+export function readoutParts(r: DevReadout): { summary: string; details: string } {
+  const details = [`worst ${Math.round(r.fps.worstMs)} ms · ${Math.round(r.killsPerMinute)} kills/min`];
+  if (r.director) details.push(`${r.director.phase} · x${r.director.pressure.toFixed(1)}`);
+  return {
+    summary: `${Math.round(r.fps.fps)} fps · ${r.enemies} enemies`,
+    details: details.join('\n'),
+  };
+}
+
+/**
+ * A build as it could come in a real run: every level-up from 2 to `level` draws three cards and takes one
+ * of them at random; at modifier levels a random modifier of the main weapon is taken instead. One-time
+ * cards are left out (they leave nothing in the build).
+ */
+export function randomBuild(start: Loadout, level: number, rng: () => number): Loadout {
+  let loadout = start;
+  for (let l = 2; l <= level; l++) {
+    if (isModifierLevel(l)) {
+      const mods = rollModifierOptions(loadout, rng);
+      if (mods.length > 0) {
+        loadout = applyUpgrade(loadout, {
+          kind: 'modifier',
+          id: mods[Math.floor(rng() * mods.length) % mods.length],
+        });
+        continue;
+      }
+    }
+    const options = rollUpgradeOptions(loadout, rng, 3, false);
+    loadout = applyUpgrade(loadout, pickLikeAPlayer(options, loadout, rng));
+  }
+  return loadout;
+}
+
+/** How much a typical player prefers a kind of card: their main weapon first, then their other weapons. */
+const PLAYER_TASTE = { mainWeapon: 3, ownWeapon: 2, newWeapon: 1.2, item: 1, skill: 0.8 };
+
+/** Picks one of the offered cards, leaning the way a typical player would (see PLAYER_TASTE). */
+function pickLikeAPlayer(options: UpgradeOption[], loadout: Loadout, rng: () => number): UpgradeOption {
+  const main = devMainWeapon(loadout);
+  const weight = (o: UpgradeOption): number => {
+    if (o.kind === 'weapon') {
+      if (o.id === main) return PLAYER_TASTE.mainWeapon;
+      return o.toLevel > 1 ? PLAYER_TASTE.ownWeapon : PLAYER_TASTE.newWeapon;
+    }
+    if (o.kind === 'skill') return PLAYER_TASTE.skill;
+    return PLAYER_TASTE.item;
+  };
+  const total = options.reduce((s, o) => s + weight(o), 0);
+  let roll = rng() * total;
+  for (const o of options) {
+    roll -= weight(o);
+    if (roll < 0) return o;
+  }
+  return options[options.length - 1];
 }
 
 /** One entry of the dev upgrade list. */
