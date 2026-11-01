@@ -61,6 +61,8 @@ const FOG_EDGE = 0x2b2638;
 const VILLAGE_FILL = 0x8a6a2a;
 /** Pointer movement (in CSS px) after which a touch counts as dragging the map */
 const DRAG_THRESHOLD = 8;
+/** How long "Return to village" must be held, so a stray tap never ends the expedition (ms) */
+const HOLD_TO_CONFIRM_MS = 1000;
 /** Map zoom limits (1 = default size) */
 const MIN_ZOOM = 0.5;
 const MAX_ZOOM = 2.5;
@@ -126,6 +128,8 @@ export class WorldMapScene extends Phaser.Scene {
   private fog!: MapFog;
   private marker!: Phaser.GameObjects.Image;
   private hud: Phaser.GameObjects.GameObject[] = [];
+  /** The running fill of a hold-to-confirm button, if one is being held */
+  private holdTween: Phaser.Tweens.Tween | null = null;
   private drag: DragState | null = null;
   /** Touch points on the map by pointer id, for two-finger zoom */
   private touches = new Map<number, { x: number; y: number }>();
@@ -267,6 +271,8 @@ export class WorldMapScene extends Phaser.Scene {
     this.scale.on('resize', this.onResize, this);
     this.events.once('shutdown', () => {
       this.scale.off('resize', this.onResize, this);
+      this.holdTween?.remove();
+      this.holdTween = null;
       this.introPanel?.destroy();
       this.introPanel = null;
     });
@@ -809,6 +815,8 @@ export class WorldMapScene extends Phaser.Scene {
   }
 
   private buildHud(): void {
+    this.holdTween?.remove();
+    this.holdTween = null;
     for (const o of this.hud) o.destroy();
     this.hud = [];
     const { width: W, height: H } = this.scale;
@@ -869,11 +877,12 @@ export class WorldMapScene extends Phaser.Scene {
       });
     }
     if (info.action) {
+      const { label, run, hold } = info.action;
       if (this.isWide()) {
         const right = W - this.sa.right - 16 * u;
-        this.button(right - 110 * u, panelY + 52 * u, info.action.label, info.action.run);
+        this.button(right - 110 * u, panelY + 52 * u, label, run, hold);
       } else {
-        this.button(W / 2, panelY + 138 * u, info.action.label, info.action.run);
+        this.button(W / 2, panelY + 138 * u, label, run, hold);
       }
     }
   }
@@ -942,7 +951,8 @@ export class WorldMapScene extends Phaser.Scene {
     goalIcon?: string;
     /** Symbol of the reward, next to the goal's */
     rewardIcon?: string;
-    action?: { label: string; run: () => void };
+    /** `hold`: the button must be held down for a moment before it runs */
+    action?: { label: string; run: () => void; hold?: boolean };
   } {
     const progress = this.save.world;
     if (!this.selected && isAtHome(progress)) {
@@ -952,7 +962,7 @@ export class WorldMapScene extends Phaser.Scene {
         action: { label: 'Enter village', run: () => this.enterVillage() },
       };
     }
-    const goHome = { label: 'Return to village', run: () => this.goHome() };
+    const goHome = { label: 'Return to village', run: () => this.goHome(), hold: true };
     if (!this.selected) {
       return {
         title: 'Choose your path',
@@ -1002,7 +1012,7 @@ export class WorldMapScene extends Phaser.Scene {
         kind === 'walk'
           ? { label: 'Go home', run: () => this.walkHome(h.hex) }
           : kind === 'teleport'
-            ? { label: 'Return to village', run: () => this.teleport(h.hex) }
+            ? { label: 'Return to village', run: () => this.teleport(h.hex), hold: true }
             : undefined;
       return {
         title: 'Village',
@@ -1068,21 +1078,62 @@ export class WorldMapScene extends Phaser.Scene {
     };
   }
 
-  private button(x: number, y: number, label: string, onClick: () => void): void {
+  /** A panel button. With `hold` it runs only after being held down for HOLD_TO_CONFIRM_MS. */
+  private button(x: number, y: number, label: string, onClick: () => void, hold = false): void {
     const u = this.u;
     const w = 220 * u;
     const h = 48 * u;
     const g = this.fixed(this.add.graphics().setDepth(11));
-    const draw = (hover: boolean) => {
+    /** progress 0..1 is the share of the hold that is done; it fills the button from the left */
+    const draw = (hover: boolean, progress = 0) => {
       g.clear();
       g.fillStyle(COLORS.accent, hover ? 1 : 0.92).fillRoundedRect(x - w / 2, y - h / 2, w, h, 12 * u);
+      if (progress > 0) {
+        // Darker bar inside the button, clipped to rounded corners by staying inset.
+        g.fillStyle(0x1c1917, 0.35).fillRoundedRect(
+          x - w / 2,
+          y - h / 2,
+          Math.max(w * progress, 12 * u),
+          h,
+          12 * u,
+        );
+      }
     };
     draw(false);
-    this.text(x, y, label, 17, { fontStyle: 'bold', color: '#1c1917' }).setOrigin(0.5).setDepth(12);
+    this.text(x, y, hold ? `Hold: ${label}` : label, hold ? 15 : 17, {
+      fontStyle: 'bold',
+      color: '#1c1917',
+    })
+      .setOrigin(0.5)
+      .setDepth(12);
     const zone = this.fixed(this.add.zone(x, y, w, h).setDepth(13).setInteractive({ useHandCursor: true }));
     zone.on('pointerover', () => draw(true));
-    zone.on('pointerout', () => draw(false));
-    zone.on('pointerup', onClick);
+    if (!hold) {
+      zone.on('pointerout', () => draw(false));
+      zone.on('pointerup', onClick);
+      return;
+    }
+    const cancel = () => {
+      this.holdTween?.remove();
+      this.holdTween = null;
+      draw(false);
+    };
+    zone.on('pointerdown', () => {
+      this.holdTween?.remove();
+      this.holdTween = this.tweens.addCounter({
+        from: 0,
+        to: 1,
+        duration: HOLD_TO_CONFIRM_MS,
+        onUpdate: (tween) => draw(true, tween.getValue() ?? 0),
+        onComplete: () => {
+          this.holdTween = null;
+          onClick();
+        },
+      });
+    });
+    // Letting go or sliding off the button cancels; nothing happens on a short tap.
+    zone.on('pointerup', cancel);
+    zone.on('pointerout', cancel);
   }
 
   // ---------------------------------------------------------------- input & actions
