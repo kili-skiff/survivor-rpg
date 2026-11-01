@@ -131,11 +131,20 @@ playable in the fight area (e.g. walking up to a shrine), or a mix.
 
 One character for everyone; weapons are the build, in the spirit of Hades (decided, not built yet).
 
-- **Main weapon:** chosen in the village before an expedition (e.g. sword, bow, staff). It decides
-  the play style and replaces classes.
+- **Main weapon:** chosen in the village (the armory) before an expedition. It decides the play style,
+  replaces classes and is the heart of the build. First two: **Arcane Bolt** (ranged, aims itself) and
+  the **boomerang** (flies out and back and hits both ways, also behind you). Later e.g. sword (swings
+  in an arc in front of you) and spear (pierces a line). Free to choose for now; further main weapons
+  are unlocked with weapon fragments that bosses drop.
+- **Modifiers** for the main weapon (decided, not built yet), like the Daedalus hammer in Hades: cards
+  that change how the weapon behaves, not just its numbers. Bolt: split, ricochet, homing, heavy bolt or
+  volley. Boomerang: two at once, spinning at the turn or pulling enemies in, a wide curve. Most of them
+  stack (wild builds); a few true opposites exclude each other, so there are real choices.
+- **Extra weapons from cards** (blades, aura, Chain Lightning; later e.g. a mortar or a fire trail) are
+  extras for more cleave: they support the main weapon, they do not replace it.
 - **Special skill per weapon:** each main weapon brings its own active skill (e.g. Frost Nova on the
   staff). The dash stays universal.
-- **During a run:** level-up cards still offer extra weapons and upgrades, as today.
+- **During a run:** level-up cards offer modifiers and levels for the main weapon, extra weapons and items.
 - **Permanent:** ores upgrade your main weapons at the blacksmith.
 - **New weapons:** weapon fragments dropped by elites, bosses and special places. Brought home, the
   blacksmith forges them into new weapons or variants (like weapon aspects in Hades).
@@ -339,6 +348,35 @@ rule set in `config/` plus its check in `logic/`; the fight only reports progres
   panel at a door. Only the way to get there changes.
 - On phones walking is slower than tapping, so the walkable village probably needs shortcuts
   (e.g. a button that takes you straight to a building).
+
+## Long-term motivation
+
+Why players go out into the world again and again (brainstorm, November 2026). Getting further and
+stronger is the core, but on its own it wears off; it works when there is often something new to find.
+Three layers:
+
+1. **One run:** the build and choices along the way (hex rewards, cards, modifiers).
+2. **The next runs: "what new thing do I get?"** Main weapons with modifiers, embers with permanent
+   upgrades and unlocks, rescued villagers who make the village grow.
+3. **The big goal:** bosses per biome, the old tower; later challenge levels after it.
+
+Picked for now (see the roadmap in `CLAUDE.md`): main weapons with modifiers, embers with an ember shop,
+rescuing villagers, bosses that drop weapon fragments, the tower as the goal.
+
+**Parked ideas** (no plan yet, picked up when the above is played):
+
+- _Weapon evolutions_ like in Vampire Survivors (a maxed weapon and a matching item become a new
+  weapon, e.g. Chain Lightning + Volatile Hits = Thunderstorm). Modifiers do much the same for now.
+- _Unlocks by playing:_ "kill 500 ghouls" unlocks an item, "win a fight with blades only" a variant.
+- _Errands and rumours_ from villagers ("bring 5 moonblooms from the mire", "a light was seen in the east").
+- _Places with a story in each direction_ (the herb witch's hut, the mine, the crypt; see below).
+- _Bestiary, herbarium and card codex,_ each entry with a bit of lore and a small bonus.
+- _Bounties_ on special elites.
+- _Challenge levels_ after the tower, like Heat in Hades or Ascension in Slay the Spire.
+- _The dark creeps back:_ far watchfires flicker and must be lit again now and then, or an area grows
+  dark and pays more.
+- _An endless map_ for "how far can I get", e.g. "the deep dark" beyond the tower, with records.
+- _More extra weapons:_ mortar, fire trail, will-o'-wisps, a ward circle.
 
 ## Progression: guiding goal and ideas
 
