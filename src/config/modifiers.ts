@@ -51,7 +51,7 @@ export const MOD = {
   pull: { speed: 260 },
   wide: { area: 0.5 },
   /** Circles the player once before it is caught, at this distance (px, before area), with a share of the damage */
-  orbit: { radius: 70, damageMul: 0.5 },
+  orbit: { radius: 70, damageMul: 0.3 },
   /** Hits per enemy on each way, and the time between two hits on the same enemy (ms) */
   keen: { hits: 2, gapMs: 250 },
   /** An ember every `step` px, burning for `ms`; every `tickMs` it deals `share` of the damage within `radius` */
@@ -130,7 +130,7 @@ export const MODIFIERS: Record<ModifierId, ModifierDef> = {
     id: 'orbit',
     weapon: 'boomerang',
     name: 'Orbit',
-    description: 'Circles you once before you catch it, hitting for half damage',
+    description: 'Circles you once before you catch it, hitting for 30% damage',
     texture: 'icon-mod-orbit',
   },
   keen: {
