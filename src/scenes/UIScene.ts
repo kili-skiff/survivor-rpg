@@ -1573,8 +1573,9 @@ export class UIScene extends Phaser.Scene {
       const lost = r.lootLost ? Object.values(r.lootLost).reduce((a, b) => a + b, 0) : 0;
       return `Expedition lost. You wake up in the village${lost > 0 ? ` and lost ${lost} ${lost === 1 ? 'item' : 'items'}` : ''}.`;
     }
-    if (r.litWatchfire) return 'Watchfire lit: the land around it is revealed.';
-    if (r.rested) return 'Camp reached: fully healed, waypoint unlocked.';
+    if (r.litWatchfire)
+      return 'Watchfire lit: the land around it is revealed, you are healed and can travel here.';
+    if (r.rested) return 'Rested at the watchfire: fully healed.';
     return 'Your expedition continues.';
   }
 
@@ -1665,13 +1666,26 @@ export class UIScene extends Phaser.Scene {
     ).setOrigin(0.5, 0);
     y += summary.height;
     const mapLabel = this.isTouch ? 'Back to map' : 'Back to map (Enter)';
-    if (!this.gs.canReturnHome()) {
+    const home = this.gs.homeWayAfterFight();
+    if (!this.gs.canReturnHome() || home.way === 'none') {
+      // Won far out without a Phoenix Feather: say how to get home.
+      if (this.gs.canReturnHome()) {
+        const hint = this.text(
+          W / 2,
+          y + 12 * u,
+          'No Phoenix Feather: go home from a lit watchfire or next to the village.',
+          12,
+          { color: '#a1a1aa', align: 'center', wordWrap: { width: W - 48 * u } },
+        ).setOrigin(0.5, 0);
+        y += hint.height + 12 * u;
+      }
       const buttonY = Math.min(Math.max(y + 50 * u, H * 0.72), H - this.sa.bottom - 34 * u);
       this.button(W / 2, buttonY, mapLabel, () => this.gs.returnToMap());
       return;
     }
-    // Won on an expedition: move on, or go home with all the loot.
-    const homeLabel = 'Hold to go home';
+    // Won on an expedition: move on, or go home with all the loot (far out it burns a Phoenix Feather).
+    const homeLabel =
+      home.way === 'free' ? 'Hold to go home' : `Hold: Phoenix Feather (${home.feathers} left)`;
     const homeHoldMs = 600;
     if (wide) {
       const buttonY = Math.min(Math.max(y + 46 * u, H * 0.72), H - this.sa.bottom - 34 * u);

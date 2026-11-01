@@ -73,3 +73,13 @@ export const EMBERS = {
 
 /** Loot key under which embers are kept in the stash */
 export const EMBER_KEY = 'embers';
+
+/**
+ * Phoenix Feather: takes you home with everything you carry after a won fight, from anywhere. Next to the
+ * village and at a lit watchfire going home is free. It is no escape from a fight in progress.
+ */
+export const PHOENIX_FEATHER = {
+  price: 30,
+  /** How many you can carry */
+  max: 3,
+};

@@ -1,6 +1,12 @@
 import * as Phaser from 'phaser';
 import { HERBS } from '../config/herbs';
-import { HERB_PRICES, LANTERN_TIERS, RECIPE_PRICES, type LanternTier } from '../config/merchant';
+import {
+  HERB_PRICES,
+  LANTERN_TIERS,
+  PHOENIX_FEATHER,
+  RECIPE_PRICES,
+  type LanternTier,
+} from '../config/merchant';
 import { POTION_IDS, POTIONS } from '../config/potions';
 import type { HerbId, PotionId } from '../config/types';
 import type { Loot } from '../logic/expedition';
@@ -12,7 +18,10 @@ export interface MerchantPanelOptions {
   stash: Loot;
   lanternLevel: number;
   recipes: readonly PotionId[];
+  /** Phoenix Feathers carried */
+  feathers: number;
   onBuyLantern(): void;
+  onBuyFeather(): void;
   onBuyRecipe(id: PotionId): void;
   onSellHerb(id: HerbId): void;
   onClose(): void;
@@ -21,7 +30,7 @@ export interface MerchantPanelOptions {
 const EMBER_COLOR = '#fdba74';
 
 /**
- * The merchant: lantern upgrades, potion recipes, and buying your herbs for embers.
+ * The merchant: lantern upgrades, Phoenix Feathers, potion recipes, and buying your herbs for embers.
  * A panel on top of any scene (rule 12); rebuild it whenever the save changes.
  */
 export class MerchantPanel {
@@ -61,15 +70,19 @@ export class MerchantPanel {
     const gap = 12 * u;
     if (wide) {
       const colW = (right - left - gap * 2) / 3;
-      this.lanternCard(left, y0, colW, bottom - y0);
+      const featherH = 112 * u;
+      this.lanternCard(left, y0, colW, bottom - y0 - featherH - gap);
+      this.featherCard(left, bottom - featherH, colW, featherH);
       this.recipeCard(left + colW + gap, y0, colW, bottom - y0);
       this.sellCard(left + (colW + gap) * 2, y0, colW, bottom - y0);
     } else {
       const lanternH = 132 * u;
+      const featherH = 86 * u;
       const recipeH = 46 * u + (POTION_IDS.length - 1) * 44 * u;
       this.lanternCard(left, y0, right - left, lanternH);
-      this.recipeCard(left, y0 + lanternH + gap, right - left, recipeH);
-      const sy = y0 + lanternH + recipeH + gap * 2;
+      this.featherCard(left, y0 + lanternH + gap, right - left, featherH);
+      this.recipeCard(left, y0 + lanternH + featherH + gap * 2, right - left, recipeH);
+      const sy = y0 + lanternH + featherH + recipeH + gap * 3;
       this.sellCard(left, sy, right - left, bottom - sy);
     }
   }
@@ -116,6 +129,40 @@ export class MerchantPanel {
       `Buy · ${next.price}`,
       affordable,
       () => this.opts.onBuyLantern(),
+    );
+  }
+
+  /** Phoenix Feathers: each takes you home from anywhere after a won fight. */
+  private featherCard(x: number, y: number, w: number, h: number): void {
+    const { u } = this.frame;
+    this.card(x, y, w, h, 'Phoenix Feather');
+    this.track(
+      this.scene.add
+        .image(x + w - 26 * u, y + 22 * u, 'icon-feather')
+        .setDisplaySize(26 * u, 26 * u)
+        .setDepth(102),
+    );
+    const n = this.opts.feathers;
+    const bw = 120 * u;
+    this.text(
+      x + 12 * u,
+      y + 34 * u,
+      `Home from anywhere after a won fight. You carry ${n}/${PHOENIX_FEATHER.max}.`,
+      12,
+      {
+        color: '#a1a1aa',
+        wordWrap: { width: w - 24 * u - (h < 100 * u ? bw + 8 * u : 0) },
+      },
+    );
+    const full = n >= PHOENIX_FEATHER.max;
+    this.smallButton(
+      x + w - 12 * u - bw / 2,
+      y + h - 12 * u - 18 * u,
+      bw,
+      36 * u,
+      full ? 'Full' : `Buy · ${PHOENIX_FEATHER.price}`,
+      !full && embersOf(this.opts.stash) >= PHOENIX_FEATHER.price,
+      () => this.opts.onBuyFeather(),
     );
   }
 

@@ -8,7 +8,7 @@ import type { BiomeDef, BiomeId, PoiDef, PoiId } from './types';
 export const SEASON = {
   id: 2,
   seed: 'nightwatch-season-2',
-  generatorVersion: 6,
+  generatorVersion: 7,
 } as const;
 
 export const WORLD = {
@@ -20,11 +20,13 @@ export const WORLD = {
   herbMinRing: 2,
   /** Points of interest never stand next to each other: minimum distance between any two */
   poiMinGap: 2,
-  /** Watchfires: one per direction (the map is split into this many slices around the village) */
-  watchfires: 6,
-  /** Ring range for watchfires */
-  watchfireRingMin: 4,
-  watchfireRingMax: 7,
+  /** Watchfires: the map is split into this many slices around the village, with one fire per slice in each band */
+  watchfireSlices: 6,
+  /** Ring ranges for the watchfires of a slice: one closer, one further out (a first one stands on the road) */
+  watchfireBands: [
+    [3, 5],
+    [6, 8],
+  ],
   /** Lighting a watchfire reveals every hex within this distance */
   watchfireRevealRadius: 3,
   /**
@@ -58,11 +60,11 @@ export const BIOMES: Record<BiomeId, BiomeDef> = {
 
 export const POIS: Record<PoiId, PoiDef> = {
   village: { id: 'village', name: 'Village', glyph: 'V', minRing: 0, chance: 0, minSpacing: 0 },
-  camp: { id: 'camp', name: 'Camp', glyph: 'C', minRing: 1, chance: 0.07, minSpacing: 3 },
   merchant: { id: 'merchant', name: 'Merchant', glyph: 'M', minRing: 2, chance: 0.025, minSpacing: 5 },
   dungeon: { id: 'dungeon', name: 'Dungeon', glyph: 'D', minRing: 3, chance: 0.03, minSpacing: 4 },
   // Exactly one, in the outermost ring: the goal of the first quest. Its gate is sealed for now.
   tower: { id: 'tower', name: 'Old Tower', glyph: 'T', minRing: 0, chance: 0, minSpacing: 0 },
-  // One per direction; their glow shows through the fog, lighting one reveals the land around it.
-  watchfire: { id: 'watchfire', name: 'Watchfire', glyph: 'W', minRing: 4, chance: 0, minSpacing: 4 },
+  // Two per direction and one on the road; their glow shows through the fog. Lit, they reveal the land
+  // around them, heal you and are waypoints: travel there from the village and home from there.
+  watchfire: { id: 'watchfire', name: 'Watchfire', glyph: 'W', minRing: 2, chance: 0, minSpacing: 3 },
 };

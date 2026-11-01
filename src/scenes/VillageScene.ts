@@ -8,7 +8,7 @@ import type { HerbDef, PotionId } from '../config/types';
 import { grantTestLoot, toggleAllDeeds } from '../dev/devLogic'; // DEV:
 import { lootCount, type Loot } from '../logic/expedition';
 import { beltCount, brew, packPotion, unpackPotion } from '../logic/potions';
-import { acceptTowerQuest, questsOnArrival, scoutAvailable, talkToScout } from '../logic/quests';
+import { acceptTowerQuest, questsOnArrival } from '../logic/quests';
 import { emptySave, loadSave, safeStorage, writeSave, type SaveData } from '../logic/save';
 import { CauldronPanel } from '../panels/CauldronPanel';
 import { DeedsPanel } from '../panels/DeedsPanel';
@@ -16,7 +16,7 @@ import { ArmoryPanel } from '../panels/ArmoryPanel';
 import { WEAPONS } from '../config/weapons';
 import { DEEDS } from '../config/deeds';
 import { MerchantPanel } from '../panels/MerchantPanel';
-import { buyLantern, buyRecipe, embersOf, embersText, sellHerb } from '../logic/merchant';
+import { buyFeather, buyLantern, buyRecipe, embersOf, embersText, sellHerb } from '../logic/merchant';
 import { EMBER_KEY } from '../config/merchant';
 import { DialoguePanel, type DialoguePanelOptions } from '../panels/DialoguePanel';
 import { devButtonStyle, isDevMode } from '../dev/devMode'; // DEV:
@@ -121,47 +121,33 @@ export class VillageScene extends Phaser.Scene {
     this.commit({ ...this.save, quests: acceptTowerQuest(this.save.quests) });
   }
 
-  private hearScout(): void {
-    this.commit({ ...this.save, quests: talkToScout(this.save.quests) });
-  }
-
   /** What a villager says right now, and the buttons below it. */
   private dialogue(id: VillagerId): DialoguePanelOptions {
     const v = VILLAGERS[id];
     const q = this.save.quests;
     const close = { label: 'Close', onClick: () => this.showPanel(null) };
     const base = { name: v.name, role: v.role, color: v.color };
-    if (id === 'elder') {
-      if (q.tower === 'offered') {
-        return {
-          ...base,
-          text: TOWER_QUEST.elder.offered,
-          buttons: [
-            { label: 'Not now', onClick: () => this.showPanel(null) },
-            { label: 'I will find it', primary: true, onClick: () => this.acceptQuest() },
-          ],
-        };
-      }
-      // Before the tower quest comes up, the elder talks about the watchfires.
-      if (q.tower === 'none' && q.fire !== 'offered') {
-        return { ...base, text: FIRE_QUEST.elder[q.fire === 'done' ? 'done' : 'active'], buttons: [close] };
-      }
-      return { ...base, text: TOWER_QUEST.elder[q.tower], buttons: [close] };
-    }
-    if (!q.scoutTalked) {
+    if (q.tower === 'offered') {
       return {
         ...base,
-        text: TOWER_QUEST.scout.first,
-        buttons: [{ label: 'Thanks', primary: true, onClick: () => this.hearScout() }],
+        text: TOWER_QUEST.elder.offered,
+        buttons: [
+          { label: 'Not now', onClick: () => this.showPanel(null) },
+          { label: 'I will find it', primary: true, onClick: () => this.acceptQuest() },
+        ],
       };
     }
-    return { ...base, text: TOWER_QUEST.scout.after, buttons: [close] };
+    // Before the tower quest comes up, the elder talks about the watchfires.
+    if (q.tower === 'none' && q.fire !== 'offered') {
+      return { ...base, text: FIRE_QUEST.elder[q.fire === 'done' ? 'done' : 'active'], buttons: [close] };
+    }
+    return { ...base, text: TOWER_QUEST.elder[q.tower], buttons: [close] };
   }
 
   /** A villager has something new to say. */
   private hasNews(id: VillagerId): boolean {
     const q = this.save.quests;
-    return id === 'elder' ? q.tower === 'offered' : scoutAvailable(q) && !q.scoutTalked;
+    return id === 'elder' && q.tower === 'offered';
   }
 
   private unpack(id: PotionId): void {
@@ -272,6 +258,11 @@ export class VillageScene extends Phaser.Scene {
           stash: this.save.stash,
           lanternLevel: this.save.lanternLevel,
           recipes: this.save.recipes,
+          feathers: this.save.feathers,
+          onBuyFeather: () => {
+            const r = buyFeather(this.save.stash, this.save.feathers);
+            if (r) this.commit({ ...this.save, stash: r.stash, feathers: r.feathers });
+          },
           onBuyLantern: () => {
             const r = buyLantern(this.save.stash, this.save.lanternLevel);
             if (r) this.commit({ ...this.save, stash: r.stash, lanternLevel: r.level });
@@ -518,7 +509,7 @@ export class VillageScene extends Phaser.Scene {
 
     // Villagers: tap to talk; a "!" means they have something new to say.
     y += h + gap;
-    const villagers: VillagerId[] = scoutAvailable(this.save.quests) ? ['elder', 'scout'] : ['elder'];
+    const villagers: VillagerId[] = ['elder'];
     const vw = (x1 - x0 - gap) / 2;
     villagers.forEach((id, i) => {
       const v = VILLAGERS[id];

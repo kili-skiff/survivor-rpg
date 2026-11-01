@@ -3,6 +3,7 @@
 import {
   EMBERS,
   EMBER_KEY,
+  PHOENIX_FEATHER,
   HERB_PRICES,
   LANTERN_TIERS,
   RECIPE_PRICES,
@@ -84,4 +85,10 @@ export function sellHerb(stash: Loot, id: HerbId): Loot | null {
   if (n - 1 > 0) out[id] = n - 1;
   else delete out[id];
   return out;
+}
+
+/** Buys a Phoenix Feather. Null when you carry the most already or it is too dear. */
+export function buyFeather(stash: Loot, feathers: number): { stash: Loot; feathers: number } | null {
+  if (feathers >= PHOENIX_FEATHER.max || embersOf(stash) < PHOENIX_FEATHER.price) return null;
+  return { stash: withEmbers(stash, embersOf(stash) - PHOENIX_FEATHER.price), feathers: feathers + 1 };
 }

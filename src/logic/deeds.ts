@@ -25,10 +25,11 @@ export function deedMet(def: DeedDef, save: SaveData, world: World): boolean {
   switch (c.kind) {
     case 'ring':
       return furthestRing(save, world) >= c.ring;
-    case 'camps':
-      return save.world.waypoints.length >= c.count;
-    case 'watchfires':
-      return save.world.litWatchfires.length >= c.count;
+    case 'watchfires': {
+      const total = [...world.hexes.values()].filter((h) => h.poi === 'watchfire').length;
+      const need = c.count === 'all' ? total : Math.min(c.count, total);
+      return need > 0 && save.world.litWatchfires.length >= need;
+    }
     case 'tower':
       return save.quests.tower === 'done';
   }

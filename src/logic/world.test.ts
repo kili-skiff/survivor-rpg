@@ -92,8 +92,8 @@ describe('world generation', () => {
       for (const h of world.hexes.values()) {
         if (h.poi && h.poi !== 'village') expect(h.ring).toBeGreaterThanOrEqual(POIS[h.poi].minRing);
       }
-      const earlyCamp = [...world.hexes.values()].some((h) => h.poi === 'camp' && h.ring <= 2);
-      expect(earlyCamp).toBe(true);
+      const earlyFire = [...world.hexes.values()].some((h) => h.poi === 'watchfire' && h.ring <= 2);
+      expect(earlyFire).toBe(true);
     }
   });
 
@@ -142,38 +142,46 @@ describe('world generation', () => {
     }
   });
 
-  it('places one tower in the outer ring and a camp near the village towards it', () => {
+  it('places one tower in the outer ring and a watchfire near the village towards it', () => {
     for (let s = 0; s < 30; s++) {
       const world = generateWorld(`seed-${s}`, SEASON.generatorVersion);
       const towers = [...world.hexes.values()].filter((h) => h.poi === 'tower');
       expect(towers.map((h) => h.key)).toEqual([world.tower]);
       expect(towers[0].ring).toBe(world.radius);
       expect(towers[0].herbs).toBe(false);
-      const camp = world.hexes.get(world.roadCamp!)!;
-      expect(camp.poi).toBe('camp');
-      expect(camp.ring).toBe(2);
+      const road = world.hexes.get(world.roadFire!)!;
+      expect(road.poi).toBe('watchfire');
+      expect(road.ring).toBe(2);
       // It lies on the tower's side of the village: closer to the tower than the village is.
-      expect(hexDistance(camp.hex, towers[0].hex)).toBeLessThan(world.radius);
+      expect(hexDistance(road.hex, towers[0].hex)).toBeLessThan(world.radius);
     }
   });
 
-  it('places one watchfire in each direction', () => {
+  it('places a closer and a further watchfire in each direction, spaced apart', () => {
+    const bands = WORLD.watchfireBands.length;
+    const slices = WORLD.watchfireSlices;
     for (let s = 0; s < 30; s++) {
       const world = generateWorld(`seed-${s}`, SEASON.generatorVersion);
-      const fires = [...world.hexes.values()].filter((h) => h.poi === 'watchfire');
-      expect(fires.length, `seed-${s}`).toBeGreaterThanOrEqual(WORLD.watchfires - 1);
-      expect(fires.length).toBeLessThanOrEqual(WORLD.watchfires);
-      const slices = new Set(
+      const fires = [...world.hexes.values()].filter(
+        (h) => h.poi === 'watchfire' && h.key !== world.roadFire,
+      );
+      expect(fires.length, `seed-${s}`).toBeGreaterThanOrEqual(slices * bands - 2);
+      expect(fires.length).toBeLessThanOrEqual(slices * bands);
+      // At most one per slice and band.
+      const cells = new Set(
         fires.map((h) => {
           const p = hexToPixel(h.hex, 1);
           const angle = (Math.atan2(p.y, p.x) + Math.PI * 2) % (Math.PI * 2);
-          return Math.floor(angle / ((Math.PI * 2) / WORLD.watchfires));
+          const band = WORLD.watchfireBands.findIndex(([min, max]) => h.ring >= min && h.ring <= max);
+          expect(band).toBeGreaterThanOrEqual(0);
+          return `${Math.floor(angle / ((Math.PI * 2) / slices))}:${band}`;
         }),
       );
-      expect(slices.size).toBe(fires.length);
-      for (const f of fires) {
-        expect(f.ring).toBeGreaterThanOrEqual(WORLD.watchfireRingMin);
-        expect(f.ring).toBeLessThanOrEqual(WORLD.watchfireRingMax);
+      expect(cells.size).toBe(fires.length);
+      const all = [...fires, world.hexes.get(world.roadFire!)!];
+      for (const a of all) {
+        for (const b of all)
+          if (a !== b) expect(hexDistance(a.hex, b.hex)).toBeGreaterThanOrEqual(POIS.watchfire.minSpacing);
       }
     }
   });

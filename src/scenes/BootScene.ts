@@ -431,6 +431,12 @@ export class BootScene extends Phaser.Scene {
       g.fillStyle(0xfef3c7).fillCircle(22, 22, 3.5);
       g.fillStyle(0xfde68a).fillCircle(33, 12, 3).fillCircle(11, 32, 2.5);
     });
+    // Phoenix Feather: takes you home from anywhere after a won fight
+    icon('icon-feather', 0x7f1d1d, (g) => {
+      g.fillStyle(0xf97316).fillEllipse(23, 20, 12, 28);
+      g.fillStyle(0xfde047).fillEllipse(23, 18, 6, 20);
+      g.lineStyle(2, 0xfef3c7).lineBetween(15, 37, 27, 9);
+    });
     icon('icon-pouch', 0x3f2a1d, (g) => {
       g.fillStyle(0xa16207).fillRoundedRect(9, 14, 26, 22, 6);
       g.fillStyle(0x854d0e).fillRect(9, 18, 26, 4);

@@ -16,8 +16,6 @@ export interface WorldProgress {
   discovered: string[];
   /** Hex keys the player has cleared at least once */
   cleared: string[];
-  /** Camps the player reached; they can be teleported to from the village */
-  waypoints: string[];
   /** The expedition in progress, or null while at home */
   expedition: Expedition | null;
   /** Watchfires the player has lit */
@@ -33,7 +31,6 @@ export function createWorldProgress(seasonId: number, generatorVersion: number):
     position: hexKey(ORIGIN),
     discovered: [hexKey(ORIGIN)],
     cleared: [hexKey(ORIGIN)],
-    waypoints: [],
     expedition: null,
     expeditions: 0,
     litWatchfires: [],
@@ -72,7 +69,7 @@ export function isAtHome(progress: WorldProgress): boolean {
  * What happens when the player taps a hex:
  * - neighbours can be entered; the village needs no fight, every other hex does
  *   (cleared hexes fill with monsters again),
- * - from the village you can teleport to any waypoint, and from a waypoint back home.
+ * - from the village you can teleport to any lit watchfire, and from a lit watchfire back home.
  */
 export function travelKind(world: World, progress: WorldProgress, target: Hex): TravelKind {
   const key = hexKey(target);
@@ -82,8 +79,8 @@ export function travelKind(world: World, progress: WorldProgress, target: Hex): 
   const from = parseHexKey(progress.position);
   // The village and hexes already cleared on this expedition are walked into without a fight.
   if (areNeighbors(from, target)) return info.poi === 'village' || isUsedUp(progress, key) ? 'walk' : 'fight';
-  if (isAtHome(progress) && progress.waypoints.includes(key)) return 'teleport';
-  if (info.poi === 'village' && progress.waypoints.includes(progress.position)) return 'teleport';
+  if (isAtHome(progress) && isLit(progress, key)) return 'teleport';
+  if (info.poi === 'village' && isLit(progress, progress.position)) return 'teleport';
   return 'blocked';
 }
 
@@ -117,10 +114,13 @@ export function applyFightResult(progress: WorldProgress, target: Hex, outcome: 
   return reveal({ ...progress, position: key, cleared }, target);
 }
 
-export function addWaypoint(progress: WorldProgress, key: string): WorldProgress {
-  return progress.waypoints.includes(key)
-    ? progress
-    : { ...progress, waypoints: [...progress.waypoints, key] };
+/**
+ * Going home without a Phoenix Feather: from the village's neighbours and from a lit watchfire. Anywhere
+ * else it takes a feather.
+ */
+export function homeIsFree(progress: WorldProgress): boolean {
+  const pos = parseHexKey(progress.position);
+  return isAtHome(progress) || areNeighbors(pos, ORIGIN) || isLit(progress, progress.position);
 }
 
 /** Validates loaded data; returns null when it is unusable. */
@@ -145,7 +145,6 @@ export function parseWorldProgress(raw: unknown): WorldProgress | null {
     discovered: d.discovered,
     cleared: d.cleared,
     // Added later: default when missing.
-    waypoints: isKeyList(d.waypoints) ? d.waypoints : [],
     expedition: expedition
       ? { ...expedition, path: normalizePath(expedition.path, expedition.startedFrom, d.position) }
       : null,

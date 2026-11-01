@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { startExpedition } from './expedition';
 import { hexKey, hexNeighbors, ORIGIN, parseHexKey } from './hex';
 import { brightHexes } from './mapLight';
-import { addWaypoint, createWorldProgress, lightWatchfire, walkTo } from './worldProgress';
+import { createWorldProgress, lightWatchfire, walkTo } from './worldProgress';
 import { generateWorld } from './worldgen';
 
 const world = generateWorld('light-test', 1);
@@ -38,10 +38,10 @@ describe('brightHexes', () => {
     expect(brightHexes(world, progress).has(far.key)).toBe(true);
   });
 
-  it('lights a reachable camp so a teleport target does not vanish into the dark', () => {
-    const camp = [...world.hexes.values()].find((h) => h.poi === 'camp')!;
-    expect(brightHexes(world, home()).has(camp.key)).toBe(false);
-    const bright = brightHexes(world, addWaypoint(home(), camp.key));
-    expect(bright.has(camp.key)).toBe(true);
+  it('lights a lit watchfire so a teleport target does not vanish into the dark', () => {
+    const fire = [...world.hexes.values()].find((h) => h.poi === 'watchfire' && h.ring >= 4)!;
+    expect(brightHexes(world, home()).has(fire.key)).toBe(false);
+    const bright = brightHexes(world, lightWatchfire(home(), fire.key, 1));
+    expect(bright.has(fire.key)).toBe(true);
   });
 });
