@@ -23,7 +23,7 @@ The world, story and in-game terms (Embers, the Nest, watchfires) are in [docs/l
   Test helpers: "+herbs +gold" and "arena" in the village (the test arena: a fight outside the map that
   saves nothing, the whole screen lit, no goal; falling only counts and refills health; switch between a
   horde of a chosen ring and standing dummies; the readout adds damage per second, total damage, kills per
-  minute and the share of each weapon and modifier effect in a box on the right; "reset", "leave"; "log"
+  minute and the share of each weapon and modifier effect in a box on the right (tap to fold it); "reset", "leave"; "log"
   saves a measurement with its build, "copy" copies all of them as text; dummies have a normal enemy's health
   and fill up instead of dying; `dev/arenaLogic.ts`); "reveal" (fog off on screen only) and "jump here" on the
   map; in a fight a foldable "DEV" panel (its header shows the frame rate and enemies and names the active

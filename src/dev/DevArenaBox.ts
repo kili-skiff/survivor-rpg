@@ -1,5 +1,5 @@
 import * as Phaser from 'phaser';
-import { arenaLines, sourceName, type ArenaState } from './arenaLogic';
+import { arenaLines, shortNumber, sourceName, type ArenaState } from './arenaLogic';
 import { devButtonStyle } from './devMode';
 
 const DEPTH = 1000;
@@ -7,10 +7,13 @@ const DEPTH = 1000;
 const MAX_SOURCES = 5;
 /** Redraws twice a second; the numbers do not need more */
 const EVERY_MS = 500;
+/** Folded in: only one short line. Kept for the session, also across arena restarts. */
+let folded = false;
 
 /**
  * Dev only: the test arena's numbers in a small box on the right, always visible: where, damage per
- * second, kills per minute, falls, and a bar per damage source with its share.
+ * second, kills per minute, falls, and a bar per damage source with its share. Tapping it folds it into
+ * one short line (damage per second) and back.
  */
 export class DevArenaBox {
   private readonly bg: Phaser.GameObjects.Graphics;
@@ -27,7 +30,15 @@ export class DevArenaBox {
     private readonly state: () => { arena: ArenaState; now: number; logged: number } | null,
   ) {
     this.bg = scene.add.graphics().setDepth(DEPTH);
-    this.head = scene.add.text(0, 0, '', textStyle(1, 11)).setDepth(DEPTH + 1);
+    this.head = scene.add
+      .text(0, 0, '', textStyle(1, 11))
+      .setDepth(DEPTH + 1)
+      .setInteractive({ useHandCursor: true })
+      .on('pointerdown', () => {
+        folded = !folded;
+        this.nextAt = 0;
+        this.update();
+      });
     this.rows = Array.from({ length: MAX_SOURCES }, () =>
       scene.add.text(0, 0, '', textStyle(1, 10)).setDepth(DEPTH + 1),
     );
@@ -60,9 +71,23 @@ export class DevArenaBox {
 
     const { u } = this;
     const pad = 8 * u;
+    if (folded) {
+      this.head.setStyle(textStyle(u, 11)).setText(`ARENA ▸ ${shortNumber(s.arena.meter.dps(s.now))} dps`);
+      const w = this.head.width + pad * 2;
+      this.head.setPosition(this.right - w + pad, this.top + pad);
+      g.fillStyle(0x1e0b33, 0.85).fillRoundedRect(
+        this.right - w,
+        this.top,
+        w,
+        this.head.height + pad * 2,
+        8 * u,
+      );
+      return;
+    }
     const width = 176 * u;
     const left = this.right - width;
     const lines = arenaLines({ ...s.arena, now: s.now });
+    lines[0] = lines[0].replace('ARENA', 'ARENA ▾');
     if (s.logged > 0) lines.push(`log: ${s.logged} saved`);
     this.head
       .setStyle(textStyle(u, 11))
