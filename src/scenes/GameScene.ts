@@ -591,13 +591,18 @@ export class GameScene extends Phaser.Scene {
   devToggleAutopilot(): void {
     const on = !this.devAutopilot();
     this.registry.set('devAutopilot', on);
-    this.devAutopilotHome = { x: this.player.x, y: this.player.y };
+    this.devAutopilotHome = this.devAutopilotStart();
+  }
+
+  // DEV: the autopilot circles around a point a little beside where it starts, so it moves right away.
+  private devAutopilotStart(): { x: number; y: number } {
+    return { x: this.player.x - 120, y: this.player.y };
   }
 
   // DEV: where the autopilot wants to go this frame, or null when it is off.
   private devAutopilotMove(): { x: number; y: number } | null {
     if (!this.devAutopilot()) return null;
-    this.devAutopilotHome ??= { x: this.player.x, y: this.player.y };
+    this.devAutopilotHome ??= this.devAutopilotStart();
     const near: { x: number; y: number }[] = [];
     for (const e of this.enemies.active()) if (!e.airborne && !e.devPinned) near.push(e);
     return autopilotDirection(this.player.x, this.player.y, near, this.devAutopilotHome);
