@@ -2,7 +2,7 @@
 
 import type { CharacterSpriteId } from './sprites';
 
-export type WeaponId = 'bolt' | 'blades' | 'aura' | 'chain';
+export type WeaponId = 'bolt' | 'blades' | 'aura' | 'chain' | 'boomerang';
 /** How rare a card is: decides how often it is offered and the colour of its frame (config/rarity.ts) */
 export type Rarity = 'common' | 'magic' | 'legendary';
 

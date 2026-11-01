@@ -3,7 +3,7 @@ import { PASSIVES } from '../config/passives';
 import { RARITIES } from '../config/rarity';
 import { SKILLS } from '../config/skills';
 import type { BoonId, PassiveId, Rarity, SkillId, WeaponId } from '../config/types';
-import { MAX_WEAPONS, WEAPONS } from '../config/weapons';
+import { MAIN_WEAPONS, MAX_WEAPONS, WEAPONS } from '../config/weapons';
 import type { Rng } from './spawning';
 import { remainingSteps, skillMaxLevel, weaponMaxLevel, weaponSteps, type Loadout } from './stats';
 
@@ -41,7 +41,8 @@ export function availableUpgrades(
   for (const id of Object.keys(WEAPONS) as WeaponId[]) {
     const level = loadout.weapons[id] ?? 0;
     if (level === 0) {
-      if (ownedWeapons.length < MAX_WEAPONS) {
+      // Main weapons are chosen in the village; cards only bring their level steps.
+      if (ownedWeapons.length < MAX_WEAPONS && !MAIN_WEAPONS.includes(id)) {
         out.push({
           option: { kind: 'weapon', id, toLevel: 1 },
           weight: WEIGHTS.newWeapon * RARITIES[WEAPONS[id].rarity].weight,

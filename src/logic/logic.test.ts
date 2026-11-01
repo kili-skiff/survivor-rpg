@@ -193,6 +193,7 @@ describe('save', () => {
       belt: {},
       quests: emptySave().quests,
       lanternLevel: 0,
+      mainWeapon: 'bolt',
       recipes: ['healing'],
       deeds: [],
     });

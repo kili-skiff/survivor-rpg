@@ -18,6 +18,8 @@ import { loadSettings, otherSide, writeSettings, type Settings } from '../logic/
 import { RARITIES } from '../config/rarity';
 import { describeUpgrade, type UpgradeOption } from '../logic/upgrades';
 import { DevPanel } from '../dev/DevPanel'; // DEV:
+import { DevUpgradePicker } from '../dev/DevUpgradePicker'; // DEV:
+import { devMainWeapon, devUpgradeList } from '../dev/devLogic'; // DEV:
 import { isDevMode } from '../dev/devMode'; // DEV:
 import { safeArea, viewportSize, type SafeArea } from '../ui/display';
 import { COLORS, css, FONT } from '../ui/theme';
@@ -79,6 +81,7 @@ export class UIScene extends Phaser.Scene {
   private goldText!: Phaser.GameObjects.Text;
   private pauseBtn!: Phaser.GameObjects.Text;
   private devPanel: DevPanel | null = null; // DEV:
+  private devPicker: DevUpgradePicker | null = null; // DEV: pick any upgrade by hand
   private skillButtons: SkillButton[] = [];
   private potionButtons: PotionButton[] = [];
   private loadoutIcons: Phaser.GameObjects.GameObject[] = [];
@@ -177,6 +180,14 @@ export class UIScene extends Phaser.Scene {
             { label: () => 'spawn elite', run: () => this.gs.devSpawnElite() },
             { label: () => 'level up', run: () => this.gs.devLevelUp() },
             { label: () => 'wild build', run: () => this.gs.devWildBuild() },
+            { label: () => 'pick upgrade', run: () => this.openDevPicker() },
+            {
+              label: () => {
+                const id = devMainWeapon(this.gs.run.loadout);
+                return `main weapon: ${id ? WEAPONS[id].name : 'none'}`;
+              },
+              run: () => this.gs.devSwapMainWeapon(),
+            },
             {
               label: () => (this.gs.devInvincible() ? 'invincible on' : 'invincible off'),
               active: () => this.gs.devInvincible(),
@@ -187,6 +198,13 @@ export class UIScene extends Phaser.Scene {
           () => this.gs.devStats(),
         )
       : null;
+    this.devPicker = isDevMode()
+      ? new DevUpgradePicker(this, {
+          list: () => devUpgradeList(this.gs.run.loadout),
+          pick: (option) => this.gs.devApplyUpgrade(option),
+          onClose: () => this.gs.resumeGame(),
+        })
+      : null; // DEV:
 
     this.createSkillButton('dash', this.isTouch ? 'Dash' : 'Dash · Space');
     this.createSkillButton('nova', this.isTouch ? 'Nova' : 'Nova · E');
@@ -226,7 +244,7 @@ export class UIScene extends Phaser.Scene {
   override update(): void {
     this.updateMovement();
     this.drawHud();
-    this.devPanel?.setVisible(this.overlayKind === 'none'); // DEV: hidden while a menu is open
+    this.devPanel?.setVisible(this.overlayKind === 'none' && !this.devPicker?.isOpen); // DEV: hidden while a menu is open
     this.devPanel?.update(); // DEV:
   }
 
@@ -406,6 +424,7 @@ export class UIScene extends Phaser.Scene {
       .setPadding(Math.round(12 * u), Math.round(6 * u))
       .setPosition(right, top);
     this.devPanelLeft = left; // DEV: the panel sits below the icon rows on the left
+    this.devPicker?.layout(W, H, u, this.sa); // DEV:
     this.loadoutSignature = ''; // the icon rows follow the new size
     this.updateLoadoutIcons();
     this.killsText
@@ -1375,6 +1394,11 @@ export class UIScene extends Phaser.Scene {
     if (!option) return;
     this.clearOverlay();
     this.gs.chooseUpgrade(option);
+  }
+
+  // DEV: opens the upgrade picker; the fight pauses while it is open.
+  private openDevPicker(): void {
+    if (this.overlayKind === 'none' && this.gs.pauseGame()) this.devPicker?.open();
   }
 
   private togglePause(): void {

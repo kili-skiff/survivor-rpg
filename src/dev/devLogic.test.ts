@@ -128,3 +128,51 @@ describe('kills per minute', () => {
     expect(r.update(0, 10500)).toBe(0);
   });
 });
+
+describe('dev upgrade picker', () => {
+  it('lists every missing level step of a weapon as its own entry', async () => {
+    const { devUpgradeList } = await import('./devLogic');
+    const { createStartLoadout } = await import('../logic/stats');
+    const { WEAPONS } = await import('../config/weapons');
+    const list = devUpgradeList(createStartLoadout('boomerang'));
+    const steps = list.filter((e) => e.option.kind === 'weapon' && e.option.id === 'boomerang');
+    expect(steps.length).toBe(WEAPONS.boomerang.levels.length);
+    expect(new Set(steps.map((e) => (e.option.kind === 'weapon' ? e.option.step : -1))).size).toBe(
+      steps.length,
+    );
+    expect(list.some((e) => e.option.kind === 'passive')).toBe(true);
+    expect(list.every((e) => e.label.length > 0)).toBe(true);
+  });
+
+  it('a picked step is gone from the list afterwards', async () => {
+    const { devUpgradeList } = await import('./devLogic');
+    const { createStartLoadout } = await import('../logic/stats');
+    const { applyUpgrade } = await import('../logic/upgrades');
+    const start = createStartLoadout('bolt');
+    const pick = devUpgradeList(start).find(
+      (e) => e.option.kind === 'weapon' && e.option.id === 'bolt' && e.option.step === 3,
+    )!;
+    const after = applyUpgrade(start, pick.option);
+    expect(after.weaponSteps?.bolt).toEqual([3]);
+    expect(
+      devUpgradeList(after).some(
+        (e) => e.option.kind === 'weapon' && e.option.id === 'bolt' && e.option.step === 3,
+      ),
+    ).toBe(false);
+  });
+
+  it('swaps the main weapon for the next one at level 1 and keeps the rest', async () => {
+    const { devSwapMainWeapon, devMainWeapon } = await import('./devLogic');
+    const loadout = {
+      weapons: { bolt: 5, aura: 2 },
+      weaponSteps: { bolt: [0, 1, 2, 3] },
+      passives: { might: 2 },
+      skills: { dash: 1, nova: 1 },
+    };
+    const swapped = devSwapMainWeapon(loadout);
+    expect(swapped.weapons).toEqual({ boomerang: 1, aura: 2 });
+    expect(swapped.weaponSteps?.bolt).toBeUndefined();
+    expect(swapped.passives).toEqual({ might: 2 });
+    expect(devMainWeapon(devSwapMainWeapon(swapped))).toBe('bolt');
+  });
+});

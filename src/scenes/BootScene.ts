@@ -420,6 +420,15 @@ export class BootScene extends Phaser.Scene {
 
     // Chain Lightning, the items from config/passives.ts that came later, and the one-time cards.
     // Simple shapes on purpose; they are placeholders like the rest.
+    icon('icon-boomerang', 0x7c2d12, (g) => {
+      g.fillStyle(0xfdba74).fillTriangle(8, 30, 22, 8, 26, 14).fillTriangle(8, 30, 36, 30, 30, 24);
+      g.fillStyle(0xfed7aa).fillCircle(9, 29, 3);
+    });
+    // The boomerang in flight (a main weapon)
+    make('boomerang', 26, 26, (g) => {
+      g.fillStyle(0xfdba74).fillTriangle(3, 22, 13, 3, 16, 7).fillTriangle(3, 22, 23, 22, 19, 18);
+      g.lineStyle(1.5, 0x7c2d12).strokeTriangle(3, 22, 13, 3, 16, 7).strokeTriangle(3, 22, 23, 22, 19, 18);
+    });
     icon('icon-chain', 0x155e75, (g) => {
       g.lineStyle(4, 0xa5f3fc)
         .beginPath()

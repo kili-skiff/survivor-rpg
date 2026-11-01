@@ -117,10 +117,26 @@ export class DevPanel {
     );
 
     let y = top;
-    for (const item of [this.header, this.readout, ...this.buttons]) {
-      const isButton = this.buttons.includes(item);
-      item.setPosition(left, y).setVisible(this.shown && (!isButton || this.expanded));
+    for (const item of [this.header, this.readout]) {
+      item.setPosition(left, y).setVisible(this.shown);
       if (item.visible) y += item.height + gap;
+    }
+    // Buttons wrap into another column when they would run off the bottom (landscape).
+    const columnTop = y;
+    const maxY = this.header.scene.scale.height - gap;
+    let x = left;
+    let columnWidth = 0;
+    for (const button of this.buttons) {
+      button.setVisible(this.shown && this.expanded);
+      if (!button.visible) continue;
+      if (y + button.height > maxY && y > columnTop) {
+        x += columnWidth + gap;
+        y = columnTop;
+        columnWidth = 0;
+      }
+      button.setPosition(x, y);
+      y += button.height + gap;
+      columnWidth = Math.max(columnWidth, button.width);
     }
   }
 }

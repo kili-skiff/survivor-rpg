@@ -15,7 +15,7 @@ import type {
   WeaponId,
   WeaponStats,
 } from '../config/types';
-import { START_WEAPON, WEAPONS } from '../config/weapons';
+import { WEAPONS } from '../config/weapons';
 import type { Enemy } from '../entities/Enemy';
 import type { Pickup } from '../entities/Pickup';
 import { InputState } from '../input/InputState';
@@ -63,7 +63,7 @@ import { visionRange } from '../logic/vision';
 import { LanternSystem } from '../systems/LanternSystem';
 import { LightingSystem } from '../systems/LightingSystem';
 import { WatchfireSystem } from '../systems/WatchfireSystem';
-import { godModeStats } from '../dev/devLogic'; // DEV:
+import { devSwapMainWeapon, godModeStats } from '../dev/devLogic'; // DEV:
 import { isDevMode } from '../dev/devMode'; // DEV:
 import type { DevFightStats } from '../dev/DevPanel'; // DEV:
 import { castFrostNova } from '../systems/skills/frostNova';
@@ -263,7 +263,8 @@ export class GameScene extends Phaser.Scene {
     this.lanternLevel = saved.lanternLevel;
     this.deedBonus = deedBonus(saved.deeds);
     this.potions = new PotionSystem(saved.belt, now);
-    const loadout = build?.loadout ?? createStartLoadout(START_WEAPON);
+    // A fresh expedition starts with the main weapon chosen in the armory.
+    const loadout = build?.loadout ?? createStartLoadout(saved.mainWeapon);
     const stats = computePlayerStats(loadout, this.deedBonus);
     this.run = {
       started: true,
@@ -549,6 +550,29 @@ export class GameScene extends Phaser.Scene {
     };
     this.refreshStats();
     this.run.hp = this.run.stats.maxHp;
+  }
+
+  // DEV: applies an upgrade picked from the dev list right away (no level-up needed).
+  devApplyUpgrade(option: UpgradeOption): void {
+    if (!this.run.alive) return;
+    if (option.kind === 'boon') this.applyBoon(option.id);
+    else if (option.kind === 'heal') this.heal(FULL_LOADOUT_HEAL);
+    else {
+      this.run.loadout = applyUpgrade(this.run.loadout, option);
+      this.refreshStats();
+    }
+  }
+
+  // DEV: swaps the main weapon for the next one at level 1, to compare them in the same fight.
+  devSwapMainWeapon(): void {
+    if (!this.run.alive) return;
+    this.run.loadout = devSwapMainWeapon(this.run.loadout);
+    for (const [id, weapon] of this.weapons) {
+      if (this.run.loadout.weapons[id]) continue;
+      weapon.clear?.();
+      this.weapons.delete(id);
+    }
+    this.refreshStats();
   }
 
   // DEV: wins the fight at once (on the next frame), whatever its goal.

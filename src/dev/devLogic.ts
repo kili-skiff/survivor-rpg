@@ -3,11 +3,15 @@
 import { DEEDS, type DeedId } from '../config/deeds';
 import { HERBS } from '../config/herbs';
 import { GOLD_KEY } from '../config/merchant';
-import type { PlayerStats } from '../config/types';
+import type { PlayerStats, WeaponId } from '../config/types';
+import { MAIN_WEAPONS, START_WEAPON } from '../config/weapons';
 import { addLoot, type Loot } from '../logic/expedition';
 import { hexDistance, hexKey, hexNeighbors, ORIGIN, type Hex } from '../logic/hex';
 import type { SaveData } from '../logic/save';
 import type { World } from '../logic/worldgen';
+import type { Loadout } from '../logic/stats';
+import { remainingSteps } from '../logic/stats';
+import { availableUpgrades, describeUpgrade, type UpgradeOption } from '../logic/upgrades';
 import { isLit, walkTo } from '../logic/worldProgress';
 
 /** Adds `amount` of every herb and `gold` gold to the stash. */
@@ -126,4 +130,60 @@ export function readoutLabel(r: DevReadout): string {
   ];
   if (r.director) lines.push(`${r.director.phase} · x${r.director.pressure.toFixed(1)}`);
   return lines.join('\n');
+}
+
+/** One entry of the dev upgrade list. */
+export interface DevUpgradeEntry {
+  option: UpgradeOption;
+  label: string;
+  group: DevUpgradeGroup;
+}
+
+/** The tabs of the dev upgrade list. */
+export type DevUpgradeGroup = 'weapons' | 'items' | 'other';
+export const DEV_UPGRADE_GROUPS: readonly DevUpgradeGroup[] = ['weapons', 'items', 'other'];
+
+/**
+ * Every upgrade that could come now, for picking by hand: each missing level step of a weapon is its
+ * own entry (instead of one card with a random step), then items, skills and one-time cards.
+ */
+export function devUpgradeList(loadout: Loadout): DevUpgradeEntry[] {
+  const out: DevUpgradeEntry[] = [];
+  for (const { option } of availableUpgrades(loadout, true)) {
+    const options: UpgradeOption[] =
+      option.kind === 'weapon' && option.toLevel > 1
+        ? remainingSteps(loadout, option.id).map((step) => ({ ...option, step }))
+        : [option];
+    for (const o of options) {
+      const card = describeUpgrade(o);
+      const level = 'toLevel' in o ? (o.toLevel === 1 ? ' (new)' : ` ${o.toLevel}`) : '';
+      const group = o.kind === 'weapon' ? 'weapons' : o.kind === 'passive' ? 'items' : 'other';
+      out.push({ option: o, label: `${card.title}${level}: ${card.text}`, group });
+    }
+  }
+  return out;
+}
+
+/** The main weapon in the loadout (the first one found), or undefined. */
+export function devMainWeapon(loadout: Loadout): WeaponId | undefined {
+  return MAIN_WEAPONS.find((id) => (loadout.weapons[id] ?? 0) > 0);
+}
+
+/** Swaps the main weapon for the next one at level 1; other weapons and items stay. */
+export function devSwapMainWeapon(loadout: Loadout): Loadout {
+  const current = devMainWeapon(loadout);
+  const next =
+    current === undefined
+      ? START_WEAPON
+      : MAIN_WEAPONS[(MAIN_WEAPONS.indexOf(current) + 1) % MAIN_WEAPONS.length];
+  const weapons: Loadout['weapons'] = {};
+  const weaponSteps: Loadout['weaponSteps'] = { ...loadout.weaponSteps };
+  for (const [id, level] of Object.entries(loadout.weapons) as [WeaponId, number][]) {
+    if (id === current) weapons[next] = 1;
+    else weapons[id] = level;
+  }
+  if (current === undefined) weapons[next] = 1;
+  if (current) delete weaponSteps[current];
+  delete weaponSteps[next];
+  return { ...loadout, weapons, weaponSteps };
 }
