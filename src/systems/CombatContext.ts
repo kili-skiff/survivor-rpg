@@ -1,4 +1,5 @@
 import type * as Phaser from 'phaser';
+import type { ModifierId } from '../config/modifiers';
 import type { EnemySystem } from './EnemySystem';
 import type { PlayerController } from './PlayerController';
 
@@ -11,4 +12,6 @@ export interface CombatContext {
   now(): number;
   /** How far weapons aim (px): what the player can see */
   visionRange(): number;
+  /** True when the main weapon has this modifier in this run */
+  hasModifier(id: ModifierId): boolean;
 }

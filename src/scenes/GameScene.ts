@@ -46,6 +46,7 @@ import {
   weaponSteps,
   type Loadout,
 } from '../logic/stats';
+import { applyModifierStats, isModifierLevel, modifiersOf, rollModifierOptions } from '../logic/modifiers';
 import { applyUpgrade, rollRareOptions, rollUpgradeOptions, type UpgradeOption } from '../logic/upgrades';
 import { REWARDS } from '../config/rewards';
 import { situationalDamage } from '../logic/hitEffects';
@@ -237,6 +238,7 @@ export class GameScene extends Phaser.Scene {
       now,
       visionRange: () =>
         visionRange(this.run.stats.light, lanternLightsAll(this.lanternLevel) || this.devFullLight()), // DEV: full light
+      hasModifier: (id) => this.run.loadout.modifiers?.includes(id) ?? false,
     };
 
     this.physics.add.overlap(this.player.sprite, this.enemies.group, (_p, e) =>
@@ -377,7 +379,7 @@ export class GameScene extends Phaser.Scene {
     }
     this.pendingLevelUps -= 1;
     if (this.pendingLevelUps > 0) {
-      this.events.emit('levelup', rollUpgradeOptions(this.run.loadout, Math.random), this.run.level);
+      this.emitLevelUp();
     } else {
       this.levelUpOpen = false;
       const chest = this.pendingChests.shift();
@@ -693,11 +695,14 @@ export class GameScene extends Phaser.Scene {
 
     this.weaponStats = {};
     for (const id of Object.keys(this.run.loadout.weapons) as WeaponId[]) {
-      this.weaponStats[id] = computeWeaponStats(
-        id,
-        this.run.loadout.weapons[id]!,
-        this.run.stats,
-        weaponSteps(this.run.loadout, id),
+      this.weaponStats[id] = applyModifierStats(
+        computeWeaponStats(
+          id,
+          this.run.loadout.weapons[id]!,
+          this.run.stats,
+          weaponSteps(this.run.loadout, id),
+        ),
+        modifiersOf(this.run.loadout, id),
       );
       if (!this.weapons.has(id)) this.weapons.set(id, createWeapon(id, this.ctx));
     }
@@ -913,7 +918,24 @@ export class GameScene extends Phaser.Scene {
     this.levelUpOpen = true;
     this.controls.reset();
     this.scene.pause();
-    this.events.emit('levelup', rollUpgradeOptions(this.run.loadout, Math.random), this.run.level);
+    this.emitLevelUp();
+  }
+
+  /**
+   * Shows the menu for the next pending level. At modifier levels (config/modifiers.ts) it offers
+   * modifiers of the main weapon instead of the usual cards, while there are any left.
+   */
+  private emitLevelUp(): void {
+    const level = this.run.level - this.pendingLevelUps + 1;
+    if (isModifierLevel(level)) {
+      const mods = rollModifierOptions(this.run.loadout, Math.random);
+      if (mods.length > 0) {
+        const options: UpgradeOption[] = mods.map((id) => ({ kind: 'modifier', id }));
+        this.events.emit('levelup', options, level, 'Weapon modifier');
+        return;
+      }
+    }
+    this.events.emit('levelup', rollUpgradeOptions(this.run.loadout, Math.random), level);
   }
 
   /**

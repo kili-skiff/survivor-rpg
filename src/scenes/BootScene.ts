@@ -429,6 +429,103 @@ export class BootScene extends Phaser.Scene {
       g.fillStyle(0xfdba74).fillTriangle(3, 22, 13, 3, 16, 7).fillTriangle(3, 22, 23, 22, 19, 18);
       g.lineStyle(1.5, 0x7c2d12).strokeTriangle(3, 22, 13, 3, 16, 7).strokeTriangle(3, 22, 23, 22, 19, 18);
     });
+    // Modifiers of the main weapons: a gold rim marks them apart from the other cards.
+    const mod = (key: string, color: number, glyph: (g: G) => void) =>
+      icon(key, color, (g) => {
+        g.lineStyle(2, 0xfacc15, 0.9).strokeRoundedRect(3, 3, 38, 38, 8);
+        glyph(g);
+      });
+    mod('icon-mod-heavybolt', 0x4c1d95, (g) => {
+      g.fillStyle(0xe9d5ff).fillCircle(26, 22, 9);
+      g.fillStyle(0xc4b5fd, 0.6).fillTriangle(6, 18, 6, 26, 18, 22);
+    });
+    mod('icon-mod-volley', 0x4c1d95, (g) => {
+      g.fillStyle(0xe9d5ff);
+      for (const [x, y] of [
+        [30, 10],
+        [33, 22],
+        [30, 34],
+      ])
+        g.fillCircle(x, y, 3.5);
+      g.lineStyle(2, 0xc4b5fd, 0.7)
+        .lineBetween(8, 22, 27, 11)
+        .lineBetween(8, 22, 30, 22)
+        .lineBetween(8, 22, 27, 33);
+    });
+    mod('icon-mod-ricochet', 0x4c1d95, (g) => {
+      g.lineStyle(3, 0xe9d5ff).beginPath().moveTo(7, 32).lineTo(20, 12).lineTo(36, 30).strokePath();
+      g.fillStyle(0xfacc15).fillCircle(20, 12, 3);
+    });
+    mod('icon-mod-sparkchain', 0x4c1d95, (g) => {
+      g.fillStyle(0xe9d5ff).fillCircle(12, 28, 5).fillCircle(32, 16, 5);
+      g.lineStyle(2, 0xfde047)
+        .beginPath()
+        .moveTo(16, 25)
+        .lineTo(21, 18)
+        .lineTo(23, 24)
+        .lineTo(28, 18)
+        .strokePath();
+    });
+    mod('icon-mod-blasttip', 0x4c1d95, (g) => {
+      g.fillStyle(0xfb923c).fillCircle(24, 22, 11);
+      g.fillStyle(0xfde047).fillCircle(24, 22, 6);
+      g.fillStyle(0xe9d5ff).fillTriangle(5, 19, 5, 25, 14, 22);
+    });
+    mod('icon-mod-frostbolt', 0x4c1d95, (g) => {
+      g.lineStyle(2.5, 0xbae6fd);
+      for (let i = 0; i < 3; i++) {
+        const a = (i * Math.PI) / 3;
+        g.lineBetween(
+          22 - Math.cos(a) * 12,
+          22 - Math.sin(a) * 12,
+          22 + Math.cos(a) * 12,
+          22 + Math.sin(a) * 12,
+        );
+      }
+    });
+    mod('icon-mod-whirl', 0x7c2d12, (g) => {
+      g.lineStyle(3, 0xfdba74)
+        .beginPath()
+        .arc(22, 22, 12, 0, Math.PI * 1.5)
+        .strokePath();
+      g.beginPath()
+        .arc(22, 22, 6, Math.PI, Math.PI * 2.5)
+        .strokePath();
+    });
+    mod('icon-mod-pull', 0x7c2d12, (g) => {
+      g.fillStyle(0xfdba74).fillTriangle(8, 22, 18, 14, 18, 30);
+      g.lineStyle(3, 0xfdba74).lineBetween(18, 22, 36, 22);
+      g.fillStyle(0xfca5a5).fillCircle(34, 13, 3).fillCircle(34, 31, 3);
+    });
+    mod('icon-mod-wideblade', 0x7c2d12, (g) => {
+      g.fillStyle(0xfdba74).fillTriangle(5, 36, 21, 5, 27, 13).fillTriangle(5, 36, 39, 36, 31, 28);
+    });
+    mod('icon-mod-orbit', 0x7c2d12, (g) => {
+      g.lineStyle(2, 0xfdba74, 0.8).strokeCircle(22, 22, 13);
+      g.fillStyle(0xfed7aa).fillCircle(22, 22, 4);
+      g.fillStyle(0xfdba74).fillTriangle(31, 9, 38, 15, 30, 17);
+    });
+    mod('icon-mod-keen', 0x7c2d12, (g) => {
+      g.fillStyle(0xfdba74).fillTriangle(8, 34, 20, 8, 24, 12);
+      g.fillStyle(0xfed7aa).fillTriangle(20, 34, 32, 8, 36, 12);
+    });
+    mod('icon-mod-embertrail', 0x7c2d12, (g) => {
+      g.fillStyle(0xf97316);
+      for (const [x, y, r] of [
+        [10, 32, 3],
+        [17, 26, 4],
+        [25, 21, 4.5],
+        [33, 14, 5],
+      ])
+        g.fillCircle(x, y, r);
+      g.fillStyle(0xfde047).fillCircle(33, 14, 2.5);
+    });
+    // An ember the boomerang leaves behind (Ember Trail)
+    make('ember-trail', 16, 16, (g) => {
+      g.fillStyle(0xf97316, 0.35).fillCircle(8, 8, 8);
+      g.fillStyle(0xfb923c, 0.8).fillCircle(8, 8, 4.5);
+      g.fillStyle(0xfde047).fillCircle(8, 8, 2);
+    });
     icon('icon-chain', 0x155e75, (g) => {
       g.lineStyle(4, 0xa5f3fc)
         .beginPath()
