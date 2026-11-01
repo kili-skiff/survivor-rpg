@@ -122,11 +122,12 @@ export class EnemySystem {
     );
   }
 
-  // DEV: a test-arena dummy at (x, y): it stands still, never hurts and has `hp` health.
-  devSpawnDummy(def: EnemyDef, x: number, y: number, hp: number): void {
+  // DEV: a test-arena dummy at (x, y): health like a normal enemy of the ring (so hits that take a share of
+  // health stay fair), but it fills up again instead of dying; it stands still and never hurts.
+  devSpawnDummy(def: EnemyDef, x: number, y: number): void {
     const e = this.group.get(x, y, def.texture) as Enemy | null;
     if (!e) return;
-    e.spawn(def, x, y, hp, 0, false);
+    e.spawn(def, x, y, this.ring.hp, 0, false);
     e.devPinned = true;
   }
 
@@ -171,8 +172,9 @@ export class EnemySystem {
 
   damage(e: Enemy, amount: number, knockX = 0, knockY = 0, color = '#ffffff', source = 'other'): void {
     if (!e.active || e.airborne || this.devNoDamage) return; // DEV: invincible mode deals no damage
-    this.devOnDamage?.(source, Math.min(amount, Math.max(0, e.hp))); // DEV: arena meter
+    this.devOnDamage?.(source, e.devPinned ? amount : Math.min(amount, Math.max(0, e.hp))); // DEV: arena meter
     e.hp -= amount;
+    if (e.devPinned && e.hp <= 0) e.hp = e.maxHp; // DEV: arena dummies never die
     e.flashUntil = this.now() + 70;
     e.x += knockX;
     e.y += knockY;

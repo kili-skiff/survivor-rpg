@@ -23,13 +23,18 @@ The world, story and in-game terms (Embers, the Nest, watchfires) are in [docs/l
   Test helpers: "+herbs +gold" and "arena" in the village (the test arena: a fight outside the map that
   saves nothing, the whole screen lit, no goal; falling only counts and refills health; switch between a
   horde of a chosen ring and standing dummies; the readout adds damage per second, total damage, kills per
-  minute and the share of each weapon and modifier effect; "reset stats", "leave arena"; `dev/arenaLogic.ts`); "reveal" (fog off on screen only) and "jump here" on the
-  map; in a fight a foldable "DEV" panel (tap its header; it also names the active modes and hides while a
-  menu is open) with "clear area", "god mode" (no damage, much stronger, whole screen lit), "spawn elite" and
-  "level up" (opens a level-up menu), "wild build" (every weapon and item at its highest level), "pick upgrade"
+  minute and the share of each weapon and modifier effect in a box on the right; "reset", "leave"; "log"
+  saves a measurement with its build, "copy" copies all of them as text; dummies have a normal enemy's health
+  and fill up instead of dying; `dev/arenaLogic.ts`); "reveal" (fog off on screen only) and "jump here" on the
+  map; in a fight a foldable "DEV" panel (its header shows the frame rate and enemies and names the active
+  modes; tapped, it shows the details and the buttons in short groups; it hides while a menu is open) with
+  "clear" (wins the fight), "god" (no damage, much stronger, whole screen lit), "elite" (spawns one) and
+  "level up" (opens a level-up menu), "wild" (every weapon and item at its highest level), "🎲 build L10"
+  with − and + (a random build as a real run could bring at that level: three cards per level-up, one taken
+  the way a typical player leans, a random modifier at modifier levels), "pick upgrade"
   (a paused list of every upgrade that could come now, each weapon level step on its own, and a "mods" tab
   with the modifiers of the main weapon; tap to take it),
-  "main weapon" (swaps the main weapon for the next one at level 1) and
+  "weapon" (swaps the main weapon for the next one at level 1) and
   "invincible" (no damage taken or dealt, whole screen lit; for watching a horde in peace; replaces god mode),
   and a readout that is always visible: FPS (average, worst frame of the last half second; lights up below 50 FPS),
   living enemies, kills per minute (last 30 s) and the spawn director's phase with its pressure; "reset save" in the

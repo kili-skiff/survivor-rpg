@@ -19,6 +19,8 @@ import { RARITIES } from '../config/rarity';
 import { describeUpgrade, type UpgradeOption } from '../logic/upgrades';
 import { DevPanel } from '../dev/DevPanel'; // DEV:
 import { DevUpgradePicker } from '../dev/DevUpgradePicker'; // DEV:
+import { DevArenaBox } from '../dev/DevArenaBox'; // DEV:
+import type { DevGroup } from '../dev/DevPanel'; // DEV:
 import { devMainWeapon, devUpgradeList } from '../dev/devLogic'; // DEV:
 import { isDevMode } from '../dev/devMode'; // DEV:
 import { safeArea, viewportSize, type SafeArea } from '../ui/display';
@@ -82,6 +84,7 @@ export class UIScene extends Phaser.Scene {
   private pauseBtn!: Phaser.GameObjects.Text;
   private devPanel: DevPanel | null = null; // DEV:
   private devPicker: DevUpgradePicker | null = null; // DEV: pick any upgrade by hand
+  private devArenaBox: DevArenaBox | null = null; // DEV: the test arena's numbers
   private skillButtons: SkillButton[] = [];
   private potionButtons: PotionButton[] = [];
   private loadoutIcons: Phaser.GameObjects.GameObject[] = [];
@@ -166,51 +169,17 @@ export class UIScene extends Phaser.Scene {
     this.pauseBtn.on('pointerdown', () => this.togglePause());
     // DEV: foldable dev panel: buttons, frame rate, enemy count, kills per minute.
     this.devPanel = isDevMode()
-      ? new DevPanel(
-          this,
-          this.u,
-          [
-            { label: () => 'clear area', run: () => this.gs.devClearArea() },
-            {
-              label: () => (this.gs.devGodMode() ? 'god mode on' : 'god mode off'),
-              active: () => this.gs.devGodMode(),
-              short: 'god mode',
-              run: () => this.gs.devToggleGodMode(),
-            },
-            { label: () => 'spawn elite', run: () => this.gs.devSpawnElite() },
-            { label: () => 'level up', run: () => this.gs.devLevelUp() },
-            { label: () => 'wild build', run: () => this.gs.devWildBuild() },
-            { label: () => 'pick upgrade', run: () => this.openDevPicker() },
-            // The test arena's controls, only there.
-            ...(this.gs.devArenaState()
-              ? [
-                  {
-                    label: () => `mode: ${this.gs.devArenaState()?.mode ?? ''}`,
-                    run: () => this.gs.devArenaToggleMode(),
-                  },
-                  { label: () => 'ring −', run: () => this.gs.devArenaRing(-1) },
-                  { label: () => 'ring +', run: () => this.gs.devArenaRing(1) },
-                  { label: () => 'reset stats', run: () => this.gs.devArenaReset() },
-                  { label: () => 'leave arena', run: () => this.gs.devLeaveArena() },
-                ]
-              : []),
-            {
-              label: () => {
-                const id = devMainWeapon(this.gs.run.loadout);
-                return `main weapon: ${id ? WEAPONS[id].name : 'none'}`;
-              },
-              run: () => this.gs.devSwapMainWeapon(),
-            },
-            {
-              label: () => (this.gs.devInvincible() ? 'invincible on' : 'invincible off'),
-              active: () => this.gs.devInvincible(),
-              short: 'invincible',
-              run: () => this.gs.devToggleInvincible(),
-            },
-          ],
-          () => this.gs.devStats(),
-        )
+      ? new DevPanel(this, this.u, this.devGroups(), () => this.gs.devStats())
       : null;
+    this.devArenaBox =
+      isDevMode() && this.gs.devArenaState()
+        ? new DevArenaBox(this, () => {
+            const arena = this.gs.devArenaState();
+            return arena
+              ? { arena, now: this.gs.devStats().nowMs, logged: this.gs.devArenaLogLines().length }
+              : null;
+          })
+        : null; // DEV: the test arena's numbers
     this.devPicker = isDevMode()
       ? new DevUpgradePicker(this, {
           list: () => devUpgradeList(this.gs.run.loadout),
@@ -259,6 +228,8 @@ export class UIScene extends Phaser.Scene {
     this.drawHud();
     this.devPanel?.setVisible(this.overlayKind === 'none' && !this.devPicker?.isOpen); // DEV: hidden while a menu is open
     this.devPanel?.update(); // DEV:
+    this.devArenaBox?.setVisible(this.overlayKind === 'none' && !this.devPicker?.isOpen); // DEV:
+    this.devArenaBox?.update(); // DEV:
   }
 
   // ---------------------------------------------------------------- Input
@@ -443,6 +414,7 @@ export class UIScene extends Phaser.Scene {
     this.killsText
       .setFontSize(Math.round(14 * u))
       .setPosition(right - this.pauseBtn.width - 10 * u, top + 6 * u);
+    this.devArenaBox?.layout(right, top + 50 * u, u); // DEV: under the counters on the right
 
     // Skill buttons stand in a column at the screen edge the player chose, so the thumb
     // reaches all of them without stretching across the screen. Dash, used most, sits lowest.
@@ -734,7 +706,11 @@ export class UIScene extends Phaser.Scene {
     }
     for (const id of Object.keys(passives) as PassiveId[]) add(PASSIVES[id].texture, passives[id]!);
     const bottom = startY + (row + 1) * (size + gap);
-    this.devPanel?.layout(this.devPanelLeft, bottom + 4 * u, u); // DEV: below the icon rows
+    // DEV: below the icon rows; rows wrap before the arena box on the right.
+    const { width: W } = this.scale;
+    // In landscape the arena box sits beside the panel; in portrait the panel starts below it.
+    const reserve = (this.devArenaBox && W > this.scale.height ? 196 : 12) * u;
+    this.devPanel?.layout(this.devPanelLeft, bottom + 4 * u, u, W - this.sa.right - reserve);
   }
 
   // ---------------------------------------------------------------- Menus
@@ -1407,6 +1383,84 @@ export class UIScene extends Phaser.Scene {
     if (!option) return;
     this.clearOverlay();
     this.gs.chooseUpgrade(option);
+  }
+
+  // DEV: the dev panel's buttons in short groups; the arena row only in the test arena.
+  private devGroups(): DevGroup[] {
+    const gs = this.gs;
+    const groups: DevGroup[] = [
+      {
+        title: 'Fight',
+        actions: [
+          { label: () => 'clear', run: () => gs.devClearArea() },
+          { label: () => 'elite', run: () => gs.devSpawnElite() },
+          { label: () => 'level up', run: () => gs.devLevelUp() },
+        ],
+      },
+      {
+        title: 'Build',
+        actions: [
+          { label: () => 'pick upgrade', run: () => this.openDevPicker() },
+          {
+            label: () => {
+              const id = devMainWeapon(gs.run.loadout);
+              return `weapon: ${id ? WEAPONS[id].name : 'none'}`;
+            },
+            run: () => gs.devSwapMainWeapon(),
+          },
+          { label: () => 'wild', run: () => gs.devWildBuild() },
+        ],
+      },
+      {
+        title: 'Random',
+        actions: [
+          { label: () => '−', run: () => gs.devStepBuildLevel(-1) },
+          { label: () => `🎲 build L${gs.devBuildLevel()}`, run: () => gs.devRandomBuild() },
+          { label: () => '+', run: () => gs.devStepBuildLevel(1) },
+        ],
+      },
+      {
+        title: 'Modes',
+        actions: [
+          {
+            label: () => 'god',
+            active: () => gs.devGodMode(),
+            short: 'god',
+            run: () => gs.devToggleGodMode(),
+          },
+          {
+            label: () => 'invincible',
+            active: () => gs.devInvincible(),
+            short: 'invincible',
+            run: () => gs.devToggleInvincible(),
+          },
+        ],
+      },
+    ];
+    if (gs.devArenaState()) {
+      groups.push(
+        {
+          title: 'Arena',
+          actions: [
+            { label: () => gs.devArenaState()?.mode ?? '', run: () => gs.devArenaToggleMode() },
+            { label: () => '−', run: () => gs.devArenaRing(-1) },
+            { label: () => `ring ${gs.devArenaState()?.ring ?? 1}`, run: () => undefined },
+            { label: () => '+', run: () => gs.devArenaRing(1) },
+            { label: () => 'reset', run: () => gs.devArenaReset() },
+            { label: () => 'leave', run: () => gs.devLeaveArena() },
+          ],
+        },
+        {
+          title: 'Log',
+          actions: [
+            { label: () => 'log', run: () => gs.devArenaLog() },
+            { label: () => `copy ${gs.devArenaLogLines().length}`, run: () => gs.devArenaCopy() },
+            { label: () => 'clear', run: () => gs.devArenaClearLog() },
+          ],
+        },
+      );
+    }
+    return groups;
   }
 
   // DEV: opens the upgrade picker; the fight pauses while it is open.

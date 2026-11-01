@@ -15,7 +15,7 @@ import type {
   WeaponId,
   WeaponStats,
 } from '../config/types';
-import { WEAPONS } from '../config/weapons';
+import { START_WEAPON, WEAPONS } from '../config/weapons';
 import type { Enemy } from '../entities/Enemy';
 import type { Pickup } from '../entities/Pickup';
 import { InputState } from '../input/InputState';
@@ -64,11 +64,12 @@ import { visionRange } from '../logic/vision';
 import { LanternSystem } from '../systems/LanternSystem';
 import { LightingSystem } from '../systems/LightingSystem';
 import { WatchfireSystem } from '../systems/WatchfireSystem';
-import { devSwapMainWeapon, godModeStats } from '../dev/devLogic'; // DEV:
+import { devMainWeapon, devSwapMainWeapon, godModeStats, randomBuild } from '../dev/devLogic'; // DEV:
 import {
   ARENA,
-  arenaLines,
+  buildSummary,
   dummyPositions,
+  logLine,
   newArenaState,
   stepRing,
   type ArenaState,
@@ -561,11 +562,11 @@ export class GameScene extends Phaser.Scene {
   // DEV: the dummies stand in a circle around the player.
   private devPlaceDummies(): void {
     for (const p of dummyPositions(this.player.x, this.player.y)) {
-      this.enemies.devSpawnDummy(ENEMIES.zombie, p.x, p.y, ARENA.dummyHp);
+      this.enemies.devSpawnDummy(ENEMIES.zombie, p.x, p.y);
     }
   }
 
-  // DEV: a harder or easier horde; starts the measuring over.
+  // DEV: a harder or easier ring (horde and dummies); starts the measuring over.
   devArenaRing(delta: number): void {
     const arena = this.devArena;
     if (!arena) return;
@@ -573,6 +574,11 @@ export class GameScene extends Phaser.Scene {
     this.ring = arena.ring;
     this.enemies.setRing(arena.ring);
     arena.meter.reset();
+    // Dummies get the health of the new ring.
+    if (arena.mode === 'dummies' && this.run.alive) {
+      this.enemies.devClearAll();
+      this.devPlaceDummies();
+    }
   }
 
   // DEV: starts the measuring over (e.g. after changing the build); dummies come back around the player.
@@ -595,9 +601,7 @@ export class GameScene extends Phaser.Scene {
 
   // DEV: numbers for the dev panel (the game clock stops while paused).
   devStats(): DevFightStats {
-    const arena = this.devArena;
     return {
-      extra: arena ? arenaLines({ ...arena, now: this.clock }) : undefined,
       enemies: this.enemies.group.countActive(true),
       kills: this.run.kills,
       nowMs: this.clock,
@@ -648,13 +652,76 @@ export class GameScene extends Phaser.Scene {
   // DEV: swaps the main weapon for the next one at level 1, to compare them in the same fight.
   devSwapMainWeapon(): void {
     if (!this.run.alive) return;
-    this.run.loadout = devSwapMainWeapon(this.run.loadout);
+    this.devSetLoadout(devSwapMainWeapon(this.run.loadout));
+  }
+
+  // DEV: takes a new loadout; weapons it no longer has are put away.
+  private devSetLoadout(loadout: Loadout): void {
+    this.run.loadout = loadout;
     for (const [id, weapon] of this.weapons) {
       if (this.run.loadout.weapons[id]) continue;
       weapon.clear?.();
       this.weapons.delete(id);
     }
     this.refreshStats();
+  }
+
+  // DEV: the level for "random build", kept for the session.
+  devBuildLevel(): number {
+    return (this.registry.get('devBuildLevel') as number | undefined) ?? 10;
+  }
+
+  devStepBuildLevel(delta: number): void {
+    this.registry.set('devBuildLevel', Math.min(40, Math.max(1, this.devBuildLevel() + delta)));
+  }
+
+  // DEV: a build as it could come in a real run at the chosen level, with the current main weapon.
+  devRandomBuild(): void {
+    if (!this.run.alive) return;
+    const level = this.devBuildLevel();
+    const main = devMainWeapon(this.run.loadout) ?? START_WEAPON;
+    this.devSetLoadout(randomBuild(createStartLoadout(main), level, Math.random));
+    this.run.level = level;
+    this.run.xp = 0;
+    this.run.hp = this.run.stats.maxHp;
+    this.devArena?.meter.reset();
+  }
+
+  // DEV: saves the arena's current measurement in the log (kept for the session).
+  devArenaLog(): void {
+    const arena = this.devArena;
+    if (!arena) return;
+    const line = logLine({
+      ...arena,
+      now: this.clock,
+      build: buildSummary(this.run.loadout, this.run.level),
+    });
+    this.registry.set('devArenaLog', [...this.devArenaLogLines(), line]);
+    this.numbers.show(this.player.x, this.player.y - 34, 'logged', '#f0abfc', true);
+  }
+
+  devArenaLogLines(): string[] {
+    return (this.registry.get('devArenaLog') as string[] | undefined) ?? [];
+  }
+
+  // DEV: copies the log as text (to paste it somewhere), and writes it to the console as well.
+  devArenaCopy(): void {
+    const text = this.devArenaLogLines().join('\n');
+    console.info(text);
+    const done = (msg: string) => this.numbers.show(this.player.x, this.player.y - 34, msg, '#f0abfc', true);
+    try {
+      navigator.clipboard.writeText(text).then(
+        () => done(`copied ${this.devArenaLogLines().length}`),
+        () => done('copy failed'),
+      );
+    } catch {
+      done('copy failed');
+    }
+  }
+
+  // DEV: empties the log.
+  devArenaClearLog(): void {
+    this.registry.set('devArenaLog', []);
   }
 
   // DEV: wins the fight at once (on the next frame), whatever its goal.

@@ -3,17 +3,19 @@
 import { MODIFIERS, type ModifierId } from '../config/modifiers';
 import type { WeaponId } from '../config/types';
 import { WEAPONS } from '../config/weapons';
+import { PASSIVES } from '../config/passives';
+import type { PassiveId } from '../config/types';
+import type { Loadout } from '../logic/stats';
 
 /** The test arena: a fight outside the map that saves nothing, to compare weapons and builds. */
 export const ARENA = {
   /** Horde: the rings to choose from */
   minRing: 1,
   maxRing: 6,
-  /** Dummies: how many stand around the player, at which distances (px, taking turns; close ones for aura
-   * and blades, far ones for ranged weapons) and how much health they have */
+  /** Dummies: how many stand around the player and at which distances (px, taking turns; close ones for
+   * aura and blades, far ones for ranged weapons). Their health is a normal enemy's of the ring. */
   dummies: 8,
   dummyRadii: [65, 150],
-  dummyHp: 1e9,
   /** Damage per second is measured over this window (ms) */
   dpsWindowMs: 10000,
   /** How long the arena's countdown shows (it never ends the fight) */
@@ -105,17 +107,14 @@ export interface ArenaReadout {
   now: number;
 }
 
-/** The lines the arena adds to the dev readout. */
+/** The head of the arena box: where, and what the build does (the shares follow as bars). */
 export function arenaLines(r: ArenaReadout): string[] {
   const where = r.mode === 'horde' ? `horde · ring ${r.ring}` : 'dummies';
-  const lines = [
+  return [
     `ARENA ${where} · fell ${r.falls}×`,
-    `${shortNumber(r.meter.dps(r.now))} dps · ${shortNumber(r.meter.total)} total · ${Math.round(r.meter.killsPerMinute(r.now))} kills/min`,
+    `${shortNumber(r.meter.dps(r.now))} dps · ${Math.round(r.meter.killsPerMinute(r.now))} kills/min`,
+    `${shortNumber(r.meter.total)} damage in total`,
   ];
-  for (const s of r.meter.shares().slice(0, 5)) {
-    lines.push(`  ${sourceName(s.source)} ${Math.round(s.share * 100)}%`);
-  }
-  return lines;
 }
 
 /** Where the dummies stand: evenly around (x, y), taking turns between the distances in `radii`. */
@@ -148,4 +147,28 @@ export interface ArenaState {
 
 export function newArenaState(ring = ARENA.minRing): ArenaState {
   return { mode: 'horde', ring, falls: 0, meter: new DamageMeter() };
+}
+
+/** A short text of a build for the measurement log: level, weapons with levels, modifiers, items. */
+export function buildSummary(loadout: Loadout, level: number): string {
+  const weapons = (Object.entries(loadout.weapons) as [WeaponId, number][])
+    .map(([id, l]) => `${WEAPONS[id].name} ${l}`)
+    .join(', ');
+  const mods = (loadout.modifiers ?? []).map((id) => MODIFIERS[id].name).join(', ');
+  const items = (Object.entries(loadout.passives) as [PassiveId, number][])
+    .map(([id, l]) => `${PASSIVES[id].name} ${l}`)
+    .join(', ');
+  return [`L${level}`, weapons, mods && `mods: ${mods}`, items && `items: ${items}`]
+    .filter(Boolean)
+    .join(' | ');
+}
+
+/** One line of the measurement log: where, the build and what it did. */
+export function logLine(r: ArenaReadout & { build: string }): string {
+  const where = r.mode === 'horde' ? `horde ring ${r.ring}` : 'dummies';
+  const shares = r.meter
+    .shares()
+    .map((s) => `${sourceName(s.source)} ${Math.round(s.share * 100)}%`)
+    .join(', ');
+  return `[${where}] ${r.build} => ${shortNumber(r.meter.dps(r.now))} dps, ${Math.round(r.meter.killsPerMinute(r.now))} kills/min, fell ${r.falls}x | ${shares}`;
 }

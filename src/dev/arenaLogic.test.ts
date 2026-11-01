@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   ARENA,
+  buildSummary,
+  logLine,
   DamageMeter,
   arenaLines,
   dummyPositions,
@@ -57,7 +59,7 @@ describe('test arena', () => {
     const lines = arenaLines({ mode: 'horde', ring: 3, falls: 1, meter: m, now: 2000 });
     expect(lines[0]).toContain('ring 3');
     expect(lines[0]).toContain('fell 1×');
-    expect(lines.some((l) => l.includes('Boomerang 100%'))).toBe(true);
+    expect(lines[1]).toContain('dps');
   });
 
   it('places the dummies on a circle and keeps the ring in range', () => {
@@ -67,5 +69,25 @@ describe('test arena', () => {
     expect(stepRing(ARENA.maxRing, 1)).toBe(ARENA.maxRing);
     expect(stepRing(1, -1)).toBe(ARENA.minRing);
     expect(stepRing(2, 1)).toBe(3);
+  });
+});
+
+describe('measurement log', () => {
+  it('writes the build and what it did on one line', () => {
+    const loadout = {
+      weapons: { bolt: 4, aura: 2 },
+      passives: { might: 1 },
+      skills: { dash: 1, nova: 1 },
+      modifiers: ['volley' as const],
+    };
+    const build = buildSummary(loadout, 7);
+    expect(build).toBe('L7 | Arcane Bolt 4, Ember Aura 2 | mods: Volley | items: Might 1');
+    const m = new DamageMeter();
+    m.add('bolt', 300, 0);
+    m.add('aura', 100, 0);
+    const line = logLine({ mode: 'dummies', ring: 1, falls: 0, meter: m, now: 10000, build });
+    expect(line).toContain('[dummies] L7');
+    expect(line).toContain('40 dps');
+    expect(line).toContain('Arcane Bolt 75%, Ember Aura 25%');
   });
 });
