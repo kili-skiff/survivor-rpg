@@ -11,12 +11,18 @@ export interface RingModifiers {
   spawnRate: number;
 }
 
+/** The ring's row of RINGS.table; beyond the last ring the last step repeats. */
 export function ringModifiers(ring: number): RingModifiers {
-  const steps = Math.max(0, ring - 1);
+  const table = RINGS.table;
+  const i = Math.max(0, Math.floor(ring) - 1);
+  if (i < table.length) return { ...table[i] };
+  const last = table[table.length - 1];
+  const prev = table[table.length - 2];
+  const extra = i - (table.length - 1);
   return {
-    hp: 1 + RINGS.hpPerRing * steps,
-    damage: 1 + RINGS.damagePerRing * steps,
-    spawnRate: 1 + RINGS.spawnRatePerRing * steps,
+    hp: last.hp + (last.hp - prev.hp) * extra,
+    damage: last.damage + (last.damage - prev.damage) * extra,
+    spawnRate: last.spawnRate + (last.spawnRate - prev.spawnRate) * extra,
   };
 }
 

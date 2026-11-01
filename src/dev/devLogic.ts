@@ -271,3 +271,49 @@ export function toggleAllWatchfires(world: World, save: SaveData): SaveData {
   for (const key of fires) progress = lightWatchfire(progress, key, WORLD.watchfireRevealRadius);
   return { ...save, world: progress };
 }
+
+/** The dev autopilot: how it moves (px for distances). */
+export const AUTOPILOT = {
+  /** Enemies within this distance push it away; closer ones push harder */
+  fleeRadius: 220,
+  /** It circles around where it started, at about this distance, so it does not run off into the dark */
+  orbitRadius: 260,
+  /** How strongly it keeps circling (sideways) compared to fleeing */
+  circle: 0.6,
+};
+
+/**
+ * The dev autopilot's move direction, like a player who kites: away from the enemies close by (closer ones
+ * count more), sideways around its starting point, and back towards it when it wandered too far. Returns a
+ * unit vector (or zero when nothing pulls).
+ */
+export function autopilotDirection(
+  px: number,
+  py: number,
+  enemies: readonly { x: number; y: number }[],
+  home: { x: number; y: number },
+): { x: number; y: number } {
+  let fx = 0;
+  let fy = 0;
+  for (const e of enemies) {
+    const dx = px - e.x;
+    const dy = py - e.y;
+    const d = Math.hypot(dx, dy);
+    if (d < 1 || d > AUTOPILOT.fleeRadius) continue;
+    const w = 1 - d / AUTOPILOT.fleeRadius;
+    fx += (dx / d) * w * w;
+    fy += (dy / d) * w * w;
+  }
+  // Around the starting point: sideways, plus a pull back that grows the further out it is.
+  const hx = px - home.x;
+  const hy = py - home.y;
+  const hd = Math.hypot(hx, hy) || 1;
+  const out = hd / AUTOPILOT.orbitRadius;
+  let x = fx + (-hy / hd) * AUTOPILOT.circle - (hx / hd) * Math.max(0, out - 1) * 2;
+  let y = fy + (hx / hd) * AUTOPILOT.circle - (hy / hd) * Math.max(0, out - 1) * 2;
+  const len = Math.hypot(x, y);
+  if (len < 1e-6) return { x: 0, y: 0 };
+  x /= len;
+  y /= len;
+  return { x, y };
+}
