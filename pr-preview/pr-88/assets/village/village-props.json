@@ -1,0 +1,1191 @@
+{
+ "frames": {
+  "anvil": {
+   "frame": {
+    "x": 593,
+    "y": 420,
+    "w": 30,
+    "h": 20
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 30,
+    "h": 20
+   },
+   "sourceSize": {
+    "w": 30,
+    "h": 20
+   }
+  },
+  "banner": {
+   "frame": {
+    "x": 178,
+    "y": 420,
+    "w": 31,
+    "h": 60
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 31,
+    "h": 60
+   },
+   "sourceSize": {
+    "w": 31,
+    "h": 60
+   }
+  },
+  "barn": {
+   "frame": {
+    "x": 132,
+    "y": 290,
+    "w": 96,
+    "h": 106
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 96,
+    "h": 106
+   },
+   "sourceSize": {
+    "w": 96,
+    "h": 106
+   }
+  },
+  "barrel": {
+   "frame": {
+    "x": 572,
+    "y": 420,
+    "w": 19,
+    "h": 26
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 19,
+    "h": 26
+   },
+   "sourceSize": {
+    "w": 19,
+    "h": 26
+   }
+  },
+  "board": {
+   "frame": {
+    "x": 482,
+    "y": 420,
+    "w": 30,
+    "h": 32
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 30,
+    "h": 32
+   },
+   "sourceSize": {
+    "w": 30,
+    "h": 32
+   }
+  },
+  "cart": {
+   "frame": {
+    "x": 60,
+    "y": 420,
+    "w": 82,
+    "h": 62
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 82,
+    "h": 62
+   },
+   "sourceSize": {
+    "w": 82,
+    "h": 62
+   }
+  },
+  "cauldron": {
+   "frame": {
+    "x": 211,
+    "y": 420,
+    "w": 31,
+    "h": 39
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 31,
+    "h": 39
+   },
+   "sourceSize": {
+    "w": 31,
+    "h": 39
+   }
+  },
+  "firewood": {
+   "frame": {
+    "x": 0,
+    "y": 420,
+    "w": 58,
+    "h": 63
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 58,
+    "h": 63
+   },
+   "sourceSize": {
+    "w": 58,
+    "h": 63
+   }
+  },
+  "forge-0": {
+   "frame": {
+    "x": 910,
+    "y": 0,
+    "w": 64,
+    "h": 128
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 64,
+    "h": 128
+   },
+   "sourceSize": {
+    "w": 64,
+    "h": 128
+   }
+  },
+  "forge-1": {
+   "frame": {
+    "x": 0,
+    "y": 290,
+    "w": 64,
+    "h": 128
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 64,
+    "h": 128
+   },
+   "sourceSize": {
+    "w": 64,
+    "h": 128
+   }
+  },
+  "forge-2": {
+   "frame": {
+    "x": 66,
+    "y": 290,
+    "w": 64,
+    "h": 128
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 64,
+    "h": 128
+   },
+   "sourceSize": {
+    "w": 64,
+    "h": 128
+   }
+  },
+  "grave-big": {
+   "frame": {
+    "x": 922,
+    "y": 290,
+    "w": 61,
+    "h": 63
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 61,
+    "h": 63
+   },
+   "sourceSize": {
+    "w": 61,
+    "h": 63
+   }
+  },
+  "grave-cross": {
+   "frame": {
+    "x": 546,
+    "y": 420,
+    "w": 24,
+    "h": 32
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 24,
+    "h": 32
+   },
+   "sourceSize": {
+    "w": 24,
+    "h": 32
+   }
+  },
+  "grave-round": {
+   "frame": {
+    "x": 448,
+    "y": 420,
+    "w": 32,
+    "h": 32
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 32,
+    "h": 32
+   },
+   "sourceSize": {
+    "w": 32,
+    "h": 32
+   }
+  },
+  "grave-tall": {
+   "frame": {
+    "x": 296,
+    "y": 290,
+    "w": 31,
+    "h": 92
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 31,
+    "h": 92
+   },
+   "sourceSize": {
+    "w": 31,
+    "h": 92
+   }
+  },
+  "hay": {
+   "frame": {
+    "x": 827,
+    "y": 290,
+    "w": 64,
+    "h": 64
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 64,
+    "h": 64
+   },
+   "sourceSize": {
+    "w": 64,
+    "h": 64
+   }
+  },
+  "house-a": {
+   "frame": {
+    "x": 682,
+    "y": 0,
+    "w": 128,
+    "h": 192
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 128,
+    "h": 192
+   },
+   "sourceSize": {
+    "w": 128,
+    "h": 192
+   }
+  },
+  "house-b": {
+   "frame": {
+    "x": 520,
+    "y": 0,
+    "w": 160,
+    "h": 192
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 160,
+    "h": 192
+   },
+   "sourceSize": {
+    "w": 160,
+    "h": 192
+   }
+  },
+  "house-c": {
+   "frame": {
+    "x": 422,
+    "y": 0,
+    "w": 96,
+    "h": 224
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 96,
+    "h": 224
+   },
+   "sourceSize": {
+    "w": 96,
+    "h": 224
+   }
+  },
+  "house-elder": {
+   "frame": {
+    "x": 0,
+    "y": 0,
+    "w": 160,
+    "h": 288
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 160,
+    "h": 288
+   },
+   "sourceSize": {
+    "w": 160,
+    "h": 288
+   }
+  },
+  "house-herbs": {
+   "frame": {
+    "x": 292,
+    "y": 0,
+    "w": 128,
+    "h": 224
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 128,
+    "h": 224
+   },
+   "sourceSize": {
+    "w": 128,
+    "h": 224
+   }
+  },
+  "house-player": {
+   "frame": {
+    "x": 162,
+    "y": 0,
+    "w": 128,
+    "h": 224
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 128,
+    "h": 224
+   },
+   "sourceSize": {
+    "w": 128,
+    "h": 224
+   }
+  },
+  "lamp-0": {
+   "frame": {
+    "x": 659,
+    "y": 290,
+    "w": 54,
+    "h": 68
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 54,
+    "h": 68
+   },
+   "sourceSize": {
+    "w": 54,
+    "h": 68
+   }
+  },
+  "lamp-1": {
+   "frame": {
+    "x": 715,
+    "y": 290,
+    "w": 54,
+    "h": 68
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 54,
+    "h": 68
+   },
+   "sourceSize": {
+    "w": 54,
+    "h": 68
+   }
+  },
+  "lamp-2": {
+   "frame": {
+    "x": 771,
+    "y": 290,
+    "w": 54,
+    "h": 68
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 54,
+    "h": 68
+   },
+   "sourceSize": {
+    "w": 54,
+    "h": 68
+   }
+  },
+  "lantern-0": {
+   "frame": {
+    "x": 346,
+    "y": 420,
+    "w": 32,
+    "h": 32
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 32,
+    "h": 32
+   },
+   "sourceSize": {
+    "w": 32,
+    "h": 32
+   }
+  },
+  "lantern-1": {
+   "frame": {
+    "x": 380,
+    "y": 420,
+    "w": 32,
+    "h": 32
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 32,
+    "h": 32
+   },
+   "sourceSize": {
+    "w": 32,
+    "h": 32
+   }
+  },
+  "lantern-2": {
+   "frame": {
+    "x": 414,
+    "y": 420,
+    "w": 32,
+    "h": 32
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 32,
+    "h": 32
+   },
+   "sourceSize": {
+    "w": 32,
+    "h": 32
+   }
+  },
+  "nest-0": {
+   "frame": {
+    "x": 329,
+    "y": 290,
+    "w": 64,
+    "h": 74
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 64,
+    "h": 74
+   },
+   "sourceSize": {
+    "w": 64,
+    "h": 74
+   }
+  },
+  "nest-1": {
+   "frame": {
+    "x": 395,
+    "y": 290,
+    "w": 64,
+    "h": 74
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 64,
+    "h": 74
+   },
+   "sourceSize": {
+    "w": 64,
+    "h": 74
+   }
+  },
+  "nest-2": {
+   "frame": {
+    "x": 461,
+    "y": 290,
+    "w": 64,
+    "h": 74
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 64,
+    "h": 74
+   },
+   "sourceSize": {
+    "w": 64,
+    "h": 74
+   }
+  },
+  "nest-3": {
+   "frame": {
+    "x": 527,
+    "y": 290,
+    "w": 64,
+    "h": 74
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 64,
+    "h": 74
+   },
+   "sourceSize": {
+    "w": 64,
+    "h": 74
+   }
+  },
+  "nest-4": {
+   "frame": {
+    "x": 593,
+    "y": 290,
+    "w": 64,
+    "h": 74
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 64,
+    "h": 74
+   },
+   "sourceSize": {
+    "w": 64,
+    "h": 74
+   }
+  },
+  "scarecrow": {
+   "frame": {
+    "x": 144,
+    "y": 420,
+    "w": 32,
+    "h": 62
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 32,
+    "h": 62
+   },
+   "sourceSize": {
+    "w": 32,
+    "h": 62
+   }
+  },
+  "signpost": {
+   "frame": {
+    "x": 514,
+    "y": 420,
+    "w": 30,
+    "h": 32
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 30,
+    "h": 32
+   },
+   "sourceSize": {
+    "w": 30,
+    "h": 32
+   }
+  },
+  "stall": {
+   "frame": {
+    "x": 812,
+    "y": 0,
+    "w": 96,
+    "h": 160
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 96,
+    "h": 160
+   },
+   "sourceSize": {
+    "w": 96,
+    "h": 160
+   }
+  },
+  "statue": {
+   "frame": {
+    "x": 893,
+    "y": 290,
+    "w": 27,
+    "h": 64
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 27,
+    "h": 64
+   },
+   "sourceSize": {
+    "w": 27,
+    "h": 64
+   }
+  },
+  "torch-0": {
+   "frame": {
+    "x": 244,
+    "y": 420,
+    "w": 32,
+    "h": 32
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 32,
+    "h": 32
+   },
+   "sourceSize": {
+    "w": 32,
+    "h": 32
+   }
+  },
+  "torch-1": {
+   "frame": {
+    "x": 278,
+    "y": 420,
+    "w": 32,
+    "h": 32
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 32,
+    "h": 32
+   },
+   "sourceSize": {
+    "w": 32,
+    "h": 32
+   }
+  },
+  "torch-2": {
+   "frame": {
+    "x": 312,
+    "y": 420,
+    "w": 32,
+    "h": 32
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 32,
+    "h": 32
+   },
+   "sourceSize": {
+    "w": 32,
+    "h": 32
+   }
+  },
+  "well": {
+   "frame": {
+    "x": 230,
+    "y": 290,
+    "w": 64,
+    "h": 95
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 64,
+    "h": 95
+   },
+   "sourceSize": {
+    "w": 64,
+    "h": 95
+   }
+  }
+ },
+ "meta": {
+  "image": "village-props.png",
+  "size": {
+   "w": 1024,
+   "h": 512
+  },
+  "scale": "1",
+  "props": {
+   "house-player": {
+    "frames": 1,
+    "fps": 0,
+    "foot": [
+     -62,
+     0,
+     124,
+     106
+    ],
+    "light": [
+     0,
+     36,
+     70
+    ]
+   },
+   "house-elder": {
+    "frames": 1,
+    "fps": 0,
+    "foot": [
+     -78,
+     0,
+     156,
+     138
+    ],
+    "light": [
+     0,
+     36,
+     70
+    ]
+   },
+   "house-herbs": {
+    "frames": 1,
+    "fps": 0,
+    "foot": [
+     -62,
+     0,
+     124,
+     106
+    ],
+    "light": [
+     0,
+     36,
+     70
+    ]
+   },
+   "house-a": {
+    "frames": 1,
+    "fps": 0,
+    "foot": [
+     -62,
+     0,
+     124,
+     90
+    ],
+    "light": [
+     0,
+     36,
+     70
+    ]
+   },
+   "house-b": {
+    "frames": 1,
+    "fps": 0,
+    "foot": [
+     -78,
+     0,
+     156,
+     90
+    ],
+    "light": [
+     0,
+     36,
+     70
+    ]
+   },
+   "house-c": {
+    "frames": 1,
+    "fps": 0,
+    "foot": [
+     -46,
+     0,
+     92,
+     106
+    ],
+    "light": [
+     0,
+     36,
+     70
+    ]
+   },
+   "nest": {
+    "frames": 5,
+    "fps": 10,
+    "foot": [
+     -28,
+     0,
+     56,
+     38
+    ],
+    "light": [
+     0,
+     30,
+     230
+    ]
+   },
+   "torch": {
+    "frames": 3,
+    "fps": 10,
+    "foot": null,
+    "light": [
+     0,
+     22,
+     90
+    ]
+   },
+   "lantern": {
+    "frames": 3,
+    "fps": 5,
+    "foot": null,
+    "light": [
+     0,
+     16,
+     110
+    ]
+   },
+   "lamp": {
+    "frames": 3,
+    "fps": 5,
+    "foot": [
+     4,
+     0,
+     10,
+     8
+    ],
+    "light": [
+     -8,
+     44,
+     120
+    ]
+   },
+   "cauldron": {
+    "frames": 1,
+    "fps": 0,
+    "foot": [
+     -12,
+     0,
+     24,
+     14
+    ],
+    "light": [
+     0,
+     10,
+     90
+    ]
+   },
+   "barn": {
+    "frames": 1,
+    "fps": 0,
+    "foot": [
+     -46,
+     0,
+     92,
+     70
+    ],
+    "light": null
+   },
+   "forge": {
+    "frames": 3,
+    "fps": 6,
+    "foot": [
+     -26,
+     0,
+     52,
+     30
+    ],
+    "light": [
+     0,
+     30,
+     120
+    ]
+   },
+   "anvil": {
+    "frames": 1,
+    "fps": 0,
+    "foot": [
+     -12,
+     0,
+     24,
+     10
+    ],
+    "light": null
+   },
+   "firewood": {
+    "frames": 1,
+    "fps": 0,
+    "foot": [
+     -26,
+     0,
+     52,
+     22
+    ],
+    "light": null
+   },
+   "stall": {
+    "frames": 1,
+    "fps": 0,
+    "foot": [
+     -46,
+     0,
+     92,
+     28
+    ],
+    "light": null
+   },
+   "well": {
+    "frames": 1,
+    "fps": 0,
+    "foot": [
+     -26,
+     0,
+     52,
+     30
+    ],
+    "light": null
+   },
+   "board": {
+    "frames": 1,
+    "fps": 0,
+    "foot": [
+     -14,
+     0,
+     28,
+     8
+    ],
+    "light": null
+   },
+   "signpost": {
+    "frames": 1,
+    "fps": 0,
+    "foot": [
+     -4,
+     0,
+     8,
+     6
+    ],
+    "light": null
+   },
+   "grave-cross": {
+    "frames": 1,
+    "fps": 0,
+    "foot": [
+     -10,
+     0,
+     20,
+     8
+    ],
+    "light": null
+   },
+   "grave-round": {
+    "frames": 1,
+    "fps": 0,
+    "foot": [
+     -10,
+     0,
+     20,
+     8
+    ],
+    "light": null
+   },
+   "grave-big": {
+    "frames": 1,
+    "fps": 0,
+    "foot": [
+     -24,
+     0,
+     48,
+     30
+    ],
+    "light": null
+   },
+   "grave-tall": {
+    "frames": 1,
+    "fps": 0,
+    "foot": [
+     -12,
+     0,
+     24,
+     12
+    ],
+    "light": null
+   },
+   "statue": {
+    "frames": 1,
+    "fps": 0,
+    "foot": [
+     -12,
+     0,
+     24,
+     12
+    ],
+    "light": null
+   },
+   "scarecrow": {
+    "frames": 1,
+    "fps": 0,
+    "foot": [
+     -4,
+     0,
+     8,
+     6
+    ],
+    "light": null
+   },
+   "hay": {
+    "frames": 1,
+    "fps": 0,
+    "foot": [
+     -28,
+     0,
+     56,
+     22
+    ],
+    "light": null
+   },
+   "cart": {
+    "frames": 1,
+    "fps": 0,
+    "foot": [
+     -40,
+     0,
+     80,
+     20
+    ],
+    "light": null
+   },
+   "barrel": {
+    "frames": 1,
+    "fps": 0,
+    "foot": [
+     -10,
+     0,
+     20,
+     10
+    ],
+    "light": null
+   },
+   "banner": {
+    "frames": 1,
+    "fps": 0,
+    "foot": [
+     -6,
+     0,
+     12,
+     6
+    ],
+    "light": null
+   }
+  }
+ }
+}
