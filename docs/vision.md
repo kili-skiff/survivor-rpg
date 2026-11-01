@@ -337,7 +337,9 @@ rule set in `config/` plus its check in `logic/`; the fight only reports progres
   - maybe a cartographer: more map information, e.g. what an event hex holds
 - Rescued villagers stay across seasons. New ones can come with a season.
 - Farming must feel like a reward, never like a chore you have to do before playing.
-- **Today** the village is a menu screen: the stash, what came home, and a button to set out.
+- **Today** the village is a small place to walk around in (a first sketch of the art): the Nest with the
+  Hearth, the cauldron, the trader, the armory, the deeds board and the elder's house; a shortcut bar walks
+  you to each. Your house still opens the old menu screen with the stash and the belt.
 - **Later** it becomes a place you walk around in with your character: your house (stash),
   the herb garden, the brewing cauldron, a merchant, a blacksmith and so on. Walking up to a
   building opens its panel.

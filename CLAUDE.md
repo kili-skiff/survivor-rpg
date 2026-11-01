@@ -60,7 +60,8 @@ src/
   logic/     Pure game logic (NO Phaser, tested): stats, XP, upgrades, spawning, segments, save data,
              hex math, seeded RNG, world generation, world progress, expeditions and journeys, footsteps,
              potions (brewing, belt, buffs), lantern pendulum physics, merchant (embers, lanterns, recipes), the Hearth (ember upgrades), ring difficulty, horde steering and enemy behaviours (swarm, behaviors), the spawn director (waves, breathers, rings and walls), chests,
-             quests, deeds, device settings, fog noise
+             quests, deeds, device settings, fog noise, the walkable village (station zones, finding a way
+             around houses), the touch stick
   entities/  Pooled Phaser objects (Enemy, Projectile, Pickup)
   input/     InputState: one input layer for touch, keyboard, later gamepads
   systems/   Gameplay behaviour, one job per file:
@@ -70,7 +71,10 @@ src/
     DamageNumbers
   panels/    Village panels (CauldronPanel, MerchantPanel, DeedsPanel, ArmoryPanel, HearthPanel, DialoguePanel): drawn on top of any scene,
              logic lives in logic/
-  scenes/    Boot (placeholder graphics), WorldMap (hex map, travel), Village (stash, belt, panels),
+  scenes/    Boot (placeholder graphics), WorldMap (hex map, travel), Village (the walkable village: map,
+             walking, night light) with VillageHud on top (shortcut bar, station button, touch stick, panels),
+             VillageMenu (the village as a menu: stash, belt, panels; opened in the house, and the whole village
+             where its art is missing, e.g. in the single-file build),
              Game (one fight, owns run state, wires systems), UI (HUD, touch, menus during a fight)
   ui/        Display helpers (pixel density, safe area), colors, the drifting night fog on the world map (mapFog)
   dev/       Dev-only test helpers behind one switch (DEV_TOOLS); calls are marked `// DEV:`
@@ -79,7 +83,7 @@ public/assets/  Art files served as they are (tiles/ for the world map, sprites/
 scripts/lpc/    Builds the character sheets from LPC layers (Python + Pillow; see the script's header)
 scripts/ground/ Generates the ground tiles (Python + Pillow + numpy; our own art, replaceable)
 scripts/village/ Builds the walkable village from LPC packs: map (Tiled JSON), ground tiles, props atlas
-                (Python + Pillow; see the script's header; not used by the game yet)
+                (Python + Pillow; see the script's header); the art is a first sketch, to be replaced
 ```
 
 ## Rules
@@ -204,7 +208,11 @@ weapon, ores and the blacksmith.
 ### Later
 
 - [ ] Richer expedition panel on the map: health bar and the collected weapons, items and skills
-- [ ] Walkable village: house, garden, cauldron, merchant, blacksmith as places to walk to
+- [ ] Walkable village: house, garden, cauldron, merchant, blacksmith as places to walk to. Built so far: a first
+      village from LPC art (prototype houses, to be replaced; `scripts/village/`), walking with keys or the touch
+      stick, houses and fences in the way, night light, a shortcut bar that walks you to a place and opens its
+      panel there, the gate to the map; the menu village opens in your house. Next: villagers standing in the
+      village, a house panel for stash and belt
 - [ ] Sound effects and music
 - [ ] Real art (sprite atlas) instead of placeholders
 - [ ] Seasons with a shared seed (Diablo-style: map resets, village and weapons stay); a season ranking only maybe, later (needs a server)

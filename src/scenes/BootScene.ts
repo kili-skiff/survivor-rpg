@@ -2,6 +2,7 @@ import * as Phaser from 'phaser';
 import { GROUND_TEXTURES } from '../config/ground';
 import { LANTERN_LOOKS } from '../config/merchant';
 import { CHARACTER_SPRITES, dieAnim, SHEET, walkAnim, type Facing } from '../config/sprites';
+import { VILLAGE_ASSETS } from '../config/village';
 import { TILESET } from '../config/tiles';
 import { COLORS } from '../ui/theme';
 
@@ -32,6 +33,13 @@ export class BootScene extends Phaser.Scene {
         frameHeight: SHEET.frameSize,
       });
     }
+    // The walkable village. Without it (e.g. in the single-file build) the menu village is shown instead.
+    this.load.tilemapTiledJSON(VILLAGE_ASSETS.map.key, VILLAGE_ASSETS.map.path);
+    this.load.spritesheet(VILLAGE_ASSETS.tiles.key, VILLAGE_ASSETS.tiles.path, {
+      frameWidth: 32,
+      frameHeight: 32,
+    });
+    this.load.atlas(VILLAGE_ASSETS.props.key, VILLAGE_ASSETS.props.image, VILLAGE_ASSETS.props.atlas);
     this.load.on(Phaser.Loader.Events.FILE_LOAD_ERROR, () => undefined);
   }
 
@@ -90,8 +98,8 @@ export class BootScene extends Phaser.Scene {
       if (this.textures.exists(ground.key))
         this.textures.get(ground.key).setFilter(Phaser.Textures.FilterMode.NEAREST);
     }
-    if (this.textures.exists(TILESET.key)) {
-      this.textures.get(TILESET.key).setFilter(Phaser.Textures.FilterMode.NEAREST);
+    for (const key of [TILESET.key, VILLAGE_ASSETS.tiles.key, VILLAGE_ASSETS.props.key]) {
+      if (this.textures.exists(key)) this.textures.get(key).setFilter(Phaser.Textures.FilterMode.NEAREST);
     }
     const g = this.add.graphics();
     const make = (key: string, w: number, h: number, draw: (g: G) => void) => {
