@@ -140,6 +140,7 @@ describe the game as built; some of it changes in Milestone 2 (gold, camps).
 - [x] Wild builds, a first test batch: 19 new items without a limit (`config/passives.ts`), one-time cards (`config/boons.ts`) and the weapon Chain Lightning; values to be tuned by playing (see "Wild builds" in `docs/vision.md`)
 - [x] Card rarity (common, magic, legendary: frame colour and how often offered, `config/rarity.ts`) and weapon level steps in a random order (`weaponSteps`)
 - [x] Fight scaling: enemy health from the ring, only a gentle rise within a fight; Arcane Bolt focus fire with a target lock that lets a very close enemy take over (`logic/focus.ts`)
+- [x] Hex rewards like the doors in Hades: each hex shows what clearing it brings (gold, chest, rare card, full health, herb harvest), rolled per expedition (`config/rewards.ts`, `logic/rewards.ts`)
 - [ ] Follow-ups: a weapon built around crowd control (e.g. a mortar), XP that keeps up with enemy health (check in play first), tune or drop what does not feel good from the wild-build batch, more weapons
 
 ### Milestone 2: new core loop

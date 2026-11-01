@@ -46,7 +46,8 @@ import {
   weaponSteps,
   type Loadout,
 } from '../logic/stats';
-import { applyUpgrade, rollUpgradeOptions, type UpgradeOption } from '../logic/upgrades';
+import { applyUpgrade, rollRareOptions, rollUpgradeOptions, type UpgradeOption } from '../logic/upgrades';
+import { REWARDS } from '../config/rewards';
 import { situationalDamage } from '../logic/hitEffects';
 import { seasonWorld, segmentForHex } from '../logic/worldgen';
 import type { CombatContext } from '../systems/CombatContext';
@@ -170,6 +171,10 @@ export class GameScene extends Phaser.Scene {
   private watchfire: WatchfireSystem | null = null;
   /** Seconds the player has moved through the dark looking for the watchfire */
   private searched = 0;
+  /** The hex's reward was given (or its menu opened) once the goal was reached */
+  private rewardGiven = false;
+  /** A reward menu is open; when it closes, the fight ends */
+  private endAfterMenu = false;
   /** DEV: "clear area" was pressed; the fight counts as won */
   private devCleared = false;
 
@@ -195,6 +200,8 @@ export class GameScene extends Phaser.Scene {
     this.surgeUntil = 0;
     this.endInfo = null;
     this.devCleared = false;
+    this.rewardGiven = false;
+    this.endAfterMenu = false;
     this.watchfire = null;
 
     let controls = this.registry.get('input') as InputState | undefined;
@@ -285,7 +292,13 @@ export class GameScene extends Phaser.Scene {
     // Fresh herbs every time a hex is entered. They bloom one by one at random moments;
     // nothing grows back during the fight.
     const blooms = segment.herbs
-      ? planHerbBlooms(segment.herbs.biome, segment.herbs.ring, segment.durationSec, Math.random)
+      ? planHerbBlooms(
+          segment.herbs.biome,
+          segment.herbs.ring,
+          segment.durationSec,
+          Math.random,
+          segment.reward === 'herbs' ? REWARDS.herbsMul : 1,
+        )
       : [];
     this.herbs = new HerbSystem(this, blooms, this.player, this.numbers, (herb) =>
       this.events.emit('herbbloom', herb),
@@ -371,6 +384,7 @@ export class GameScene extends Phaser.Scene {
         this.openChest(chest);
         return;
       }
+      if (this.endIfRewardDone()) return;
       this.controls.reset();
       this.scene.resume();
     }
@@ -388,6 +402,7 @@ export class GameScene extends Phaser.Scene {
       this.openChest(next);
       return;
     }
+    if (this.endIfRewardDone()) return;
     this.controls.reset();
     this.scene.resume();
   }
@@ -632,7 +647,7 @@ export class GameScene extends Phaser.Scene {
       lit: this.run.lit,
       found: this.run.found,
     };
-    if (isGoalDone(this.run.segment.goal, goalState) || this.devCleared) this.endRun('cleared'); // DEV: clear area
+    if (isGoalDone(this.run.segment.goal, goalState) || this.devCleared) this.reachGoal(); // DEV: clear area
   }
 
   /** Recomputes all stats after the loadout changed and creates newly acquired weapons. */
@@ -831,7 +846,9 @@ export class GameScene extends Phaser.Scene {
       this.pickups.drop(e.x, e.y + 10, 'chest', 0);
       this.events.emit('chestdrop');
     }
-    if (Math.random() < GOLD.dropChance) this.pickups.drop(e.x + 8, e.y - 6, 'gold', goldPerDrop(this.ring));
+    const goldMul = this.run.segment.reward === 'gold' ? REWARDS.goldDropMul : 1;
+    if (Math.random() < GOLD.dropChance * goldMul)
+      this.pickups.drop(e.x + 8, e.y - 6, 'gold', goldPerDrop(this.ring));
   }
 
   private onPickup(p: Pickup): void {
@@ -873,6 +890,62 @@ export class GameScene extends Phaser.Scene {
     this.controls.reset();
     this.scene.pause();
     this.events.emit('levelup', rollUpgradeOptions(this.run.loadout, Math.random), this.run.level);
+  }
+
+  /**
+   * The goal is reached: first the hex's reward (config/rewards.ts), then the fight ends. A chest or a rare
+   * card opens its menu first; the fight ends when it is closed.
+   */
+  private reachGoal(): void {
+    if (this.levelUpOpen || this.chestOpen) return; // a menu that is open comes first
+    if (this.rewardGiven) {
+      this.endRun('cleared');
+      return;
+    }
+    this.rewardGiven = true;
+    const { x, y } = this.player;
+    switch (this.run.segment.reward) {
+      case 'chest':
+        this.endAfterMenu = true;
+        this.openChest(rollChest(this.run.loadout, this.ring, Math.random));
+        return;
+      case 'card':
+        this.endAfterMenu = true;
+        this.levelUpOpen = true;
+        this.pendingLevelUps += 1;
+        this.controls.reset();
+        this.scene.pause();
+        this.events.emit(
+          'levelup',
+          rollRareOptions(this.run.loadout, Math.random, REWARDS.cardChoices),
+          this.run.level,
+          'Reward: a rare card',
+        );
+        return;
+      case 'heal':
+        this.run.hp = this.run.stats.maxHp;
+        this.numbers.show(x, y - 26, 'full health', '#4ade80', true);
+        break;
+      case 'gold': {
+        const gold = goldPerDrop(this.ring) * REWARDS.goldBonusDrops;
+        this.run.gold += gold;
+        this.numbers.show(x, y - 26, `+${gold} gold`, '#fde047', true);
+        break;
+      }
+      default:
+        break;
+    }
+    this.endRun('cleared');
+  }
+
+  /** After the reward's menu: the fight ends instead of going on. Returns true when it did. */
+  private endIfRewardDone(): boolean {
+    if (!this.endAfterMenu) return false;
+    this.endAfterMenu = false;
+    this.controls.reset();
+    this.scene.resume();
+    this.endRun('cleared');
+    return true;
   }
 
   /** Ends the segment, either cleared or fallen, and reports the result to the HUD. */

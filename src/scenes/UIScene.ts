@@ -13,6 +13,7 @@ import { formatTime, xpToNext } from '../logic/progression';
 import { safeStorage } from '../logic/save';
 import { GOALS } from '../config/goals';
 import { goalCounter, goalLabel } from '../logic/goals';
+import { rewardLabel } from '../logic/rewards';
 import { loadSettings, otherSide, writeSettings, type Settings } from '../logic/settings';
 import { RARITIES } from '../config/rarity';
 import { describeUpgrade, type UpgradeOption } from '../logic/upgrades';
@@ -98,6 +99,8 @@ export class UIScene extends Phaser.Scene {
   private overlayOpenedAt = 0;
   private levelUpOptions: UpgradeOption[] = [];
   private levelUpLevel = 1;
+  /** Title of the level-up menu when it is not a level-up (e.g. a reward) */
+  private levelUpTitle: string | null = null;
   private runEndInfo?: RunEndInfo;
   private chestReward?: ChestReward;
   /** Reels of the open chest that have stopped */
@@ -1202,21 +1205,32 @@ export class UIScene extends Phaser.Scene {
       })
       .setOrigin(0.5)
       .setDepth(40);
+    const reward = this.add
+      .text(W / 2, H * 0.3 + 58 * u, seg.reward ? `Reward: ${rewardLabel(seg.reward)}` : '', {
+        ...style,
+        fontSize: `${Math.round(13 * u)}px`,
+        color: '#e4e4e7',
+        strokeThickness: 3,
+      })
+      .setOrigin(0.5)
+      .setDepth(40);
     this.tweens.add({
-      targets: [title, goal],
+      targets: [title, goal, reward],
       alpha: 0,
       delay: 2200,
       duration: 600,
       onComplete: () => {
         title.destroy();
         goal.destroy();
+        reward.destroy();
       },
     });
   }
 
-  private onLevelUp(options: UpgradeOption[], level: number): void {
+  private onLevelUp(options: UpgradeOption[], level: number, title?: string): void {
     this.levelUpOptions = options;
     this.levelUpLevel = level;
+    this.levelUpTitle = title ?? null;
     this.showLevelUp();
   }
 
@@ -1228,7 +1242,7 @@ export class UIScene extends Phaser.Scene {
     const landscape = W > H * 1.15;
 
     const titleY = this.sa.top + (landscape ? 46 : 64) * u;
-    this.text(W / 2, titleY, `Level ${this.levelUpLevel}!`, 30, {
+    this.text(W / 2, titleY, this.levelUpTitle ?? `Level ${this.levelUpLevel}!`, 30, {
       fontStyle: 'bold',
       color: css(COLORS.accent),
       stroke: '#000',

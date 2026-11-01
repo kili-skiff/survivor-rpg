@@ -70,6 +70,13 @@ The sections below already describe the target; this list is the to-do for the c
   - biomes as regions in every direction, so every direction pays off,
   - fixed anchors (village, villager places, bosses, the tower) with the rest generated around them.
 
+**Hex rewards** (built, `config/rewards.ts`, `logic/rewards.ts`): like the doors in Hades, every hex with
+a fight shows what clearing it brings, next to its goal (on the hexes next to you), rolled anew for every
+expedition: _gold_ (more gold drops, a bonus at the end), a _treasure chest_ at the end, a _rare card_
+(a choice of magic or legendary cards, from ring 2), _full health_, or a _herb harvest_ (twice the blooms,
+where herbs grow). You pick your way by what you need. Later: embers, unlocks, villagers, ores, and
+richer rewards further out.
+
 **Event hexes ("?"):** some hexes show a question mark. What happens there is only revealed when you
 enter, also on hexes revealed by a watchfire. Most events should be worth it, so players do not learn
 to avoid them; further out they get riskier and richer. An event takes no longer than a normal fight.
