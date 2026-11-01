@@ -1,5 +1,5 @@
 import * as Phaser from 'phaser';
-import { VILLAGE, VILLAGE_ASSETS, type StationId } from '../config/village';
+import { STATIONS, VILLAGE, VILLAGE_ASSETS, type StationId } from '../config/village';
 import { InputState } from '../input/InputState';
 import { loadSave, safeStorage } from '../logic/save';
 import { loadSettings } from '../logic/settings';
@@ -18,6 +18,7 @@ import type { Arrival } from '../panels/villagePanels';
 import { LanternSystem } from '../systems/LanternSystem';
 import { PlayerController } from '../systems/PlayerController';
 import { viewportSize } from '../ui/display';
+import { COLORS, css, FONT } from '../ui/theme';
 
 export interface VillageSceneData {
   /** Coming home from an expedition: what came with you */
@@ -55,6 +56,16 @@ const NIGHT_SCALE = 4;
 
 export type WalkTarget = StationId | 'gate';
 
+interface Sign {
+  id: StationId;
+  x: number;
+  y: number;
+  icon: Phaser.GameObjects.Image;
+  name: Phaser.GameObjects.Text;
+  badge: Phaser.GameObjects.Text;
+  phase: number;
+}
+
 /** The watchman's feet, below the centre of his sprite (px) */
 const FEET_Y = 22;
 /** Things further down the screen are drawn in front */
@@ -83,6 +94,8 @@ export class VillageScene extends Phaser.Scene {
   private bestDist = Infinity;
   private stuckFor = 0;
   private here: StationId | null = null;
+  /** Signs floating above the places */
+  private signs: Sign[] = [];
   /** Standing in the gate when the scene starts must not send you off at once */
   private inGate = true;
   private frozen = false;
@@ -116,6 +129,7 @@ export class VillageScene extends Phaser.Scene {
     this.path = null;
     this.target = null;
     this.here = null;
+    this.signs = [];
     this.inGate = true;
     this.frozen = false;
     this.leaving = false;
@@ -218,13 +232,13 @@ export class VillageScene extends Phaser.Scene {
       block({ x: o.x ?? 0, y: o.y ?? 0, w: o.width ?? 0, h: o.height ?? 0 });
     }
     for (const o of map.getObjectLayer('stations')?.objects ?? []) {
-      this.zones.push({
-        id: o.name as StationId,
-        x: o.x ?? 0,
-        y: o.y ?? 0,
-        w: o.width ?? 0,
-        h: o.height ?? 0,
-      });
+      const zone = { id: o.name as StationId, x: o.x ?? 0, y: o.y ?? 0, w: o.width ?? 0, h: o.height ?? 0 };
+      this.zones.push(zone);
+      const prop = (name: string) =>
+        (o.properties as { name: string; value: unknown }[] | undefined)?.find((p) => p.name === name)?.value;
+      const sx = typeof prop('signX') === 'number' ? (prop('signX') as number) : zone.x + zone.w / 2;
+      const sy = typeof prop('signY') === 'number' ? (prop('signY') as number) : zone.y - 60;
+      this.addSign(zone.id, sx, sy);
     }
     for (const o of map.getObjectLayer('marks')?.objects ?? []) {
       if (o.name === 'gate') this.gate = { x: o.x ?? 0, y: o.y ?? 0, w: o.width ?? 0, h: o.height ?? 0 };
@@ -232,6 +246,74 @@ export class VillageScene extends Phaser.Scene {
     }
     this.blockers = blockers;
     return walls;
+  }
+
+  /** A sign above a place: its symbol, its name below (shown up close) and a "!" when there is news. */
+  private addSign(id: StationId, x: number, y: number): void {
+    const def = STATIONS.find((s) => s.id === id);
+    if (!def) return;
+    const depth = 6.5;
+    const icon = this.add
+      .image(x, y, def.icon)
+      .setDepth(depth)
+      .setDisplaySize(VILLAGE.signSize, VILLAGE.signSize);
+    const name = this.add
+      .text(x, y + VILLAGE.signSize / 2 + 2, def.short, {
+        fontFamily: FONT,
+        fontSize: '10px',
+        fontStyle: 'bold',
+        color: '#ffffff',
+        stroke: '#0b0a10',
+        strokeThickness: 3,
+      })
+      .setResolution(4)
+      .setOrigin(0.5, 0)
+      .setDepth(depth)
+      .setAlpha(0);
+    const badge = this.add
+      .text(x + VILLAGE.signSize / 2 - 1, y - VILLAGE.signSize / 2 + 1, '!', {
+        fontFamily: FONT,
+        fontSize: '9px',
+        fontStyle: 'bold',
+        color: '#1c1917',
+        backgroundColor: css(COLORS.accent),
+        padding: { x: 2.5, y: 0 },
+      })
+      .setResolution(4)
+      .setOrigin(0.5)
+      .setDepth(depth + 0.01)
+      .setVisible(false);
+    this.signs.push({ id, x, y, icon, name, badge, phase: this.signs.length * 1.3 });
+  }
+
+  /** Where the sign of a place floats (for the arrow to a place with news) */
+  signOf(id: StationId): Point | null {
+    const s = this.signs.find((sign) => sign.id === id);
+    return s ? { x: s.x, y: s.y } : null;
+  }
+
+  /** Shows or hides the "!" on a place's sign. */
+  setNews(id: StationId, on: boolean): void {
+    this.signs.find((s) => s.id === id)?.badge.setVisible(on);
+  }
+
+  private updateSigns(time: number, feet: Point): void {
+    for (const s of this.signs) {
+      const bob = Math.sin(time * 0.0022 + s.phase) * VILLAGE.signBob;
+      const zone = this.zones.find((z) => z.id === s.id);
+      const near = zone
+        ? Math.hypot(feet.x - (zone.x + zone.w / 2), feet.y - (zone.y + zone.h / 2))
+        : Infinity;
+      // The name fades in as you come close; the place you stand at grows a little.
+      const show = Phaser.Math.Clamp((VILLAGE.signNameNear - near) / 40, 0, 1);
+      const size = VILLAGE.signSize * (this.here === s.id ? 1.2 : 1);
+      s.icon
+        .setPosition(s.x, s.y + bob)
+        .setDisplaySize(size, size)
+        .setAlpha(0.75 + show * 0.25);
+      s.name.setPosition(s.x, s.y + bob + size / 2 + 2).setAlpha(show);
+      s.badge.setPosition(s.x + size / 2 - 1, s.y + bob - size / 2 + 1);
+    }
   }
 
   private propAnim(key: string, m: PropMeta): string {
@@ -452,6 +534,7 @@ export class VillageScene extends Phaser.Scene {
     this.lantern.depth = depth;
     this.lantern.update(dt);
     this.updateLight(time);
+    this.updateSigns(time, feet);
 
     const here = zoneAt(this.zones, feet.x, feet.y);
     if (here !== this.here) {

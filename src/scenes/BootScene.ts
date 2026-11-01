@@ -159,6 +159,63 @@ export class BootScene extends Phaser.Scene {
       g.fillStyle(0x166534).fillRect(15, 14, 2, 12);
     });
 
+    // Places in the walkable village (config/village.ts): signs above them and icons in the menu of places.
+    // Coloured on a dark disc, like the hex symbols. 32x32.
+    const disc = (g: G) => g.fillStyle(0x0d0b12, 0.85).fillCircle(16, 16, 16);
+    make('place-hearth', 32, 32, (g) => {
+      disc(g);
+      g.fillStyle(0x57534e).fillRoundedRect(7, 22, 18, 5, 2);
+      g.fillStyle(0xf97316).fillTriangle(16, 5, 23, 22, 9, 22);
+      g.fillStyle(0xfb923c).fillTriangle(11, 10, 17, 22, 8, 22).fillTriangle(21, 9, 24, 22, 15, 22);
+      g.fillStyle(0xfde68a).fillTriangle(16, 13, 20, 22, 12, 22);
+    });
+    make('place-cauldron', 32, 32, (g) => {
+      disc(g);
+      g.fillStyle(0x4ade80).fillCircle(12, 9, 2.2).fillCircle(18, 6, 1.6).fillCircle(20, 11, 1.8);
+      g.fillStyle(0x44403c).fillEllipse(16, 19, 20, 14);
+      g.fillStyle(0x22c55e).fillEllipse(16, 14, 16, 4);
+      g.fillStyle(0x78716c).fillRect(6, 13, 20, 2);
+      g.fillStyle(0x292524).fillRect(10, 25, 2, 3).fillRect(20, 25, 2, 3);
+    });
+    make('place-merchant', 32, 32, (g) => {
+      disc(g);
+      g.fillStyle(0xa16207).fillEllipse(16, 19, 18, 15);
+      g.fillStyle(0x854d0e).fillTriangle(11, 8, 21, 8, 16, 13);
+      g.fillStyle(0xfbbf24).fillCircle(16, 19, 5);
+      g.fillStyle(0xa16207).fillRect(15, 16.5, 2, 5);
+    });
+    make('place-armory', 32, 32, (g) => {
+      disc(g);
+      g.lineStyle(3, 0xe7e5e4).lineBetween(9, 23, 22, 10);
+      g.fillStyle(0xe7e5e4).fillTriangle(22, 10, 25, 6, 25.5, 9.5);
+      g.lineStyle(3, 0xa16207).lineBetween(7, 19, 13, 25);
+      g.fillStyle(0xa16207).fillCircle(7, 25, 2.2);
+    });
+    make('place-elder', 32, 32, (g) => {
+      disc(g);
+      g.fillStyle(0xf5f5f4).fillRoundedRect(6, 8, 20, 13, 5).fillTriangle(10, 20, 15, 20, 9, 25);
+      g.fillStyle(0x0d0b12).fillCircle(11, 14.5, 1.6).fillCircle(16, 14.5, 1.6).fillCircle(21, 14.5, 1.6);
+    });
+    make('place-deeds', 32, 32, (g) => {
+      disc(g);
+      g.fillStyle(0xe7d8b0).fillRect(9, 8, 14, 17);
+      g.fillStyle(0xc8b48a).fillCircle(9, 8, 2.5).fillCircle(23, 25, 2.5);
+      g.fillStyle(0x78716c).fillRect(12, 12, 8, 1.5).fillRect(12, 16, 8, 1.5).fillRect(12, 20, 5, 1.5);
+      g.fillStyle(0xdc2626).fillCircle(20, 21, 2.5);
+    });
+    make('place-house', 32, 32, (g) => {
+      disc(g);
+      g.fillStyle(0xe7e5e4).fillTriangle(16, 6, 27, 15, 5, 15);
+      g.fillStyle(0xd6d3d1).fillRect(8, 15, 16, 11);
+      g.fillStyle(0x92400e).fillRoundedRect(13.5, 18, 5, 8, { tl: 2.5, tr: 2.5, bl: 0, br: 0 });
+    });
+    make('place-gate', 32, 32, (g) => {
+      disc(g);
+      g.fillStyle(0xa16207).fillRect(7, 9, 4, 17).fillRect(21, 9, 4, 17);
+      g.fillStyle(0xca8a04).fillTriangle(7, 9, 9, 5, 11, 9).fillTriangle(21, 9, 23, 5, 25, 9);
+      g.fillStyle(0xfbbf24).fillTriangle(16, 11, 21, 18, 11, 18).fillRect(14, 17, 4, 7);
+    });
+
     // The watchfire in a fight (goal "find the light"): a stone brazier, cold or burning. 48x56, base at the bottom.
     const brazier = (g: G) => {
       g.fillStyle(0x000000, 0.3).fillEllipse(24, 52, 34, 8);

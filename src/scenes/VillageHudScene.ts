@@ -1,10 +1,11 @@
 import * as Phaser from 'phaser';
 import { VILLAGERS } from '../config/quests';
-import { STATIONS, VILLAGE, type StationId } from '../config/village';
+import { GATE_ENTRY, STATIONS, VILLAGE, type StationId } from '../config/village';
 import type { InputState } from '../input/InputState';
 import { embersOf, embersText } from '../logic/merchant';
 import { questsOnArrival } from '../logic/quests';
 import { loadSave, safeStorage, writeSave, type SaveData } from '../logic/save';
+import { loadSettings, writeSettings } from '../logic/settings';
 import { readStick } from '../logic/stick';
 import {
   describeArrival,
@@ -45,6 +46,12 @@ export class VillageHudScene extends Phaser.Scene {
   private stickOrigin = new Phaser.Math.Vector2();
   private stickPos = new Phaser.Math.Vector2();
   private stickGfx!: Phaser.GameObjects.Graphics;
+  /** The arrow at the screen edge towards a place with news that is out of view */
+  private arrowGfx!: Phaser.GameObjects.Graphics;
+  private arrowMark!: Phaser.GameObjects.Text;
+  private arrowZone!: Phaser.GameObjects.Zone;
+  /** The hint on the menu of places was seen once */
+  private tipSeen = true;
 
   constructor() {
     super('VillageHud');
@@ -75,6 +82,18 @@ export class VillageHudScene extends Phaser.Scene {
     this.here = this.world.stationHere();
     this.stickPointerId = null;
     this.stickGfx = this.add.graphics().setDepth(20);
+    this.tipSeen = loadSettings(safeStorage()).villageTipSeen;
+    this.arrowGfx = this.add.graphics().setDepth(5);
+    this.arrowMark = this.add
+      .text(0, 0, '!', { fontFamily: FONT, fontStyle: 'bold', color: '#1c1917' })
+      .setOrigin(0.5)
+      .setDepth(5)
+      .setVisible(false);
+    this.arrowZone = this.add.zone(0, 0, 1, 1).setInteractive({ useHandCursor: true }).setDepth(5);
+    this.arrowZone.on('pointerup', () => {
+      this.world.walkTo('elder');
+      this.build();
+    });
 
     const onStation = (id: StationId | null) => {
       this.here = id;
@@ -165,6 +184,7 @@ export class VillageHudScene extends Phaser.Scene {
   }
 
   override update(): void {
+    this.updateArrow();
     const g = this.stickGfx;
     g.clear();
     if (this.openId !== null) {
@@ -189,6 +209,66 @@ export class VillageHudScene extends Phaser.Scene {
     const x = (k.D.isDown || k.RIGHT.isDown ? 1 : 0) - (k.A.isDown || k.LEFT.isDown ? 1 : 0);
     const y = (k.S.isDown || k.DOWN.isDown ? 1 : 0) - (k.W.isDown || k.UP.isDown ? 1 : 0);
     this.controls.setMove(x, y);
+  }
+
+  /** When the elder has news and stands out of view, an arrow at the screen edge points his way. */
+  private updateArrow(): void {
+    const g = this.arrowGfx;
+    g.clear();
+    const sign = this.world.signOf('elder');
+    const cam = this.world.cameras.main;
+    const show = !!sign && hasNews(this.save, 'elder') && this.openId === null && !this.menuOpen;
+    const view = cam.worldView;
+    const margin = 10;
+    const inView =
+      !!sign &&
+      sign.x > view.x + margin &&
+      sign.x < view.right - margin &&
+      sign.y > view.y + margin &&
+      sign.y < view.bottom - margin;
+    if (!show || inView) {
+      this.arrowMark.setVisible(false);
+      this.arrowZone.setPosition(-100, -100);
+      return;
+    }
+    const u = this.u;
+    const { width: W, height: H } = this.scale;
+    const sx = (sign!.x - view.x) * cam.zoom;
+    const sy = (sign!.y - view.y) * cam.zoom;
+    const cx = W / 2;
+    const cy = H / 2;
+    const dx = sx - cx;
+    const dy = sy - cy;
+    // Onto the edge of a rectangle inside the screen (below the header)
+    const inset = 34 * u;
+    const top = this.sa.top + 80 * u;
+    const halfW = W / 2 - inset - this.sa.left;
+    const halfUp = cy - top;
+    const halfDown = H / 2 - inset - this.sa.bottom;
+    const k = Math.min(
+      Math.abs(dx) > 0 ? halfW / Math.abs(dx) : Infinity,
+      dy < 0 ? halfUp / -dy : dy > 0 ? halfDown / dy : Infinity,
+    );
+    const ax = cx + dx * k;
+    const ay = cy + dy * k;
+    const angle = Math.atan2(dy, dx);
+    const r = 16 * u;
+    g.fillStyle(COLORS.accent, 0.95).fillCircle(ax, ay, r);
+    const tip = r + 9 * u;
+    const side = 8 * u;
+    g.fillTriangle(
+      ax + Math.cos(angle) * tip,
+      ay + Math.sin(angle) * tip,
+      ax + Math.cos(angle) * r + Math.cos(angle + Math.PI / 2) * side,
+      ay + Math.sin(angle) * r + Math.sin(angle + Math.PI / 2) * side,
+      ax + Math.cos(angle) * r + Math.cos(angle - Math.PI / 2) * side,
+      ay + Math.sin(angle) * r + Math.sin(angle - Math.PI / 2) * side,
+    );
+    this.arrowMark
+      .setFontSize(Math.round(16 * u))
+      .setPosition(ax, ay)
+      .setVisible(true);
+    this.arrowZone.setPosition(ax, ay).setSize(r * 2.6, r * 2.6);
   }
 
   // ---------------------------------------------------------------- layout
@@ -243,6 +323,7 @@ export class VillageHudScene extends Phaser.Scene {
 
     // The places, folded into a menu at the top right (open, it lists them; tap one to walk there)
     const news = hasNews(this.save, 'elder');
+    this.world.setNews('elder', news);
     const bs = 40 * u;
     const bx = right - bs;
     const by = top;
@@ -257,8 +338,27 @@ export class VillageHudScene extends Phaser.Scene {
     if (news && !this.menuOpen) this.badge(bx + bs - 3 * u, by + 3 * u);
     this.tapZone(bx, by, bs, bs, () => {
       this.menuOpen = !this.menuOpen;
+      if (this.menuOpen && !this.tipSeen) {
+        this.tipSeen = true;
+        writeSettings(safeStorage(), { ...loadSettings(safeStorage()), villageTipSeen: true });
+      }
       this.build();
     });
+
+    // The first time: a hint where to find the places
+    // (It waits until the note about what came home is gone, so they do not overlap.)
+    const noteShown = !!this.arrival && this.time.now < this.arrivalUntil;
+    if (!this.tipSeen && !this.menuOpen && !noteShown) {
+      const t = this.text(0, 0, 'Find your way around here', 13, { fontStyle: 'bold', color: '#1c1917' });
+      const tw = t.width + 24 * u;
+      const th = t.height + 14 * u;
+      const tx = bx + bs - tw;
+      const ty = by + bs + 12 * u;
+      const g = this.track(this.add.graphics());
+      g.fillStyle(COLORS.accent, 0.96).fillRoundedRect(tx, ty, tw, th, 10 * u);
+      g.fillTriangle(bx + bs / 2 - 7 * u, ty, bx + bs / 2 + 7 * u, ty, bx + bs / 2, ty - 8 * u);
+      t.setPosition(tx + 12 * u, ty + 7 * u).setDepth(1);
+    }
 
     if (this.menuOpen) {
       // A tap anywhere else folds it again.
@@ -272,29 +372,36 @@ export class VillageHudScene extends Phaser.Scene {
         this.menuOpen = false;
         this.build();
       });
-      const items: { id: WalkTarget; label: string; news: boolean }[] = [
+      const items: { id: WalkTarget; label: string; info: string; icon: string; news: boolean }[] = [
         ...STATIONS.map((st) => ({
           id: st.id as WalkTarget,
           label: st.short,
+          info: st.info,
+          icon: st.icon,
           news: st.id === 'elder' && news,
         })),
-        { id: 'gate', label: 'Set out', news: false },
+        { id: 'gate', label: GATE_ENTRY.short, info: GATE_ENTRY.info, icon: GATE_ENTRY.icon, news: false },
       ];
-      const rowH = 40 * u;
       const gap = 4 * u;
       const pad = 8 * u;
-      const mw = Math.min(200 * u, right - left);
-      const mx = right - mw;
       const my = by + bs + 8 * u;
-      const mh = pad * 2 + items.length * rowH + (items.length - 1) * gap;
+      // One column; two side by side where the screen is too low for one (landscape phones).
+      const room = H - this.sa.bottom - 12 * u - my - pad * 2;
+      const rowH = 46 * u;
+      const cols = items.length * (rowH + gap) > room && W > H ? 2 : 1;
+      const rows = Math.ceil(items.length / cols);
+      const colW = Math.min(250 * u, (right - left - pad * 2 - gap) / cols);
+      const mw = pad * 2 + cols * colW + (cols - 1) * gap;
+      const mx = right - mw;
+      const mh = pad * 2 + rows * rowH + (rows - 1) * gap;
       const g = this.track(this.add.graphics().setDepth(3));
       g.fillStyle(COLORS.panel, 0.97).fillRoundedRect(mx, my, mw, mh, 12 * u);
       g.lineStyle(1.5 * u, COLORS.panelEdge, 1).strokeRoundedRect(mx, my, mw, mh, 12 * u);
       const walking = this.world.walkingTo();
       items.forEach((item, i) => {
-        const iy = my + pad + i * (rowH + gap);
-        const ix = mx + pad;
-        const iw = mw - pad * 2;
+        const ix = mx + pad + Math.floor(i / rows) * (colW + gap);
+        const iy = my + pad + (i % rows) * (rowH + gap);
+        const iw = colW;
         const primary = item.id === 'gate';
         const active = walking === item.id || (item.id !== 'gate' && this.here === item.id);
         if (primary || active) {
@@ -306,9 +413,22 @@ export class VillageHudScene extends Phaser.Scene {
             8 * u,
           );
         }
-        this.text(ix + 12 * u, iy + rowH / 2, item.label, 14, {
+        const iconSize = 30 * u;
+        this.track(
+          this.add
+            .image(ix + 8 * u + iconSize / 2, iy + rowH / 2, item.icon)
+            .setDisplaySize(iconSize, iconSize)
+            .setDepth(4),
+        );
+        const tx = ix + 16 * u + iconSize;
+        this.text(tx, iy + rowH / 2 - 8 * u, item.label, 14, {
           fontStyle: 'bold',
           color: primary ? '#1c1917' : '#ffffff',
+        })
+          .setOrigin(0, 0.5)
+          .setDepth(4);
+        this.text(tx, iy + rowH / 2 + 9 * u, item.info, 11, {
+          color: primary ? '#44403c' : '#a1a1aa',
         })
           .setOrigin(0, 0.5)
           .setDepth(4);

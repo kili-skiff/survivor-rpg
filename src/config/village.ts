@@ -7,7 +7,7 @@ import type { VillagerId } from './quests';
  * Bump when the village art is rebuilt: the version goes into the file URLs, so browsers load the new files
  * instead of old ones from their cache (GitHub Pages keeps them cached for a while).
  */
-const ART_VERSION = 2;
+const ART_VERSION = 3;
 
 export const VILLAGE_ASSETS = {
   map: { key: 'village-map', path: `assets/village/village.json?v=${ART_VERSION}` },
@@ -26,22 +26,53 @@ export type StationId = 'hearth' | 'cauldron' | 'merchant' | 'armory' | 'deeds' 
 
 export interface StationDef {
   id: StationId;
-  /** Short name in the menu of places */
+  /** Short name in the menu of places and on its sign */
   short: string;
+  /** What you do there, one line in the menu of places */
+  info: string;
   /** What the button says when you stand there */
   action: string;
+  /** Texture of its symbol (drawn in BootScene) */
+  icon: string;
 }
 
 /** In the order of the menu of places */
 export const STATIONS: readonly StationDef[] = [
-  { id: 'hearth', short: 'Hearth', action: 'Tend the Hearth' },
-  { id: 'cauldron', short: 'Cauldron', action: 'Brew potions' },
-  { id: 'merchant', short: 'Trader', action: 'Trade' },
-  { id: 'armory', short: 'Armory', action: 'Choose a weapon' },
-  { id: 'elder', short: 'Elder', action: 'Talk' },
-  { id: 'deeds', short: 'Deeds', action: 'Read the deeds' },
-  { id: 'house', short: 'House', action: 'Stash and belt' },
+  {
+    id: 'hearth',
+    short: 'Hearth',
+    info: 'Spend embers for good',
+    action: 'Tend the Hearth',
+    icon: 'place-hearth',
+  },
+  {
+    id: 'cauldron',
+    short: 'Cauldron',
+    info: 'Brew potions from herbs',
+    action: 'Brew potions',
+    icon: 'place-cauldron',
+  },
+  {
+    id: 'merchant',
+    short: 'Trader',
+    info: 'Lanterns, recipes, feathers',
+    action: 'Trade',
+    icon: 'place-merchant',
+  },
+  {
+    id: 'armory',
+    short: 'Armory',
+    info: 'Choose your main weapon',
+    action: 'Choose a weapon',
+    icon: 'place-armory',
+  },
+  { id: 'elder', short: 'Elder', info: 'News and quests', action: 'Talk', icon: 'place-elder' },
+  { id: 'deeds', short: 'Deeds', info: 'What you have done', action: 'Read the deeds', icon: 'place-deeds' },
+  { id: 'house', short: 'House', info: 'Your stash and belt', action: 'Stash and belt', icon: 'place-house' },
 ];
+
+/** The way out, last in the menu of places */
+export const GATE_ENTRY = { short: 'Set out', info: 'To the map', icon: 'place-gate' } as const;
 
 export const VILLAGE = {
   /** Walking speed (px/s, world units) */
@@ -71,6 +102,10 @@ export const VILLAGE = {
   glowColor: 0xffb060,
   /** Reach of the light around the watchman's lantern (px) */
   lanternRadius: 85,
+  /** Signs above the places: their size (px), how far they bob, and from how close their name shows */
+  signSize: 26,
+  signBob: 2.5,
+  signNameNear: 150,
   /** Seconds the note about what you brought home stays on screen */
   arrivalNoteSec: 7,
 } as const;

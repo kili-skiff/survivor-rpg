@@ -213,8 +213,12 @@ weapon, ores and the blacksmith.
 - [ ] Walkable village: house, garden, cauldron, merchant, blacksmith as places to walk to. Built so far: a first
       village from LPC art (prototype houses, to be replaced; `scripts/village/`), walking with keys or the touch
       stick, houses and fences in the way, night light, a menu of places (top right) that walks you to one and opens its
-      panel there, the gate to the map; the menu village opens in your house. Next: villagers standing in the
-      village, a house panel for stash and belt
+      panel there, the gate to the map; the menu village opens in your house; signs above the places (their name
+      shows up close), the menu with a line on what each place is for, an arrow at the screen edge to the elder
+      when he has news, a one-time hint on the menu. Next: villagers standing in the village (elder, trader,
+      smith), small signs of life (sparks, smoke, moths, bats), a house panel for stash and belt.
+      What the game reads from the village map is listed in the header of `scripts/village/build_village.py`;
+      other village art works if it keeps to that
 - [ ] Sound effects and music
 - [ ] Real art (sprite atlas) instead of placeholders
 - [ ] Seasons with a shared seed (Diablo-style: map resets, village and weapons stay); a season ranking only maybe, later (needs a server)
