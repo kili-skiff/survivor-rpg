@@ -96,6 +96,10 @@ playable in the fight area (e.g. walking up to a shrine), or a mix.
 ## Expeditions
 
 - An expedition is a chain of hex segments, from setting out until you return or die.
+- **Footsteps:** the way walked on the current expedition is drawn on the map as footprints, from where
+  you set out to where you stand (`Expedition.path`, `logic/footsteps.ts`, look in `config/footsteps.ts`).
+  The newest steps are the strongest, a way walked again is shifted sideways, and the trail is gone once
+  the expedition ends.
 - **Three layers of progress:**
   - _Permanent (village):_ embers, main weapons and their upgrades, lanterns, ember upgrades, garden,
     brewed potions, rescued villagers, deeds.
