@@ -33,8 +33,15 @@ const RARE_HERBS = Object.values(HERBS).filter((h) => h.rare);
  * each herb blooms at a random moment inside its own window: spread over the fight, but not
  * predictable. The total is fixed; nothing grows back.
  */
-export function planHerbBlooms(biome: BiomeId, ring: number, durationSec: number, rng: Rng): HerbBloom[] {
-  const count = herbCountForRing(ring);
+export function planHerbBlooms(
+  biome: BiomeId,
+  ring: number,
+  durationSec: number,
+  rng: Rng,
+  /** More blooms than usual, e.g. 2 for the "herb harvest" reward */
+  countMul = 1,
+): HerbBloom[] {
+  const count = Math.round(herbCountForRing(ring) * countMul);
   const common = commonHerbFor(biome);
   const start = durationSec * HERB_RULES.bloomFrom;
   const window = (durationSec * HERB_RULES.bloomUntil - start) / count;

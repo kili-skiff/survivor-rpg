@@ -2,6 +2,7 @@ import type { BiomeId, PoiId, SegmentDef } from '../config/types';
 import { BIOMES, POIS, SEASON, WORLD } from '../config/world';
 import { hexDistance, hexesInRadius, hexKey, hexToPixel, ORIGIN, pixelToHex, type Hex } from './hex';
 import { goalForHex } from './goals';
+import { rewardForHex } from './rewards';
 import { createRng, hash32, hashFloat, seedFromString } from './rng';
 
 export interface WorldHex {
@@ -213,6 +214,7 @@ export function segmentForHex(h: WorldHex, expedition = 0, fireLit = false): Seg
     id: `hex:${h.key}`,
     name: h.poi && h.poi !== 'village' ? `${biome.name} · ${POIS[h.poi].name}` : biome.name,
     goal: goalForHex(h, durationSec, expedition, SEASON.seed, fireLit),
+    reward: rewardForHex(h, expedition, SEASON.seed),
     durationSec,
     warningSec: WORLD.warningSec,
     difficultyOffsetSec: steps * WORLD.difficultyOffsetPerRingSec,

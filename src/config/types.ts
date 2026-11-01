@@ -257,11 +257,16 @@ export type GoalKind = FightGoal['kind'];
 /** Goals an ordinary hex can roll; the others belong to places (a watchfire always asks for light). */
 export type RolledGoalKind = Exclude<GoalKind, 'light'>;
 
+/** What clearing a hex brings on top of the fight itself (config/rewards.ts, logic/rewards.ts). */
+export type RewardKind = 'gold' | 'chest' | 'card' | 'heal' | 'herbs';
+
 export interface SegmentDef {
   id: string;
   name: string;
   /** What clears the fight */
   goal: FightGoal;
+  /** What clearing it brings, shown on the map; null for fights outside the map */
+  reward: RewardKind | null;
   /** How long the fight is meant to last (seconds): the time to survive, and what herbs are planned for */
   durationSec: number;
   /** The countdown turns into a warning colour for the last N seconds */

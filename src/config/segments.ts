@@ -5,6 +5,7 @@ export const SEGMENTS: Record<string, SegmentDef> = {
     id: 'graveyard',
     name: 'Old Graveyard',
     goal: { kind: 'survive', durationSec: 180 },
+    reward: null,
     durationSec: 180,
     warningSec: 15,
     difficultyOffsetSec: 0,

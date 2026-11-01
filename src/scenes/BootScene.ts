@@ -122,6 +122,33 @@ export class BootScene extends Phaser.Scene {
       g.fillStyle(0xfde68a).fillTriangle(16, 11, 20, 22, 12, 22).fillCircle(16, 22, 4);
     });
 
+    // Hex rewards (config/rewards.ts): coloured on a dark disc, like the goal symbols.
+    make('reward-gold', 32, 32, (g) => {
+      g.fillStyle(0x0d0b12, 0.8).fillCircle(16, 16, 16);
+      g.fillStyle(0xfde047).fillCircle(16, 16, 10);
+      g.fillStyle(0xca8a04).fillCircle(16, 16, 7);
+      g.fillStyle(0xfef08a).fillRect(14.5, 10, 3, 12);
+    });
+    make('reward-chest', 32, 32, (g) => {
+      g.fillStyle(0x0d0b12, 0.8).fillCircle(16, 16, 16);
+      g.fillStyle(0x92400e).fillRoundedRect(7, 10, 18, 14, 3);
+      g.fillStyle(0xfbbf24).fillRect(7, 15, 18, 3).fillRect(14.5, 13, 3, 7);
+    });
+    make('reward-card', 32, 32, (g) => {
+      g.fillStyle(0x0d0b12, 0.8).fillCircle(16, 16, 16);
+      g.fillStyle(0x3b82f6).fillRoundedRect(10, 6, 12, 20, 2);
+      g.fillStyle(0xf59e0b).fillTriangle(16, 10, 19, 17, 13, 17).fillTriangle(16, 21, 19, 14, 13, 14);
+    });
+    make('reward-heal', 32, 32, (g) => {
+      g.fillStyle(0x0d0b12, 0.8).fillCircle(16, 16, 16);
+      drawHeart(g, 16, 17, 10, 0xf87171);
+    });
+    make('reward-herbs', 32, 32, (g) => {
+      g.fillStyle(0x0d0b12, 0.8).fillCircle(16, 16, 16);
+      g.fillStyle(0x4ade80).fillEllipse(12, 15, 8, 14).fillEllipse(20, 13, 8, 14);
+      g.fillStyle(0x166534).fillRect(15, 14, 2, 12);
+    });
+
     // The watchfire in a fight (goal "find the light"): a stone brazier, cold or burning. 48x56, base at the bottom.
     const brazier = (g: G) => {
       g.fillStyle(0x000000, 0.3).fillEllipse(24, 52, 34, 8);

@@ -90,9 +90,13 @@ export function availableUpgrades(
   return out;
 }
 
-/** Draws up to `count` distinct upgrades, weighted, without replacement. */
-export function rollUpgradeOptions(loadout: Loadout, rng: Rng, count = 3, boons = true): UpgradeOption[] {
-  const pool = availableUpgrades(loadout, boons);
+/** Draws up to `count` distinct upgrades from `pool`, weighted, without replacement. */
+function drawFrom(
+  pool: { option: UpgradeOption; weight: number }[],
+  loadout: Loadout,
+  rng: Rng,
+  count: number,
+): UpgradeOption[] {
   const picked: UpgradeOption[] = [];
   while (picked.length < count && pool.length > 0) {
     const total = pool.reduce((sum, e) => sum + e.weight, 0);
@@ -107,6 +111,28 @@ export function rollUpgradeOptions(loadout: Loadout, rng: Rng, count = 3, boons 
     }
     picked.push(withStep(pool[index].option, loadout, rng));
     pool.splice(index, 1);
+  }
+  return picked;
+}
+
+/** Draws up to `count` distinct upgrades, weighted, without replacement. */
+export function rollUpgradeOptions(loadout: Loadout, rng: Rng, count = 3, boons = true): UpgradeOption[] {
+  const picked = drawFrom(availableUpgrades(loadout, boons), loadout, rng, count);
+  if (picked.length === 0) picked.push({ kind: 'heal' });
+  return picked;
+}
+
+/**
+ * The "rare card" reward: a choice among magic and legendary cards only (no one-time cards). When there
+ * are not enough of them, ordinary cards fill up the choice.
+ */
+export function rollRareOptions(loadout: Loadout, rng: Rng, count = 3): UpgradeOption[] {
+  const all = availableUpgrades(loadout, false);
+  const rare = all.filter((e) => describeUpgrade(e.option).rarity !== 'common');
+  const picked = drawFrom(rare, loadout, rng, count);
+  if (picked.length < count) {
+    const rest = all.filter((e) => !rare.includes(e));
+    picked.push(...drawFrom(rest, loadout, rng, count - picked.length));
   }
   if (picked.length === 0) picked.push({ kind: 'heal' });
   return picked;
