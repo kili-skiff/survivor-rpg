@@ -47,7 +47,14 @@ import {
   type Loadout,
 } from '../logic/stats';
 import { applyModifierStats, isModifierLevel, modifiersOf, rollModifierOptions } from '../logic/modifiers';
-import { applyUpgrade, rollRareOptions, rollUpgradeOptions, type UpgradeOption } from '../logic/upgrades';
+import {
+  applyUpgrade,
+  mainWeaponCanGrow,
+  offersMainWeapon,
+  rollRareOptions,
+  rollUpgradeOptions,
+  type UpgradeOption,
+} from '../logic/upgrades';
 import { REWARDS } from '../config/rewards';
 import { situationalDamage } from '../logic/hitEffects';
 import { seasonWorld, segmentForHex } from '../logic/worldgen';
@@ -189,6 +196,8 @@ export class GameScene extends Phaser.Scene {
   private endAfterMenu = false;
   /** DEV: "clear area" was pressed; the fight counts as won */
   private devCleared = false;
+  /** Level-ups in a row without a main weapon card (MAIN_WEAPON_OFFER) */
+  private mainMisses = 0;
   /** DEV: the test arena: started with `arena: true`; its state while it runs */
   private devArenaOn = false;
   private devArena: ArenaState | null = null;
@@ -212,6 +221,7 @@ export class GameScene extends Phaser.Scene {
     this.chestOpen = false;
     this.pendingChests = [];
     this.pendingLevelUps = 0;
+    this.mainMisses = 0;
     this.secondWinds = 0;
     this.surgeUntil = 0;
     this.endInfo = null;
@@ -1095,7 +1105,12 @@ export class GameScene extends Phaser.Scene {
         return;
       }
     }
-    this.events.emit('levelup', rollUpgradeOptions(this.run.loadout, Math.random), level);
+    const options = rollUpgradeOptions(this.run.loadout, Math.random, 3, true, this.mainMisses);
+    // Count level-ups without a main weapon card, so it cannot stay away for long.
+    if (mainWeaponCanGrow(this.run.loadout)) {
+      this.mainMisses = offersMainWeapon(options, this.run.loadout) ? 0 : this.mainMisses + 1;
+    }
+    this.events.emit('levelup', options, level);
   }
 
   /**

@@ -4,7 +4,7 @@ import { PASSIVES } from '../config/passives';
 import { RARITIES } from '../config/rarity';
 import { SKILLS } from '../config/skills';
 import type { BoonId, PassiveId, Rarity, SkillId, WeaponId } from '../config/types';
-import { MAIN_WEAPON_CARD_GUARANTEED, MAIN_WEAPONS, MAX_WEAPONS, WEAPONS } from '../config/weapons';
+import { MAIN_WEAPON_OFFER, MAIN_WEAPONS, MAX_WEAPONS, WEAPONS } from '../config/weapons';
 import { mainWeaponOf } from './modifiers';
 import type { Rng } from './spawning';
 import { remainingSteps, skillMaxLevel, weaponMaxLevel, weaponSteps, type Loadout } from './stats';
@@ -121,21 +121,24 @@ function drawFrom(
 }
 
 /**
- * Draws up to `count` distinct upgrades, weighted, without replacement. A level-up choice (`levelUp`) keeps
- * one card for the main weapon; chests draw from the plain pool.
+ * Draws up to `count` distinct upgrades, weighted, without replacement. For a level-up choice, pass
+ * `mainMisses`: how many level-ups in a row came without a main weapon card. The main weapon is then
+ * drawn more often, and is sure to come once it was missing too long (MAIN_WEAPON_OFFER). Chests pass
+ * null and draw from the plain pool.
  */
 export function rollUpgradeOptions(
   loadout: Loadout,
   rng: Rng,
   count = 3,
   boons = true,
-  levelUp = true,
+  mainMisses: number | null = 0,
 ): UpgradeOption[] {
   const pool = availableUpgrades(loadout, boons);
-  // One card for the main weapon while it can still grow (at a random place among the cards).
   const main = mainWeaponOf(loadout);
   const mainIndex = pool.findIndex((e) => e.option.kind === 'weapon' && e.option.id === main);
-  if (levelUp && MAIN_WEAPON_CARD_GUARANTEED && mainIndex >= 0 && count > 0) {
+  if (mainMisses !== null && mainIndex >= 0) pool[mainIndex].weight *= MAIN_WEAPON_OFFER.weight;
+  // Missing too long: one card for the main weapon, at a random place among the cards.
+  if (mainMisses !== null && mainMisses >= MAIN_WEAPON_OFFER.pityAfter && mainIndex >= 0 && count > 0) {
     const [entry] = pool.splice(mainIndex, 1);
     const rest = drawFrom(pool, loadout, rng, count - 1);
     const at = Math.floor(rng() * (rest.length + 1)) % (rest.length + 1);
@@ -172,6 +175,18 @@ function withStep(option: UpgradeOption, loadout: Loadout, rng: Rng): UpgradeOpt
 }
 
 /** Returns a new loadout (the old one stays unchanged). */
+/** True when the choice has a card for the main weapon (to count level-ups without one). */
+export function offersMainWeapon(options: readonly UpgradeOption[], loadout: Loadout): boolean {
+  const main = mainWeaponOf(loadout);
+  return options.some((o) => o.kind === 'weapon' && o.id === main);
+}
+
+/** True while the main weapon can still take level steps. */
+export function mainWeaponCanGrow(loadout: Loadout): boolean {
+  const main = mainWeaponOf(loadout);
+  return main !== undefined && (loadout.weapons[main] ?? 0) < weaponMaxLevel(main);
+}
+
 export function applyUpgrade(loadout: Loadout, option: UpgradeOption): Loadout {
   switch (option.kind) {
     case 'weapon': {

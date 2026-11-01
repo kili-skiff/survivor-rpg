@@ -59,23 +59,37 @@ describe('the chosen main weapon in the save', () => {
 });
 
 describe('main weapon card', () => {
-  it('one of the cards is always for the main weapon while it can still grow', async () => {
-    const { rollUpgradeOptions } = await import('./upgrades');
+  it('comes often, but not every time', async () => {
+    const { rollUpgradeOptions, offersMainWeapon } = await import('./upgrades');
     const { createStartLoadout } = await import('./stats');
     const { createRng } = await import('./rng');
     const rng = createRng(11);
+    const loadout = createStartLoadout('boomerang');
+    let offered = 0;
+    for (let i = 0; i < 400; i++)
+      if (offersMainWeapon(rollUpgradeOptions(loadout, rng, 3, true, 0), loadout)) offered++;
+    expect(offered / 400).toBeGreaterThan(0.4);
+    expect(offered / 400).toBeLessThan(0.9);
+  });
+
+  it('is sure to come after missing too long', async () => {
+    const { rollUpgradeOptions, offersMainWeapon } = await import('./upgrades');
+    const { MAIN_WEAPON_OFFER } = await import('../config/weapons');
+    const { createStartLoadout } = await import('./stats');
+    const { createRng } = await import('./rng');
+    const rng = createRng(3);
     for (const main of ['bolt', 'boomerang'] as const) {
       const loadout = createStartLoadout(main);
       for (let i = 0; i < 50; i++) {
-        const options = rollUpgradeOptions(loadout, rng);
+        const options = rollUpgradeOptions(loadout, rng, 3, true, MAIN_WEAPON_OFFER.pityAfter);
         expect(options).toHaveLength(3);
-        expect(options.filter((o) => o.kind === 'weapon' && o.id === main)).toHaveLength(1);
+        expect(offersMainWeapon(options, loadout)).toBe(true);
       }
     }
   });
 
   it('a fully grown main weapon brings no card of its own', async () => {
-    const { rollUpgradeOptions } = await import('./upgrades');
+    const { rollUpgradeOptions, mainWeaponCanGrow } = await import('./upgrades');
     const { WEAPONS } = await import('../config/weapons');
     const { createRng } = await import('./rng');
     const loadout = {
@@ -83,7 +97,8 @@ describe('main weapon card', () => {
       passives: {},
       skills: { dash: 1, nova: 1 },
     };
-    const options = rollUpgradeOptions(loadout, createRng(2));
+    expect(mainWeaponCanGrow(loadout)).toBe(false);
+    const options = rollUpgradeOptions(loadout, createRng(2), 3, true, 5);
     expect(options.some((o) => o.kind === 'weapon' && o.id === 'bolt')).toBe(false);
   });
 });

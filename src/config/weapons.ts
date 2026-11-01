@@ -169,10 +169,11 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
 export const MAIN_WEAPONS: readonly WeaponId[] = ['bolt', 'boomerang'];
 export const START_WEAPON: WeaponId = 'bolt';
 /**
- * While the main weapon still has level steps to take, one of the level-up cards is always for it: among
- * some 30 possible cards it would come too rarely, and the main weapon carries the build.
+ * How the main weapon comes up in level-up choices. Among some 30 possible cards it would come too rarely,
+ * and it carries the build: its card is drawn `weight` times as often as another weapon's, and after
+ * `pityAfter` level-ups in a row without it, the next choice is sure to have it.
  */
-export const MAIN_WEAPON_CARD_GUARANTEED = true;
+export const MAIN_WEAPON_OFFER = { weight: 8, pityAfter: 2 };
 export const MAX_WEAPONS = 4;
 /** Base radius of the aura in px (multiplied by area) */
 export const AURA_BASE_RADIUS = 70;
