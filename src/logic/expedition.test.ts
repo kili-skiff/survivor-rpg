@@ -11,7 +11,7 @@ import {
   type ExpeditionBuild,
 } from './expedition';
 import { EMBER_KEY } from '../config/merchant';
-import { deedBonus } from './deeds';
+import { hearthBonus } from './hearth';
 import { acceptFireQuest, freshQuests } from './quests';
 import { finishFight, returnHome, teleport, walkHome, walkThrough } from './journey';
 import { emptySave, migrate, type SaveData } from './save';
@@ -77,9 +77,9 @@ describe('expeditions', () => {
     const { save, report } = finishFight(before, world, camp.hex, 'cleared', build(5), {});
     expect(report.rested).toBe(true);
     expect(save.world.waypoints).toContain(camp.key);
-    // Fully healed, including health from deeds (reaching ring 2 can earn one right here).
+    // Fully healed, including health from the Hearth.
     expect(save.world.expedition?.build?.hp).toBe(
-      computePlayerStats(createStartLoadout('bolt'), deedBonus(save.deeds)).maxHp,
+      computePlayerStats(createStartLoadout('bolt'), hearthBonus(save.hearth)).maxHp,
     );
   });
 
@@ -108,7 +108,8 @@ describe('expeditions', () => {
     if (camp.ring > 1) expect(travelKind(world, save.world, ORIGIN)).toBe('teleport');
     save = teleport(save, ORIGIN);
     expect(save.world.position).toBe('0,0');
-    expect(save.stash).toEqual({ herb: path.length });
+    // Herbs come home; the stash also holds embers from deeds earned on the way.
+    expect(save.stash.herb).toBe(path.length);
     // From home to the camp: starts a fresh expedition there.
     expect(travelKind(world, save.world, camp.hex)).toBe(camp.ring > 1 ? 'teleport' : 'fight');
     save = teleport(save, camp.hex);
@@ -143,7 +144,7 @@ describe('expeditions', () => {
     const home = returnHome(save);
     expect(home.world.position).toBe('0,0');
     expect(home.world.expedition).toBeNull();
-    expect(home.stash).toEqual({ herb: 4 });
+    expect(home.stash.herb).toBe(4);
   });
 
   it('lights a watchfire when its hex is cleared', () => {
@@ -189,7 +190,9 @@ describe('watchfire quest reward', () => {
     expect(first.report.litWatchfire).toBe(true);
     expect(first.report.questEmbers).toBeGreaterThan(0);
     expect(first.save.quests.fire).toBe('done');
-    expect(first.save.stash[EMBER_KEY]).toBe(first.report.questEmbers);
+    // The quest's embers, plus the embers of deeds earned by the same fight.
+    const deedEmbers = first.report.deeds.reduce((sum, d) => sum + d.embers, 0);
+    expect(first.save.stash[EMBER_KEY]).toBe(first.report.questEmbers + deedEmbers);
     // Fighting there again lights nothing new and pays nothing.
     const again = finishFight(first.save, world, fire.hex, 'cleared', build(), {});
     expect(again.report.questEmbers).toBe(0);
@@ -200,7 +203,8 @@ describe('watchfire quest reward', () => {
     const idle = { ...emptySave(), quests: { ...freshQuests(), fire: 'offered' as const } };
     const { report, save } = finishFight(idle, world, fire.hex, 'cleared', build(), {});
     expect(report.questEmbers).toBe(0);
-    expect(save.stash[EMBER_KEY]).toBeUndefined();
+    // Only the embers of deeds earned there.
+    expect(save.stash[EMBER_KEY] ?? 0).toBe(report.deeds.reduce((sum, d) => sum + d.embers, 0));
   });
 });
 

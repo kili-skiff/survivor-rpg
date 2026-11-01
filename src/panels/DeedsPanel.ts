@@ -1,4 +1,5 @@
 import * as Phaser from 'phaser';
+import { deedRewardShort } from '../logic/deeds';
 import { DEEDS, type DeedDef, type DeedId } from '../config/deeds';
 import { devButtonStyle } from '../dev/devMode'; // DEV:
 import { COLORS, css, FONT } from '../ui/theme';
@@ -56,7 +57,7 @@ export class DeedsPanel {
     this.text(
       left,
       top + 32 * u,
-      'Earned by exploring. Their bonuses last for good, even when you fall.',
+      'Earned by exploring, kept when you fall. Each pays embers; some open upgrades at the Hearth.',
       12,
       {
         color: '#a1a1aa',
@@ -117,7 +118,7 @@ export class DeedsPanel {
     }
 
     const tx = bx + r + 10 * u;
-    const bonus = this.text(x + w - 12 * u, 0, def.bonusText, 12, {
+    const bonus = this.text(x + w - 12 * u, 0, deedRewardShort(def), 12, {
       fontStyle: 'bold',
       color: earned ? css(COLORS.accent) : '#71717a',
       align: 'right',

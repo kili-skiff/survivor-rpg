@@ -95,6 +95,8 @@ export interface PlayerStats {
   dodge: number;
   /** Enemies get this much more health (0.2 = +20%) */
   curse: number;
+  /** Multiplies the embers you catch (1 = as is) */
+  emberGain: number;
 }
 
 export interface WeaponStats {

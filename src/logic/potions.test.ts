@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { maxBeltSize } from './hearth';
 import { POTION_RULES, POTIONS } from '../config/potions';
 import { HERBS } from '../config/herbs';
 import { BASE_PLAYER_STATS } from '../config/passives';
@@ -66,7 +67,8 @@ describe('belt', () => {
   it('parses saved belts and drops broken or extra entries', () => {
     expect(parseBelt(null)).toEqual({});
     expect(parseBelt({ healing: 1, nope: 3, ward: -1 })).toEqual({ healing: 1 });
-    expect(beltCount(parseBelt({ healing: 9, haste: 9 }))).toBe(POTION_RULES.beltSize);
+    // Read up to the largest belt possible; how big yours is depends on the Hearth.
+    expect(beltCount(parseBelt({ healing: 9, haste: 9 }))).toBe(maxBeltSize());
   });
 });
 

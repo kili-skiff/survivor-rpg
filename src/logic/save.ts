@@ -1,5 +1,6 @@
 // Versioned save data: old saves are migrated instead of discarded.
 
+import { parseHearth, type HearthRanks } from './hearth';
 import { bankEmbers } from './merchant';
 import { SEASON } from '../config/world';
 import { parseLoot, type Loot } from './expedition';
@@ -13,7 +14,7 @@ import type { PotionId, WeaponId } from '../config/types';
 import { MAIN_WEAPONS, START_WEAPON } from '../config/weapons';
 import { createWorldProgress, parseWorldProgress, type WorldProgress } from './worldProgress';
 
-export const SAVE_VERSION = 17;
+export const SAVE_VERSION = 18;
 const SAVE_KEY = 'survivor-rpg.save';
 
 export interface SaveData {
@@ -40,6 +41,8 @@ export interface SaveData {
   recipes: PotionId[];
   /** Added in version 10: deeds earned by exploring; kept when the map is reset */
   deeds: DeedId[];
+  /** Added in version 18: ranks bought at the Hearth (logic/hearth.ts) */
+  hearth: HearthRanks;
 }
 
 export interface RunResult {
@@ -70,6 +73,7 @@ export function emptySave(): SaveData {
     mainWeapon: START_WEAPON,
     recipes: [...STARTING_RECIPES],
     deeds: [],
+    hearth: {},
   };
 }
 
@@ -95,7 +99,7 @@ export function migrate(raw: unknown): SaveData {
   // (version 2 added `segmentsCleared`, version 3 `world`, version 4 `stash`, waypoints and expeditions,
   // version 5 `belt`, version 6 `cleared` hexes of the current expedition, version 7 `quests`,
   // version 8 `litWatchfires` in the world progress, version 9 `lanternLevel` and `recipes`, version 10 `deeds`, version 11 `fire` quest stage in the quests, version 12 `weaponSteps` in the
-  // expedition build's loadout; parseLoadout fills it in: without it, weapons count their first steps in order, version 13 `expeditions` in the world progress (missing = 0), version 14 `path` in the expedition (missing = start and current position), version 15 `mainWeapon` (missing = Arcane Bolt), version 16 `modifiers` in the expedition build's loadout (missing = none), version 17 gold became embers: `gold` in the stash and in the expedition's loot moves to `embers` in the stash, since embers count at once).
+  // expedition build's loadout; parseLoadout fills it in: without it, weapons count their first steps in order, version 13 `expeditions` in the world progress (missing = 0), version 14 `path` in the expedition (missing = start and current position), version 15 `mainWeapon` (missing = Arcane Bolt), version 16 `modifiers` in the expedition build's loadout (missing = none), version 17 gold became embers: `gold` in the stash and in the expedition's loot moves to `embers` in the stash, since embers count at once, version 18 `hearth`: ranks bought at the Hearth (missing = none; deeds no longer give stats)).
   const data2 = raw as Partial<SaveData> & {
     world?: unknown;
     stash?: unknown;
@@ -105,6 +109,7 @@ export function migrate(raw: unknown): SaveData {
     mainWeapon?: unknown;
     recipes?: unknown;
     deeds?: unknown;
+    hearth?: unknown;
   };
   return goldToEmbers({
     version: SAVE_VERSION,
@@ -121,6 +126,7 @@ export function migrate(raw: unknown): SaveData {
     mainWeapon: parseMainWeapon(data2.mainWeapon),
     recipes: parseRecipes(data2.recipes),
     deeds: parseDeeds(data2.deeds),
+    hearth: parseHearth(data2.hearth),
   });
 }
 

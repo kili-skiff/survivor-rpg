@@ -417,15 +417,18 @@ up one by one.
   Weapons, so this would cover other slots such as armour, ring and amulet at most): slots such as lantern, armour, ring and amulet,
   equipped in the village, permanent. Rare drops from elites, chests and dungeons count as loot until
   you are home. An inventory shows what you found, also during a fight and on the map.
-- **Deeds** (built): milestones of exploring, each earned once and giving a small bonus for good:
-  reaching rings 2, 4, 6 and 8, the first camp, one, three and all watchfires, and the old tower.
+- **Deeds** (built): milestones of exploring, each earned once: reaching rings 2, 4, 6 and 8, the
+  first camp, one, three and all watchfires, and the old tower. Each pays embers into the stash, and six
+  of them unlock an upgrade at the Hearth, so exploring opens up the shop (they no longer give stats).
   Saved the moment they are earned, so they stay when you fall, and kept when the map is reset.
   The village shows which are earned and which are still open. They give the watchfires a real
   purpose and make even a failed expedition count. Open: whether a new season lets you earn them
-  again; more deeds later (e.g. first elite, a dungeon cleared), maybe a reward in embers or a recipe.
-- **Ember upgrades** (decided, grew out of the trainer idea): a flat list of permanent bonuses bought
-  with embers (e.g. health, speed, pickup radius, a fourth belt slot), like the permanent power-ups in
-  Vampire Survivors. No tree layout needed.
+  again; more deeds later (e.g. first elite, a dungeon cleared), maybe a recipe as a reward.
+- **Ember upgrades at the Hearth** (built, grew out of the trainer idea): a flat list of permanent
+  bonuses bought with embers, like the power-ups in Vampire Survivors: health, damage, pickup radius,
+  experience, speed, recovery, more embers, armor, cooldowns and a fourth belt slot. Each has a few
+  ranks; rank n costs n times the first. Some are locked until a deed opens them. No refunds, so the
+  choices count. Prices to be tuned by playing.
 - **Layers of progression:** character (deeds, ember upgrades), weapons (main weapons, upgrades,
   variants), lantern, village (rescued villagers, garden), knowledge (recipes), world (how far you get,
   up to the tower).

@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { DEEDS } from '../config/deeds';
 import { WORLD } from '../config/world';
-import { deedBonus, describeEarned, earnDeeds, parseDeeds } from './deeds';
+import { deedRewardText, deedUnlock, describeEarned, earnDeeds, parseDeeds } from './deeds';
+import { hearthBonus } from './hearth';
+import { embersOf } from './merchant';
 import type { ExpeditionBuild } from './expedition';
 import { hexKey, ORIGIN } from './hex';
 import { finishFight } from './journey';
@@ -52,25 +54,30 @@ describe('deeds', () => {
     expect(earnDeeds(all, world).save.deeds).toContain('allWatchfires');
   });
 
-  it('adds up the bonuses of earned deeds', () => {
-    expect(deedBonus([])).toEqual({});
-    expect(deedBonus(['ring2', 'ring6'])).toEqual({ maxHp: 20 });
-    const stats = computePlayerStats(createStartLoadout('bolt'), deedBonus(['ring2', 'ring4']));
-    const plain = computePlayerStats(createStartLoadout('bolt'));
-    expect(stats.maxHp).toBe(plain.maxHp + 10);
-    expect(stats.might).toBeCloseTo(plain.might + 0.05);
-  });
-
-  it('every deed gives a bonus and has a unique id', () => {
+  it('every deed pays embers and has a unique id', () => {
     expect(new Set(DEEDS.map((d) => d.id)).size).toBe(DEEDS.length);
-    for (const d of DEEDS) expect(Object.keys(d.bonus).length).toBeGreaterThan(0);
+    for (const d of DEEDS) expect(d.embers).toBeGreaterThan(0);
   });
 
-  it('describes earned deeds', () => {
+  it('earning a deed pays its embers into the stash', () => {
+    const target = hexes.find((h) => h.ring === 2 && !h.poi)!;
+    const { save, report } = finishFight(emptySave(), world, target.hex, 'cleared', build(), {});
+    const earned = report.deeds.reduce((sum, d) => sum + d.embers, 0);
+    expect(earned).toBeGreaterThan(0);
+    expect(embersOf(save.stash)).toBe(earned);
+  });
+
+  it('describes earned deeds with their embers and unlocks', () => {
     const [ring2, ring4] = DEEDS;
+    expect(deedUnlock('ring2')?.id).toBe('swiftness');
+    expect(deedRewardText(ring2)).toBe('+20 embers, unlocks Swiftness at the Hearth');
     expect(describeEarned([])).toBe('');
-    expect(describeEarned([ring2])).toBe('Deed earned: Beyond the Fields (+10 health)');
-    expect(describeEarned([ring2, ring4])).toBe('Deeds earned: Beyond the Fields, Into the Dark');
+    expect(describeEarned([ring2])).toBe(
+      'Deed earned: Beyond the Fields (+20 embers, unlocks Swiftness at the Hearth)',
+    );
+    expect(describeEarned([ring2, ring4])).toBe(
+      'Deeds earned: Beyond the Fields, Into the Dark (+60 embers)',
+    );
   });
 });
 
@@ -90,13 +97,13 @@ describe('deeds on expeditions', () => {
     expect(save.deeds).toEqual(['ring2']);
   });
 
-  it('camps heal up to the health including deeds', () => {
+  it('camps heal up to the health including the Hearth', () => {
     const camp = hexes.find((h) => h.poi === 'camp')!;
-    const before = { ...emptySave(), deeds: parseDeeds(['ring2', 'ring6']) };
+    const before = { ...emptySave(), hearth: { vitality: 2 } };
     const { save } = finishFight(before, world, camp.hex, 'cleared', build(5), {});
-    const maxHp = computePlayerStats(createStartLoadout('bolt'), deedBonus(save.deeds)).maxHp;
+    const maxHp = computePlayerStats(createStartLoadout('bolt'), hearthBonus(save.hearth)).maxHp;
     expect(save.world.expedition?.build?.hp).toBe(maxHp);
-    expect(maxHp).toBeGreaterThanOrEqual(computePlayerStats(createStartLoadout('bolt')).maxHp + 20);
+    expect(maxHp).toBe(computePlayerStats(createStartLoadout('bolt')).maxHp + 20);
   });
 });
 

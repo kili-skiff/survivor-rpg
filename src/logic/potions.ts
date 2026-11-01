@@ -1,5 +1,6 @@
 // Brewing potions, filling the belt and the effects of drunk potions. Pure and tested.
 
+import { maxBeltSize } from './hearth';
 import { POTION_IDS, POTION_RULES, POTIONS } from '../config/potions';
 import type { PlayerStats, PotionId } from '../config/types';
 import type { Loot } from './expedition';
@@ -35,8 +36,13 @@ export function brew(stash: Loot, id: PotionId): Loot | null {
 }
 
 /** Moves one potion from the stash into the belt. Null if there is none or the belt is full. */
-export function packPotion(stash: Loot, belt: Belt, id: PotionId): { stash: Loot; belt: Belt } | null {
-  if ((stash[id] ?? 0) < 1 || beltCount(belt) >= POTION_RULES.beltSize) return null;
+export function packPotion(
+  stash: Loot,
+  belt: Belt,
+  id: PotionId,
+  size: number = POTION_RULES.beltSize,
+): { stash: Loot; belt: Belt } | null {
+  if ((stash[id] ?? 0) < 1 || beltCount(belt) >= size) return null;
   const nextStash: Loot = { ...stash, [id]: stash[id] - 1 };
   if (nextStash[id] <= 0) delete nextStash[id];
   return { stash: nextStash, belt: { ...belt, [id]: (belt[id] ?? 0) + 1 } };
@@ -60,7 +66,8 @@ export function takeFromBelt(belt: Belt, id: PotionId): Belt {
 export function parseBelt(raw: unknown): Belt {
   const out: Belt = {};
   if (!raw || typeof raw !== 'object') return out;
-  let room: number = POTION_RULES.beltSize;
+  // The largest belt possible: how big yours is depends on the Hearth, which is read separately.
+  let room: number = maxBeltSize();
   for (const id of POTION_IDS) {
     const v = (raw as Record<string, unknown>)[id];
     if (typeof v !== 'number' || !Number.isFinite(v) || v < 1) continue;

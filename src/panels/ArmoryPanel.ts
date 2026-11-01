@@ -50,7 +50,7 @@ export class ArmoryPanel {
     this.text(
       left,
       top + 32 * u,
-      'Choose your main weapon for the next expedition. It carries your build; other weapons come from cards on the way.',
+      'Choose your main weapon for the next expedition. It is the backbone of your build; other weapons come from cards on the way.',
       12,
       { color: '#a1a1aa', wordWrap: { width: right - left - 50 * u } },
     );

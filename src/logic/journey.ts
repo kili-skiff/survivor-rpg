@@ -15,7 +15,8 @@ import {
 import { hexKey, ORIGIN, type Hex } from './hex';
 import type { SaveData } from './save';
 import type { RunOutcome } from './segment';
-import { deedBonus, earnDeeds } from './deeds';
+import { earnDeeds } from './deeds';
+import { hearthBonus } from './hearth';
 import { completeFireQuest } from './quests';
 import { EMBER_KEY } from '../config/merchant';
 import { computePlayerStats } from './stats';
@@ -113,8 +114,8 @@ export function finishFight(
           stash: addLoot(earnedSave.stash, { [EMBER_KEY]: fire.embers }),
         }
       : earnedSave;
-  // Camps heal fully, including health from deeds earned right here.
-  const maxHp = computePlayerStats(build.loadout, deedBonus(next.deeds)).maxHp;
+  // Camps heal fully, including health from the Hearth.
+  const maxHp = computePlayerStats(build.loadout, hearthBonus(next.hearth)).maxHp;
   const nextBuild = isCamp ? { ...build, hp: maxHp } : build;
   return {
     save: {

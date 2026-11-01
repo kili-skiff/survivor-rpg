@@ -196,6 +196,7 @@ describe('save', () => {
       mainWeapon: 'bolt',
       recipes: ['healing'],
       deeds: [],
+      hearth: {},
     });
   });
 
