@@ -153,7 +153,7 @@ its own PR, in this order.
 
 Phase 1, main weapons (the build is the main weapon; weapons from cards are extras for more cleave):
 
-- [ ] Main weapons: the armory in the village to choose one before an expedition (free for now), Arcane Bolt and a second one, the boomerang (flies out and back, hits both ways)
+- [x] Main weapons: the armory in the village to choose one before an expedition (free for now, saved as `mainWeapon`), Arcane Bolt and a second one, the boomerang (flies a wide loop out and back, hits both ways; `systems/weapons/BoomerangWeapon.ts`). Main weapons come only from the armory; cards bring their level steps. Dev: "pick upgrade" and "main weapon" to try steps and compare weapons
 - [ ] Modifiers for main weapons, like the Daedalus hammer in Hades: cards that change how the weapon behaves (e.g. split, ricochet, homing; heavy bolt or volley); most stack, a few true opposites exclude each other
 - [ ] Extra weapons as extras: tune blades, aura and Chain Lightning back to support the main weapon; a dev test arena that compares weapons (kills per minute, damage per second)
 

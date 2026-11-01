@@ -133,12 +133,12 @@ One character for everyone; weapons are the build, in the spirit of Hades (decid
 
 - **Main weapon:** chosen in the village (the armory) before an expedition. It decides the play style,
   replaces classes and is the heart of the build. First two: **Arcane Bolt** (ranged, aims itself) and
-  the **boomerang** (flies out and back and hits both ways, also behind you). Later e.g. sword (swings
+  the **boomerang** (flies a wide loop out and back and hits both ways, also behind you; built). Later e.g. sword (swings
   in an arc in front of you) and spear (pierces a line). Free to choose for now; further main weapons
   are unlocked with weapon fragments that bosses drop.
 - **Modifiers** for the main weapon (decided, not built yet), like the Daedalus hammer in Hades: cards
   that change how the weapon behaves, not just its numbers. Bolt: split, ricochet, homing, heavy bolt or
-  volley. Boomerang: two at once, spinning at the turn or pulling enemies in, a wide curve. Most of them
+  volley. Boomerang: two at once, spinning at the turn or pulling enemies in, a longer loop. Most of them
   stack (wild builds); a few true opposites exclude each other, so there are real choices.
 - **Extra weapons from cards** (blades, aura, Chain Lightning; later e.g. a mortar or a fire trail) are
   extras for more cleave: they support the main weapon, they do not replace it.
