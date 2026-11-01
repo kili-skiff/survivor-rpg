@@ -158,16 +158,17 @@ describe the game as built; some of it changes in Milestone 2 (gold, camps).
 
 ### Milestone 2: weapons and lasting progress
 
-Why players go out again and again: a main weapon that carries the build, progress that lasts beyond a
+Why players go out again and again: a main weapon as the backbone of the build, progress that lasts beyond a
 death, and reasons to go in every direction (see "Long-term motivation" in `docs/vision.md`). Each step is
 its own PR, in this order.
 
-Phase 1, main weapons (the build is the main weapon; weapons from cards are extras for more cleave):
+Phase 1, main weapons (the main weapon is the backbone of the build and its upgrades are clearly felt; the wildness of a build comes from the extras from cards):
 
 - [x] Main weapons: the armory in the village to choose one before an expedition (free for now, saved as `mainWeapon`), Arcane Bolt and a second one, the boomerang (flies a wide loop out and back, hits both ways; `systems/weapons/BoomerangWeapon.ts`). Main weapons come only from the armory; cards bring their level steps. Dev: "pick upgrade" and "main weapon" to try steps and compare weapons
 - [x] Modifiers for main weapons, like the Daedalus hammer in Hades: at level 5, 10, 15 … a choice of three modifiers of the main weapon replaces the cards (`config/modifiers.ts`, `logic/modifiers.ts`). Bolt: Heavy Bolt or Volley, Ricochet, Spark Chain, Blast Tip, Frost Bolt. Boomerang: Whirl or Undertow, Wide Blade, Orbit, Keen Edge, Ember Trail. Most stack, the opposites exclude each other; values in `MOD`, to be tuned by playing
 - [x] A dev test arena that compares weapons: damage per second, kills per minute and the share of each weapon and modifier effect, against a horde of a chosen ring or standing dummies
-- [x] Extra weapons as extras, first pass measured in the arena: the main weapon's card is drawn 6 times as often (other weapons a bit less than before) and is sure to come after two level-ups without it, so it comes in about every second level-up and some weapon card in two of three (`MAIN_WEAPON_OFFER`, `WEIGHTS` in `logic/upgrades.ts`; chests draw from the plain pool); Chain Lightning about half, aura and blades about 20% less; weak modifiers stronger, Ember Trail and Orbit weaker. Fine-tuning by playing
+- [x] Balance pass measured in the arena: the main weapon's card is drawn 6 times as often and is sure to come after two level-ups without it, so it comes in about every second level-up (`MAIN_WEAPON_OFFER`; chests draw from the plain pool); Chain Lightning about 20% less damage, aura and blades as they were; weak modifiers stronger, Ember Trail and Orbit weaker. Target for a grown build: the main weapon deals about 35–50%, the extras the rest. Fine-tuning by playing
+- [ ] More extra weapons for wild builds (e.g. a mortar against crowds, a weapon that leaves traps)
 
 Phase 2, lasting progress:
 

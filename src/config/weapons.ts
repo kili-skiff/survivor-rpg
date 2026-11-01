@@ -43,7 +43,7 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
     texture: 'icon-blades',
     rarity: 'common',
     base: {
-      damage: 7,
+      damage: 9,
       cooldown: 400,
       count: 2,
       pierce: 0,
@@ -57,15 +57,15 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
     },
     levels: [
       { text: '+1 blade', mods: { count: 1 } },
-      { text: '+4 damage, wider orbit', mods: { damage: 4, area: 0.15 } },
+      { text: '+5 damage, wider orbit', mods: { damage: 5, area: 0.15 } },
       { text: 'Blades rend: each hit also takes 2% of health', mods: { percent: 0.02 } },
       { text: '+1 blade', mods: { count: 1 } },
       { text: 'Spins faster', mods: { speed: 60 } },
       { text: 'Hits throw enemies back harder', mods: { knockback: 90 } },
-      { text: '+1 blade, +4 damage', mods: { count: 1, damage: 4 } },
+      { text: '+1 blade, +5 damage', mods: { count: 1, damage: 5 } },
       {
-        text: '+6 damage, wider orbit, +1% of health per hit',
-        mods: { damage: 6, area: 0.2, percent: 0.01 },
+        text: '+8 damage, wider orbit, +1% of health per hit',
+        mods: { damage: 8, area: 0.2, percent: 0.01 },
       },
     ],
   },
@@ -76,7 +76,7 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
     texture: 'icon-aura',
     rarity: 'common',
     base: {
-      damage: 5,
+      damage: 6,
       cooldown: 700,
       count: 1,
       pierce: 0,
@@ -91,12 +91,12 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
     levels: [
       { text: '+20% area', mods: { area: 0.2 } },
       { text: 'Every pulse pushes enemies back', mods: { knockback: 170 } },
-      { text: '+3 damage', mods: { damage: 3 } },
+      { text: '+4 damage', mods: { damage: 4 } },
       { text: 'Burns: each pulse also takes 2% of health', mods: { percent: 0.02 } },
       { text: 'Faster (−120 ms)', mods: { cooldown: -120 } },
       { text: '+20% area, +3 damage', mods: { area: 0.2, damage: 3 } },
       { text: 'Stronger push, +1% of health per pulse', mods: { knockback: 100, percent: 0.01 } },
-      { text: '+5 damage', mods: { damage: 5 } },
+      { text: '+6 damage', mods: { damage: 6 } },
     ],
   },
   chain: {
@@ -106,7 +106,7 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
     texture: 'icon-chain',
     rarity: 'magic',
     base: {
-      damage: 8,
+      damage: 11,
       cooldown: 1300,
       count: 1,
       pierce: 0,
@@ -115,18 +115,18 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
       knockback: 0,
       splash: 0,
       percent: 0,
-      chains: 2,
+      chains: 3,
       seek: 0,
     },
     levels: [
       { text: 'Jumps one more time', mods: { chains: 1 } },
-      { text: '+3 damage', mods: { damage: 3 } },
+      { text: '+5 damage', mods: { damage: 5 } },
       { text: '+1 strike at a different enemy', mods: { count: 1 } },
       { text: 'Faster (−200 ms)', mods: { cooldown: -200 } },
-      { text: 'Seeks out the biggest crowd, +1 jump', mods: { seek: 1, chains: 1 } },
-      { text: '+4 damage, each hit takes 1% of health', mods: { damage: 4, percent: 0.01 } },
+      { text: 'Seeks out the biggest crowd, +2 jumps', mods: { seek: 1, chains: 2 } },
+      { text: '+6 damage, each hit takes 1% of health', mods: { damage: 6, percent: 0.01 } },
       { text: '+1 strike at a different enemy', mods: { count: 1 } },
-      { text: '+5 damage, +2 jumps', mods: { damage: 5, chains: 2 } },
+      { text: '+8 damage, +3 jumps', mods: { damage: 8, chains: 3 } },
     ],
   },
   boomerang: {
@@ -170,7 +170,7 @@ export const MAIN_WEAPONS: readonly WeaponId[] = ['bolt', 'boomerang'];
 export const START_WEAPON: WeaponId = 'bolt';
 /**
  * How the main weapon comes up in level-up choices. Among some 30 possible cards it would come too rarely,
- * and it carries the build: its card is drawn `weight` times as often as another weapon's, and after
+ * and it is the backbone of the build: its card is drawn `weight` times as often as another weapon's, and after
  * `pityAfter` level-ups in a row without it, the next choice is sure to have it.
  */
 export const MAIN_WEAPON_OFFER = { weight: 6, pityAfter: 2 };

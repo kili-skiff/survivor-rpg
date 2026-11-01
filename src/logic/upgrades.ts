@@ -29,7 +29,7 @@ export interface UpgradeCard {
   isNew: boolean;
 }
 
-const WEIGHTS = { newWeapon: 1.0, weapon: 0.9, newPassive: 0.9, passive: 0.9, skill: 0.75, boon: 0.45 };
+const WEIGHTS = { newWeapon: 1.3, weapon: 1.1, newPassive: 0.9, passive: 0.9, skill: 0.75, boon: 0.45 };
 
 /**
  * All upgrades currently available, with their weight. Items have no limit; one-time boons are
