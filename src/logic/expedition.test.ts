@@ -2,8 +2,10 @@ import { describe, expect, it } from 'vitest';
 import { hexKey, hexNeighbors, ORIGIN, type Hex } from './hex';
 import {
   addLoot,
+  extendPath,
   lootAfterDeath,
   lootGained,
+  MAX_PATH_LENGTH,
   parseExpedition,
   startExpedition,
   type ExpeditionBuild,
@@ -224,5 +226,50 @@ describe('expedition count', () => {
     const old = emptySave() as unknown as { world: Record<string, unknown> };
     delete old.world.expeditions;
     expect(migrate(old).world.expeditions).toBe(0);
+  });
+});
+
+describe('expedition path', () => {
+  const first = { q: 1, r: 0 };
+  const second = { q: 2, r: 0 };
+
+  it('starts at the start hex and grows with every cleared hex', () => {
+    expect(startExpedition('0,0').path).toEqual(['0,0']);
+    const save = clearPath(emptySave(), [first, second]);
+    expect(save.world.expedition?.path).toEqual(['0,0', '1,0', '2,0']);
+  });
+
+  it('records a walk back through a cleared hex as a step', () => {
+    const save = walkThrough(clearPath(emptySave(), [first, second]), first);
+    expect(save.world.expedition?.path).toEqual(['0,0', '1,0', '2,0', '1,0']);
+  });
+
+  it('starts anew when setting out from a waypoint and is gone once home', () => {
+    const out = teleport(clearPath(emptySave(), pathTo(camp.hex)), ORIGIN);
+    expect(out.world.expedition).toBeNull();
+    const again = teleport(out, camp.hex);
+    expect(again.world.expedition?.path).toEqual([camp.key]);
+  });
+
+  it('adds nothing when you stay on the same hex and keeps only the newest steps', () => {
+    expect(extendPath(['0,0', '1,0'], '1,0')).toEqual(['0,0', '1,0']);
+    const long = Array.from({ length: MAX_PATH_LENGTH }, (_, i) => `${i},0`);
+    const next = extendPath(long, 'end');
+    expect(next).toHaveLength(MAX_PATH_LENGTH);
+    expect(next[next.length - 1]).toBe('end');
+    expect(next[0]).toBe('1,0');
+  });
+
+  it('survives a save round trip', () => {
+    const save = clearPath(emptySave(), [first, second]);
+    const loaded = migrate(JSON.parse(JSON.stringify(save)));
+    expect(loaded.world.expedition?.path).toEqual(['0,0', '1,0', '2,0']);
+  });
+
+  it('gives an older save a path from the start to the current position', () => {
+    const save = clearPath(emptySave(), [first, second]);
+    const old = JSON.parse(JSON.stringify(save));
+    delete old.world.expedition.path;
+    expect(migrate(old).world.expedition?.path).toEqual(['0,0', '2,0']);
   });
 });
