@@ -1,63 +1,99 @@
 import * as Phaser from 'phaser';
-import { HearthPanel } from '../panels/HearthPanel';
-import { beltSize, buyRank } from '../logic/hearth';
-import { HERBS } from '../config/herbs';
-import { POTION_IDS, POTIONS } from '../config/potions';
-import { FIRE_QUEST, TOWER_QUEST, VILLAGERS, type VillagerId } from '../config/quests';
-import type { HerbDef, PotionId } from '../config/types';
-import { grantTestLoot, toggleAllDeeds } from '../dev/devLogic'; // DEV:
-import { lootCount, type Loot } from '../logic/expedition';
-import { beltCount, brew, packPotion, unpackPotion } from '../logic/potions';
-import { acceptTowerQuest, questsOnArrival } from '../logic/quests';
-import { emptySave, loadSave, safeStorage, writeSave, type SaveData } from '../logic/save';
-import { CauldronPanel } from '../panels/CauldronPanel';
-import { DeedsPanel } from '../panels/DeedsPanel';
-import { ArmoryPanel } from '../panels/ArmoryPanel';
-import { WEAPONS } from '../config/weapons';
-import { DEEDS } from '../config/deeds';
-import { MerchantPanel } from '../panels/MerchantPanel';
-import { buyFeather, buyLantern, buyRecipe, embersOf, embersText, sellHerb } from '../logic/merchant';
-import { EMBER_KEY } from '../config/merchant';
-import { DialoguePanel, type DialoguePanelOptions } from '../panels/DialoguePanel';
-import { devButtonStyle, isDevMode } from '../dev/devMode'; // DEV:
-import { SHOW_RESET_BUTTON } from '../config/build';
-import { safeArea, viewportSize, type SafeArea } from '../ui/display';
-import { COLORS, css, FONT } from '../ui/theme';
+import { VILLAGE, VILLAGE_ASSETS, type StationId } from '../config/village';
+import { InputState } from '../input/InputState';
+import { loadSave, safeStorage } from '../logic/save';
+import { loadSettings } from '../logic/settings';
+import {
+  center,
+  contains,
+  findPath,
+  steer,
+  WalkGrid,
+  zoneAt,
+  type Point,
+  type Rect,
+  type Zone,
+} from '../logic/village';
+import type { Arrival } from '../panels/villagePanels';
+import { LanternSystem } from '../systems/LanternSystem';
+import { PlayerController } from '../systems/PlayerController';
+import { viewportSize } from '../ui/display';
 
-/** Why the player just arrived in the village, to show what came home with them. */
 export interface VillageSceneData {
-  arrival?: {
-    reason: 'returned' | 'fallen';
-    /** Loot added to the stash */
-    kept: Loot;
-    /** Loot lost on the way (only when fallen) */
-    lost: Loot;
-  };
+  /** Coming home from an expedition: what came with you */
+  arrival?: Arrival;
+  /** Coming out of the house (the menu village): you stand at its door */
+  from?: 'house';
 }
 
-const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
+/** Our own data per prop in the atlas (see scripts/village/build_village.py) */
+interface PropMeta {
+  frames: number;
+  fps: number;
+  /** Collision box: x from the bottom centre, y up from the bottom, width, height */
+  foot: [number, number, number, number] | null;
+  /** Glow: x from the bottom centre, y up from the bottom, radius */
+  light: [number, number, number] | null;
+}
 
-const HERB_LIST: HerbDef[] = Object.values(HERBS);
+/** A light in the village: where it burns, the ground it lights, how far it reaches */
+interface Glow {
+  x: number;
+  /** Height of the flame or window (y of the source) */
+  sourceY: number;
+  /** The ground below it: the bottom of its prop */
+  groundY: number;
+  radius: number;
+  /** Fires and lanterns flicker and give off a little warm haze; windows burn steady */
+  flame: boolean;
+}
 
-/** Heights of the fixed blocks in portrait (before UI scaling) */
-const POTIONS_BLOCK_H = 162;
-const STATIONS_BLOCK_H = 186;
+/** Soft round falloff without a bright plateau, for cutting light into the night */
+const SOFT_LIGHT = 'village-soft-light';
+/** The night layer is drawn at a quarter of the map size and scaled up: it is all soft gradients */
+const NIGHT_SCALE = 4;
 
-type PanelId = 'cauldron' | 'merchant' | 'deeds' | 'armory' | 'hearth' | VillagerId;
+export type WalkTarget = StationId | 'gate';
+
+/** The watchman's feet, below the centre of his sprite (px) */
+const FEET_Y = 22;
+/** Things further down the screen are drawn in front */
+const depthAt = (y: number) => 1 + y / 100000;
+/** Seconds without getting closer to the next way point before a walk gives up */
+const STUCK_SEC = 1.2;
 
 /**
- * The village: shows the stash of everything brought home, the potion belt for the next
- * expedition, and opens the village panels (cauldron; herb garden next).
+ * The walkable village: the map from public/assets/village, the watchman walking with keys or the touch
+ * stick (read from the shared InputState), houses and fences in his way, night light. Walking to a
+ * station (by tapping it in the menu of places) finds a way around the houses. The buttons, the panels
+ * and the stick live in VillageHudScene on top, which talks to this scene through its events:
+ * `station` (the station you stand at changed) and `arrived` (a walk to a station ended).
+ * Without the village art (e.g. in the single-file build) it opens the menu village instead.
  */
 export class VillageScene extends Phaser.Scene {
-  private save!: SaveData;
+  controls!: InputState;
   private data0: VillageSceneData = {};
-  private u = 1;
-  private sa: SafeArea = { top: 0, right: 0, bottom: 0, left: 0 };
-  private objects: Phaser.GameObjects.GameObject[] = [];
-  private openPanel: PanelId | null = null;
-  private panel:
-    CauldronPanel | MerchantPanel | DeedsPanel | ArmoryPanel | HearthPanel | DialoguePanel | null = null;
+  private player!: PlayerController;
+  private lantern!: LanternSystem;
+  private zones: Zone<StationId>[] = [];
+  private gate: Rect = { x: 0, y: 0, w: 0, h: 0 };
+  private grid!: WalkGrid;
+  private path: Point[] | null = null;
+  private target: WalkTarget | null = null;
+  private bestDist = Infinity;
+  private stuckFor = 0;
+  private here: StationId | null = null;
+  /** Standing in the gate when the scene starts must not send you off at once */
+  private inGate = true;
+  private frozen = false;
+  private leaving = false;
+  private night: Phaser.GameObjects.RenderTexture | null = null;
+  private glows: Glow[] = [];
+  /** A faint warm haze right around each flame (additive) */
+  private hazes: Phaser.GameObjects.Image[] = [];
+  private blockers: Phaser.Physics.Arcade.StaticGroup | null = null;
+  private mapW = 0;
+  private mapH = 0;
 
   constructor() {
     super('Village');
@@ -68,584 +104,393 @@ export class VillageScene extends Phaser.Scene {
   }
 
   create(): void {
-    this.save = loadSave(safeStorage());
-    // Coming home (also after falling) is when the elder first has something to say.
-    if (this.data0.arrival) {
-      const quests = questsOnArrival(this.save.quests);
-      if (quests !== this.save.quests) {
-        this.save = { ...this.save, quests };
-        writeSave(safeStorage(), this.save);
-      }
+    const { map: mapAsset, props: propsAsset } = VILLAGE_ASSETS;
+    if (!this.cache.tilemap.exists(mapAsset.key) || !this.textures.exists(propsAsset.key)) {
+      this.scene.start('VillageMenu', this.data0);
+      return;
     }
-    this.objects = [];
-    this.openPanel = null;
-    this.panel = null;
-    this.cameras.main.setBackgroundColor(0x17131f);
-    this.build();
-    this.scale.on('resize', this.build, this);
+    this.zones = [];
+    this.glows = [];
+    this.hazes = [];
+    this.night = null;
+    this.path = null;
+    this.target = null;
+    this.here = null;
+    this.inGate = true;
+    this.frozen = false;
+    this.leaving = false;
+
+    let controls = this.registry.get('input') as InputState | undefined;
+    if (!controls) {
+      controls = new InputState();
+      this.registry.set('input', controls);
+    }
+    this.controls = controls;
+    this.controls.reset();
+
+    const walls = this.buildMap();
+    this.grid = new WalkGrid(this.mapW, this.mapH, VILLAGE.pathCell, walls, VILLAGE.pathClearance);
+
+    // The watchman with his lantern
+    this.player = new PlayerController(this, () => this.time.now);
+    const start = this.startPoint();
+    this.player.sprite.setPosition(start.x, start.y - FEET_Y);
+    this.player.sprite.setCollideWorldBounds(true);
+    if (this.blockers) this.physics.add.collider(this.player.sprite, this.blockers);
+    this.physics.world.setBounds(0, 0, this.mapW, this.mapH);
+    const save = loadSave(safeStorage());
+    this.lantern = new LanternSystem(this, this.player, save.lanternLevel);
+    this.lantern.depthSpread = 0.000004;
+
+    this.buildLight();
+    const cam = this.cameras.main;
+    cam.setBounds(0, 0, this.mapW, this.mapH);
+    cam.setBackgroundColor(0x0b0a10);
+    cam.startFollow(this.player.sprite, true, 0.18, 0.18);
+    this.onResize();
+    this.scale.on('resize', this.onResize, this);
     this.events.once('shutdown', () => {
-      this.scale.off('resize', this.build, this);
-      this.panel?.destroy();
-      this.panel = null;
+      this.scale.off('resize', this.onResize, this);
+      this.controls.reset();
+      // The HUD belongs to this scene; it never stays behind on its own.
+      this.scene.stop('VillageHud');
     });
-    this.input.keyboard?.on('keydown-ENTER', () => this.openPanel === null && this.setOut());
-    this.input.keyboard?.on('keydown-ESC', () => this.showPanel(null));
+    this.scene.launch('VillageHud', { arrival: this.data0.arrival });
   }
 
-  // ---------------------------------------------------------------- state changes
+  // ---------------------------------------------------------------- the map
 
-  /** Saves a changed save and redraws everything. */
-  private commit(save: SaveData): void {
-    this.save = save;
-    writeSave(safeStorage(), save);
-    this.build();
-  }
-
-  private showPanel(id: PanelId | null): void {
-    this.openPanel = id;
-    this.build();
-  }
-
-  private brew(id: PotionId): void {
-    if (!this.save.recipes.includes(id)) return;
-    const stash = brew(this.save.stash, id);
-    if (stash) this.commit({ ...this.save, stash });
-  }
-
-  private pack(id: PotionId): void {
-    const r = packPotion(this.save.stash, this.save.belt, id, beltSize(this.save.hearth));
-    if (r) this.commit({ ...this.save, ...r });
-  }
-
-  private acceptQuest(): void {
-    this.commit({ ...this.save, quests: acceptTowerQuest(this.save.quests) });
-  }
-
-  /** What a villager says right now, and the buttons below it. */
-  private dialogue(id: VillagerId): DialoguePanelOptions {
-    const v = VILLAGERS[id];
-    const q = this.save.quests;
-    const close = { label: 'Close', onClick: () => this.showPanel(null) };
-    const base = { name: v.name, role: v.role, color: v.color };
-    if (q.tower === 'offered') {
-      return {
-        ...base,
-        text: TOWER_QUEST.elder.offered,
-        buttons: [
-          { label: 'Not now', onClick: () => this.showPanel(null) },
-          { label: 'I will find it', primary: true, onClick: () => this.acceptQuest() },
-        ],
-      };
-    }
-    // Before the tower quest comes up, the elder talks about the watchfires.
-    if (q.tower === 'none' && q.fire !== 'offered') {
-      return { ...base, text: FIRE_QUEST.elder[q.fire === 'done' ? 'done' : 'active'], buttons: [close] };
-    }
-    return { ...base, text: TOWER_QUEST.elder[q.tower], buttons: [close] };
-  }
-
-  /** A villager has something new to say. */
-  private hasNews(id: VillagerId): boolean {
-    const q = this.save.quests;
-    return id === 'elder' && q.tower === 'offered';
-  }
-
-  private unpack(id: PotionId): void {
-    const r = unpackPotion(this.save.stash, this.save.belt, id);
-    if (r) this.commit({ ...this.save, ...r });
-  }
-
-  // ---------------------------------------------------------------- layout
-
-  private build(): void {
-    for (const o of this.objects) o.destroy();
-    this.objects = [];
-    const { width: W, height: H } = this.scale;
-    this.cameras.main.setSize(W, H);
-    const cssSize = viewportSize();
-    const rs = W / cssSize.width;
-    this.u = rs * Phaser.Math.Clamp(Math.min(cssSize.width, cssSize.height) / 400, 0.85, 1.25);
-    const sa = safeArea();
-    this.sa = { top: sa.top * rs, right: sa.right * rs, bottom: sa.bottom * rs, left: sa.left * rs };
-    const u = this.u;
-    const wide = W > H * 1.3;
-    const left = this.sa.left + 16 * u;
-    const right = W - this.sa.right - 16 * u;
-
-    // Warm light in the middle of the dark: the village is the safe place.
-    const glow = this.track(this.add.graphics());
-    for (let i = 0; i < 12; i++) {
-      glow
-        .fillStyle(0xf59e0b, 0.012 + i * 0.004)
-        .fillCircle(W / 2, H * 0.35, Math.max(W, H) * (0.7 - i * 0.05));
-    }
-
-    let y = this.sa.top + 18 * u;
-    this.text(left, y, 'VILLAGE', 26, { fontStyle: 'bold', color: css(COLORS.accent) });
-    // DEV: test buttons; in landscape side by side, in portrait stacked.
-    if (isDevMode()) {
-      const herbsBtn = this.devButton(right, y + 4 * u);
-      // The test arena: left of the herbs button (in landscape left of "reset save" too).
-      let arenaRight = herbsBtn.x - herbsBtn.width - 10 * u;
-      if (SHOW_RESET_BUTTON || isDevMode()) {
-        if (wide) {
-          const reset = this.resetButton(arenaRight, y + 4 * u);
-          arenaRight = reset.x - reset.width - 10 * u;
-        } else this.resetButton(right, y + 40 * u);
+  /** Ground, fences, props, colliders and zones from the map. Returns everything that blocks the way. */
+  private buildMap(): Rect[] {
+    const map = this.make.tilemap({ key: VILLAGE_ASSETS.map.key });
+    this.mapW = map.widthInPixels;
+    this.mapH = map.heightInPixels;
+    const tileset = map.addTilesetImage(VILLAGE_ASSETS.tilesetName, VILLAGE_ASSETS.tiles.key);
+    const walls: Rect[] = [];
+    map.layers.forEach((layer, i) => {
+      if (layer.name === 'fences') {
+        // Fences stand up: each piece is drawn in order with the props, by its bottom edge.
+        for (const row of layer.data) {
+          for (const tile of row) {
+            if (tile.index < 0) continue;
+            const bottom = (tile.y + 1) * map.tileHeight;
+            this.add
+              .image(tile.pixelX + map.tileWidth / 2, bottom, VILLAGE_ASSETS.tiles.key, tile.index - 1)
+              .setOrigin(0.5, 1)
+              .setDepth(depthAt(bottom));
+          }
+        }
+      } else if (tileset) {
+        map.createLayer(layer.name, tileset, 0, 0)?.setDepth(i * 0.01);
       }
-      this.arenaButton(arenaRight, y + 4 * u);
-    } else if (SHOW_RESET_BUTTON) {
-      this.resetButton(right, y + 4 * u);
-    }
-    y += 34 * u;
-    const sub = this.text(left, y, `${plural(this.save.segmentsCleared, 'area')} cleared · `, 12, {
-      color: '#a1a1aa',
     });
-    this.text(left + sub.width, y, embersText(embersOf(this.save.stash)), 12, {
-      color: '#fdba74',
-      fontStyle: 'bold',
-    });
-    y += 28 * u;
 
-    const arrival = this.data0.arrival;
-    if (arrival) {
-      const news =
-        this.save.quests.tower === 'offered' ? ` ${VILLAGERS.elder.name} wants to speak with you.` : '';
-      const t = this.text(left, y, this.describeArrival(arrival) + news, 14, {
-        color: arrival.reason === 'fallen' ? '#fda4af' : '#bbf7d0',
-        wordWrap: { width: right - left },
+    const texture = this.textures.get(VILLAGE_ASSETS.props.key);
+    const meta = (texture.customData as { meta?: { props?: Record<string, PropMeta> } }).meta?.props ?? {};
+    const blockers = this.physics.add.staticGroup();
+    const block = (r: Rect) => {
+      walls.push(r);
+      const z = this.add.zone(r.x + r.w / 2, r.y + r.h / 2, r.w, r.h);
+      blockers.add(z);
+    };
+
+    for (const o of map.getObjectLayer('props')?.objects ?? []) {
+      const key = o.name;
+      const m = meta[key];
+      if (!m) continue;
+      const bx = (o.x ?? 0) + (o.width ?? 0) / 2;
+      const by = (o.y ?? 0) + (o.height ?? 0);
+      const thing =
+        m.frames > 1
+          ? this.add.sprite(bx, by, VILLAGE_ASSETS.props.key, `${key}-0`).play(this.propAnim(key, m))
+          : this.add.image(bx, by, VILLAGE_ASSETS.props.key, key);
+      thing.setOrigin(0.5, 1).setDepth(depthAt(by));
+      if (m.foot) {
+        const [fx, fy, fw, fh] = m.foot;
+        block({ x: bx + fx, y: by - fy - fh, w: fw, h: fh });
+      }
+      if (m.light) {
+        const [lx, ly, r] = m.light;
+        this.glows.push({ x: bx + lx, sourceY: by - ly, groundY: by, radius: r, flame: m.frames > 1 });
+      }
+    }
+    for (const o of map.getObjectLayer('colliders')?.objects ?? []) {
+      block({ x: o.x ?? 0, y: o.y ?? 0, w: o.width ?? 0, h: o.height ?? 0 });
+    }
+    for (const o of map.getObjectLayer('stations')?.objects ?? []) {
+      this.zones.push({
+        id: o.name as StationId,
+        x: o.x ?? 0,
+        y: o.y ?? 0,
+        w: o.width ?? 0,
+        h: o.height ?? 0,
       });
-      y += t.height + 16 * u;
     }
-
-    const buttonH = 52 * u;
-    const bottom = H - this.sa.bottom - 16 * u - buttonH - 14 * u;
-    const gap = 16 * u;
-    if (wide) {
-      const colW = (right - left - gap * 2) / 3;
-      const c1 = left + colW + gap;
-      const c2 = c1 + colW + gap;
-      this.drawStash(left, y, left + colW, bottom);
-      this.drawPotions(c1, y, c1 + colW);
-      this.drawStations(c2, y, c2 + colW, bottom);
-    } else {
-      // The herb grid takes the room that is left; potions and stations have fixed heights.
-      const fixed = POTIONS_BLOCK_H * u + STATIONS_BLOCK_H * u + gap * 2;
-      const stashBottom = this.drawStash(left, y, right, bottom - fixed);
-      const potionsBottom = this.drawPotions(left, stashBottom + gap, right);
-      this.drawStations(left, potionsBottom + gap, right, bottom);
+    for (const o of map.getObjectLayer('marks')?.objects ?? []) {
+      if (o.name === 'gate') this.gate = { x: o.x ?? 0, y: o.y ?? 0, w: o.width ?? 0, h: o.height ?? 0 };
+      if (o.name === 'spawn') this.registry.set('villageSpawn', { x: o.x ?? 0, y: o.y ?? 0 });
     }
-    this.button(W / 2, H - this.sa.bottom - 16 * u - buttonH / 2, 'Set out', () => this.setOut());
-
-    this.panel?.destroy();
-    this.panel = null;
-    if (this.openPanel === 'cauldron') {
-      this.panel = new CauldronPanel(
-        this,
-        { width: W, height: H, u, sa: this.sa },
-        {
-          stash: this.save.stash,
-          known: this.save.recipes,
-          onBrew: (id) => this.brew(id),
-          onClose: () => this.showPanel(null),
-        },
-      );
-    } else if (this.openPanel === 'merchant') {
-      this.panel = new MerchantPanel(
-        this,
-        { width: W, height: H, u, sa: this.sa },
-        {
-          stash: this.save.stash,
-          lanternLevel: this.save.lanternLevel,
-          recipes: this.save.recipes,
-          feathers: this.save.feathers,
-          onBuyFeather: () => {
-            const r = buyFeather(this.save.stash, this.save.feathers);
-            if (r) this.commit({ ...this.save, stash: r.stash, feathers: r.feathers });
-          },
-          onBuyLantern: () => {
-            const r = buyLantern(this.save.stash, this.save.lanternLevel);
-            if (r) this.commit({ ...this.save, stash: r.stash, lanternLevel: r.level });
-          },
-          onBuyRecipe: (id) => {
-            const r = buyRecipe(this.save.stash, this.save.recipes, id);
-            if (r) this.commit({ ...this.save, stash: r.stash, recipes: r.recipes });
-          },
-          onSellHerb: (id) => {
-            const stash = sellHerb(this.save.stash, id);
-            if (stash) this.commit({ ...this.save, stash });
-          },
-          onClose: () => this.showPanel(null),
-        },
-      );
-    } else if (this.openPanel === 'deeds') {
-      this.panel = new DeedsPanel(
-        this,
-        { width: W, height: H, u, sa: this.sa },
-        {
-          earned: this.save.deeds,
-          onClose: () => this.showPanel(null),
-          // DEV: all deeds on or off.
-          onDevToggle: isDevMode()
-            ? () => this.commit({ ...this.save, deeds: toggleAllDeeds(this.save.deeds) })
-            : undefined,
-        },
-      );
-    } else if (this.openPanel === 'hearth') {
-      this.panel = new HearthPanel(
-        this,
-        { width: W, height: H, u, sa: this.sa },
-        {
-          stash: this.save.stash,
-          ranks: this.save.hearth,
-          deeds: this.save.deeds,
-          onBuy: (id) => {
-            const r = buyRank(this.save.stash, this.save.hearth, this.save.deeds, id);
-            if (r) this.commit({ ...this.save, stash: r.stash, hearth: r.ranks });
-          },
-          onClose: () => this.showPanel(null),
-        },
-      );
-    } else if (this.openPanel === 'armory') {
-      this.panel = new ArmoryPanel(
-        this,
-        { width: W, height: H, u, sa: this.sa },
-        {
-          chosen: this.save.mainWeapon,
-          onChoose: (id) => this.commit({ ...this.save, mainWeapon: id }),
-          onClose: () => this.showPanel(null),
-        },
-      );
-    } else if (this.openPanel) {
-      this.panel = new DialoguePanel(
-        this,
-        { width: W, height: H, u, sa: this.sa },
-        this.dialogue(this.openPanel),
-      );
-    }
+    this.blockers = blockers;
+    return walls;
   }
 
-  private describeArrival(a: NonNullable<VillageSceneData['arrival']>): string {
-    const list = (loot: Loot) =>
-      Object.entries(loot)
-        .map(([id, n]) =>
-          id === EMBER_KEY ? embersText(n) : `${n} ${HERBS[id as keyof typeof HERBS]?.name ?? id}`,
-        )
-        .join(', ');
-    if (a.reason === 'fallen') {
-      const kept = lootCount(a.kept) > 0 ? ` You saved ${list(a.kept)}.` : '';
-      const lost = lootCount(a.lost) > 0 ? ` Lost: ${list(a.lost)}.` : '';
-      return `You wake up in the village.${kept}${lost}`;
+  private propAnim(key: string, m: PropMeta): string {
+    const anim = `village-${key}`;
+    if (!this.anims.exists(anim)) {
+      this.anims.create({
+        key: anim,
+        frames: Array.from({ length: m.frames }, (_, i) => ({
+          key: VILLAGE_ASSETS.props.key,
+          frame: `${key}-${i}`,
+        })),
+        frameRate: m.fps || 8,
+        repeat: -1,
+      });
     }
-    return lootCount(a.kept) > 0 ? `Home safe. You brought back ${list(a.kept)}.` : 'Home safe.';
+    return anim;
   }
 
-  /** The stash as a grid of herb cards. Returns the bottom edge. */
-  private drawStash(x0: number, y0: number, x1: number, maxY: number): number {
-    const u = this.u;
-    this.text(x0, y0, 'Stash', 16, { fontStyle: 'bold' });
-    const top = y0 + 28 * u;
-    const cols = 2;
-    const gap = 10 * u;
-    const cardW = (x1 - x0 - gap * (cols - 1)) / cols;
-    const rows = Math.ceil(HERB_LIST.length / cols);
-    const cardH = Phaser.Math.Clamp((maxY - top - gap * (rows - 1)) / rows, 36 * u, 58 * u);
-    const g = this.track(this.add.graphics());
-    HERB_LIST.forEach((herb, i) => {
-      const cx = x0 + (i % cols) * (cardW + gap);
-      const cy = top + Math.floor(i / cols) * (cardH + gap);
-      const count = this.save.stash[herb.id] ?? 0;
-      const owned = count > 0;
-      g.fillStyle(COLORS.panel, owned ? 0.95 : 0.6).fillRoundedRect(cx, cy, cardW, cardH, 10 * u);
-      g.lineStyle(1.5 * u, herb.rare ? COLORS.accent : COLORS.panelEdge, owned ? 1 : 0.5).strokeRoundedRect(
-        cx,
-        cy,
-        cardW,
-        cardH,
-        10 * u,
-      );
-      const iconSize = Math.min(cardH - 14 * u, 34 * u);
-      this.track(
-        this.add
-          .image(cx + 10 * u + iconSize / 2, cy + cardH / 2, 'herb')
-          .setTint(herb.color)
-          .setDisplaySize(iconSize * 0.9, iconSize)
-          .setAlpha(owned ? 1 : 0.35),
-      );
-      const tx = cx + 18 * u + iconSize;
-      // Narrow cards (three columns in landscape) put the count below the name.
-      const stacked = cardW < 165 * u;
-      const nameY = stacked ? cy + cardH / 2 - 9 * u : cy + cardH / 2;
-      this.text(tx, nameY, herb.name, 13, {
-        fontStyle: 'bold',
-        color: owned ? '#ffffff' : '#71717a',
-      }).setOrigin(0, 0.5);
-      const countColor = owned ? (herb.rare ? css(COLORS.accent) : '#bbf7d0') : '#52525b';
-      if (stacked) {
-        this.text(tx, cy + cardH / 2 + 9 * u, `×${count}`, 13, {
-          fontStyle: 'bold',
-          color: countColor,
-        }).setOrigin(0, 0.5);
-      } else {
-        this.text(cx + cardW - 10 * u, cy + cardH / 2, `×${count}`, 15, {
-          fontStyle: 'bold',
-          color: countColor,
-        }).setOrigin(1, 0.5);
+  /** Where the watchman stands when the scene starts: at the gate when coming home, at the house door
+   * when coming out of it, otherwise at the Nest (also when waking up after a fall). */
+  private startPoint(): Point {
+    if (this.data0.from === 'house') {
+      const house = this.zones.find((z) => z.id === 'house');
+      if (house) return center(house);
+    }
+    if (this.data0.arrival?.reason === 'returned') {
+      return { x: this.gate.x + this.gate.w / 2, y: this.gate.y - 6 };
+    }
+    const spawn = this.registry.get('villageSpawn') as Point | undefined;
+    return spawn ?? { x: this.mapW / 2, y: this.mapH / 2 };
+  }
+
+  // ---------------------------------------------------------------- light
+
+  private buildLight(): void {
+    if (!loadSettings(safeStorage()).lighting) return;
+    if (!this.textures.exists(SOFT_LIGHT)) {
+      // Alpha falls off smoothly from the middle: (1 - r²)², no hard edge and no flat bright disc.
+      const n = 128;
+      const tex = this.textures.createCanvas(SOFT_LIGHT, n, n);
+      if (!tex) return;
+      const ctx = tex.getContext();
+      const img = ctx.createImageData(n, n);
+      for (let y = 0; y < n; y++) {
+        for (let x = 0; x < n; x++) {
+          const d = Math.hypot(x + 0.5 - n / 2, y + 0.5 - n / 2) / (n / 2);
+          const a = d >= 1 ? 0 : (1 - d * d) ** 2;
+          const i = (y * n + x) * 4;
+          img.data[i] = img.data[i + 1] = img.data[i + 2] = 255;
+          img.data[i + 3] = Math.round(a * 255);
+        }
       }
-    });
-    return top + rows * cardH + (rows - 1) * gap;
+      ctx.putImageData(img, 0, 0);
+      tex.refresh();
+    }
+    this.night = this.add
+      .renderTexture(0, 0, Math.ceil(this.mapW / NIGHT_SCALE), Math.ceil(this.mapH / NIGHT_SCALE))
+      .setOrigin(0)
+      .setScale(NIGHT_SCALE)
+      .setDepth(5);
+    this.hazes = this.glows
+      .filter((g) => g.flame)
+      .map((g) =>
+        this.add
+          .image(g.x, g.sourceY, SOFT_LIGHT)
+          .setDepth(5.1)
+          .setBlendMode(Phaser.BlendModes.ADD)
+          .setTint(VILLAGE.glowColor),
+      );
   }
 
   /**
-   * Brewed potions (tap to pack one) and the belt for the next expedition (tap to unpack).
-   * Returns the bottom edge.
+   * The night is one dark layer; every light erases a soft hole into it, so it shows the colours below
+   * instead of painting orange on top: a pool on the ground (flattened, as the view looks down at an
+   * angle) and a small bright spot at the flame or window itself.
    */
-  private drawPotions(x0: number, y0: number, x1: number): number {
-    const u = this.u;
-    const n = POTION_IDS.length;
-    const gap = 8 * u;
-    const g = this.track(this.add.graphics());
-
-    this.text(x0, y0, 'Potions', 16, { fontStyle: 'bold' });
-    this.text(x1, y0 + 3 * u, 'Tap to pack', 11, { color: '#a1a1aa' }).setOrigin(1, 0);
-    let y = y0 + 26 * u;
-    const cardW = (x1 - x0 - gap * (n - 1)) / n;
-    const cardH = 52 * u;
-    const beltFull = beltCount(this.save.belt) >= beltSize(this.save.hearth);
-    POTION_IDS.forEach((id, i) => {
-      const def = POTIONS[id];
-      const cx = x0 + i * (cardW + gap);
-      const count = this.save.stash[id] ?? 0;
-      const active = count > 0 && !beltFull;
-      g.fillStyle(COLORS.panel, count > 0 ? 0.95 : 0.6).fillRoundedRect(cx, y, cardW, cardH, 10 * u);
-      g.lineStyle(1.5 * u, count > 0 ? def.color : COLORS.panelEdge, count > 0 ? 1 : 0.5).strokeRoundedRect(
-        cx,
-        y,
-        cardW,
-        cardH,
-        10 * u,
-      );
-      this.flask(cx + 18 * u, y + cardH / 2, 26 * u, def.color, count > 0 ? 1 : 0.3);
-      this.text(cx + 34 * u, y + cardH / 2 - 9 * u, def.short, 12, {
-        fontStyle: 'bold',
-        color: count > 0 ? '#ffffff' : '#71717a',
-      }).setOrigin(0, 0.5);
-      this.text(cx + 34 * u, y + cardH / 2 + 9 * u, `×${count}`, 13, {
-        fontStyle: 'bold',
-        color: count > 0 ? css(def.color) : '#52525b',
-      }).setOrigin(0, 0.5);
-      if (active) this.tapZone(cx, y, cardW, cardH, () => this.pack(id));
-    });
-    y += cardH + 12 * u;
-
-    const carried = beltCount(this.save.belt);
-    this.text(x0, y, `Belt  ${carried}/${beltSize(this.save.hearth)}`, 16, { fontStyle: 'bold' });
-    if (carried > 0) this.text(x1, y + 3 * u, 'Tap to unpack', 11, { color: '#a1a1aa' }).setOrigin(1, 0);
-    y += 26 * u;
-    const slots: PotionId[] = POTION_IDS.flatMap((id) => Array<PotionId>(this.save.belt[id] ?? 0).fill(id));
-    const slotW = (x1 - x0 - gap * (beltSize(this.save.hearth) - 1)) / beltSize(this.save.hearth);
-    const slotH = 46 * u;
-    for (let i = 0; i < beltSize(this.save.hearth); i++) {
-      const sx = x0 + i * (slotW + gap);
-      const id = slots[i];
-      if (id) {
-        g.fillStyle(0x2a2238, 1).fillRoundedRect(sx, y, slotW, slotH, 10 * u);
-        g.lineStyle(2 * u, POTIONS[id].color, 1).strokeRoundedRect(sx, y, slotW, slotH, 10 * u);
-        this.flask(sx + slotW / 2, y + slotH / 2, 30 * u, POTIONS[id].color, 1);
-        this.tapZone(sx, y, slotW, slotH, () => this.unpack(id));
-      } else {
-        g.lineStyle(1.5 * u, COLORS.panelEdge, 0.7).strokeRoundedRect(sx, y, slotW, slotH, 10 * u);
-        this.text(sx + slotW / 2, y + slotH / 2, 'empty', 11, { color: '#52525b' }).setOrigin(0.5);
+  private updateLight(time: number): void {
+    const night = this.night;
+    if (!night) return;
+    const k = 1 / NIGHT_SCALE;
+    const erase = Phaser.BlendModes.ERASE;
+    const cut = (x: number, y: number, rx: number, ry: number, alpha: number) => {
+      night.stamp(SOFT_LIGHT, undefined, x * k, y * k, {
+        scaleX: (rx * 2 * k) / 128,
+        scaleY: (ry * 2 * k) / 128,
+        alpha,
+        blendMode: erase,
+      });
+    };
+    night.clear();
+    night.fill(VILLAGE.nightColor, VILLAGE.nightDarkness);
+    let haze = 0;
+    for (const [i, g] of this.glows.entries()) {
+      const flicker = g.flame
+        ? 1 + Math.sin(time * 0.009 + i * 1.7) * 0.035 + Math.sin(time * 0.021 + i) * 0.02
+        : 1;
+      const r = g.radius * VILLAGE.lightReach * flicker;
+      cut(g.x, g.groundY - r * 0.12, r, r * VILLAGE.groundSquash, VILLAGE.lightStrength);
+      cut(g.x, g.sourceY, r * 0.4, r * 0.4, VILLAGE.lightStrength);
+      if (g.flame) {
+        const size = r * VILLAGE.hazeSize * flicker;
+        this.hazes[haze++].setDisplaySize(size, size).setAlpha(VILLAGE.hazeStrength);
       }
     }
-    return y + slotH;
-  }
-
-  /** The places in the village. Each one opens its own panel. */
-  private drawStations(x0: number, y0: number, x1: number, maxY: number): void {
-    const u = this.u;
-    const gap = 10 * u;
-    const villagersH = 46 * u;
-    const h = Phaser.Math.Clamp((maxY - y0 - gap * 3 - villagersH) / 3, 40 * u, 64 * u);
-    const g = this.track(this.add.graphics());
-
-    // Cauldron and merchant side by side
-    let y = y0;
-    const half = (x1 - x0 - gap) / 2;
-    const station = (sx: number, title: string, text: string, panel: PanelId) => {
-      g.fillStyle(COLORS.panel, 0.95).fillRoundedRect(sx, y, half, h, 10 * u);
-      g.lineStyle(1.5 * u, COLORS.accent, 0.9).strokeRoundedRect(sx, y, half, h, 10 * u);
-      this.text(sx + 12 * u, y + 10 * u, title, 14, { fontStyle: 'bold' });
-      this.text(sx + half - 12 * u, y + 10 * u, '›', 16, {
-        fontStyle: 'bold',
-        color: css(COLORS.accent),
-      }).setOrigin(1, 0);
-      if (h >= 56 * u) {
-        this.text(sx + 12 * u, y + 30 * u, text, 11, {
-          color: '#a1a1aa',
-          wordWrap: { width: half - 24 * u },
-        });
-      }
-      this.tapZone(sx, y, half, h, () => this.showPanel(panel));
-    };
-    station(x0, 'Cauldron', 'Brew potions.', 'cauldron');
-    station(x0 + half + gap, 'Merchant', 'Lanterns, recipes, sell herbs.', 'merchant');
-
-    // The Hearth (embers for good) and the armory (the main weapon for the next expedition)
-    y += h + gap;
-    const ranks = Object.values(this.save.hearth).reduce((sum, n) => sum + (n ?? 0), 0);
-    station(
-      x0,
-      'Hearth',
-      ranks > 0 ? `${ranks} ${ranks === 1 ? 'rank' : 'ranks'} bought.` : 'Embers for good.',
-      'hearth',
-    );
-    station(x0 + half + gap, 'Armory', `Main weapon: ${WEAPONS[this.save.mainWeapon].name}.`, 'armory');
-
-    // Deeds
-    y += h + gap;
-    const earned = DEEDS.filter((d) => this.save.deeds.includes(d.id)).length;
-    station(x0, 'Deeds', `${earned} of ${DEEDS.length} earned.`, 'deeds');
-
-    // Villagers: tap to talk; a "!" means they have something new to say.
-    y += h + gap;
-    const villagers: VillagerId[] = ['elder'];
-    const vw = (x1 - x0 - gap) / 2;
-    villagers.forEach((id, i) => {
-      const v = VILLAGERS[id];
-      const vx = x0 + i * (vw + gap);
-      const news = this.hasNews(id);
-      g.fillStyle(COLORS.panel, 0.95).fillRoundedRect(vx, y, vw, villagersH, 10 * u);
-      g.lineStyle(1.5 * u, news ? v.color : COLORS.panelEdge, 1).strokeRoundedRect(
-        vx,
-        y,
-        vw,
-        villagersH,
-        10 * u,
+    // The watchman's lantern lights the ground around his feet.
+    const l = this.lantern.light(time);
+    if (l) {
+      const r = VILLAGE.lanternRadius * (1 + Math.sin(time * 0.011) * 0.025);
+      cut(
+        this.player.x,
+        this.player.y + FEET_Y - 4,
+        r,
+        r * VILLAGE.groundSquash,
+        VILLAGE.lightStrength * 0.9,
       );
-      g.fillStyle(v.color, 0.3).fillCircle(vx + 22 * u, y + villagersH / 2, 12 * u);
-      this.text(vx + 22 * u, y + villagersH / 2, v.name.split(' ').pop()![0], 13, {
-        fontStyle: 'bold',
-        color: css(v.color),
-      }).setOrigin(0.5);
-      this.text(vx + 42 * u, y + villagersH / 2, v.name.split(' ').pop()!, 13, {
-        fontStyle: 'bold',
-      }).setOrigin(0, 0.5);
-      if (news) {
-        g.fillStyle(COLORS.accent, 1).fillCircle(vx + vw - 16 * u, y + villagersH / 2, 10 * u);
-        this.text(vx + vw - 16 * u, y + villagersH / 2, '!', 14, {
-          fontStyle: 'bold',
-          color: '#1c1917',
-        }).setOrigin(0.5);
-      }
-      this.tapZone(vx, y, vw, villagersH, () => this.showPanel(id));
+      cut(l.x, l.y, r * 0.35, r * 0.35, VILLAGE.lightStrength * 0.7);
+    }
+    night.render();
+  }
+
+  // ---------------------------------------------------------------- camera
+
+  private onResize(): void {
+    const { width, height } = this.scale;
+    this.cameras.resize(width, height);
+    const css = viewportSize();
+    const rs = width / css.width;
+    const zoom =
+      rs *
+      Phaser.Math.Clamp(Math.min(css.width, css.height) / VILLAGE.viewSize, VILLAGE.minZoom, VILLAGE.maxZoom);
+    this.cameras.main.setZoom(zoom);
+  }
+
+  // ---------------------------------------------------------------- for the HUD
+
+  /** The station you stand at, if any */
+  stationHere(): StationId | null {
+    return this.here;
+  }
+
+  /** Walks to a station (or the gate) on a way around the houses. */
+  walkTo(target: WalkTarget): void {
+    const zone = target === 'gate' ? this.gate : this.zones.find((z) => z.id === target);
+    if (!zone) return;
+    if (target !== 'gate' && this.here === target) {
+      this.events.emit('arrived', target);
+      return;
+    }
+    const goal = target === 'gate' ? { x: zone.x + zone.w / 2, y: zone.y + zone.h - 2 } : center(zone);
+    const path = findPath(this.grid, this.feet(), goal);
+    if (!path) return;
+    this.path = path;
+    this.target = target;
+    this.bestDist = Infinity;
+    this.stuckFor = 0;
+  }
+
+  /** The walk the watchman is on, if any */
+  walkingTo(): WalkTarget | null {
+    return this.target;
+  }
+
+  /** While a panel is open the watchman stands still. */
+  setFrozen(on: boolean): void {
+    this.frozen = on;
+    if (on) this.cancelWalk();
+  }
+
+  /** Into the house: the stash and the belt (the menu village). */
+  enterHouse(): void {
+    this.leave(() => this.scene.start('VillageMenu', {}));
+  }
+
+  /** Off through the gate to the world map. */
+  setOut(): void {
+    this.leave(() => this.scene.start('WorldMap'));
+  }
+
+  private leave(go: () => void): void {
+    if (this.leaving) return;
+    this.leaving = true;
+    this.cancelWalk();
+    this.cameras.main.fadeOut(220, 8, 6, 12);
+    this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
+      this.scene.stop('VillageHud');
+      go();
     });
   }
 
-  /** Resets the save (needs a second tap within 3 s); device settings stay. */
-  private resetButton(x: number, y: number): Phaser.GameObjects.Text {
-    const armed = this.registry.get('resetArmed') === true;
-    const label = armed ? 'Tap again to reset' : 'Reset save';
-    const t = this.text(x, y, label, 12, {
-      color: armed ? '#fda4af' : '#a1a1aa',
-      backgroundColor: armed ? '#3b1f2b' : '#2a2438',
-      padding: { x: Math.round(10 * this.u), y: Math.round(7 * this.u) },
-    }).setOrigin(1, 0);
-    t.setInteractive({ useHandCursor: true }).on('pointerup', () => {
-      if (!armed) {
-        this.registry.set('resetArmed', true);
-        this.time.delayedCall(3000, () => {
-          this.registry.set('resetArmed', false);
-          if (this.scene.isActive()) this.build();
-        });
-        this.build();
-        return;
+  private cancelWalk(): void {
+    this.path = null;
+    this.target = null;
+  }
+
+  // ---------------------------------------------------------------- every frame
+
+  private feet(): Point {
+    return { x: this.player.x, y: this.player.y + FEET_Y };
+  }
+
+  override update(time: number, deltaMs: number): void {
+    if (!this.player) return;
+    const dt = Math.min(deltaMs, 50) / 1000;
+    let mx = 0;
+    let my = 0;
+    if (!this.frozen && !this.leaving) {
+      mx = this.controls.moveX;
+      my = this.controls.moveY;
+      // Walking yourself ends a walk to a station.
+      if (Math.hypot(mx, my) > 0.1) this.cancelWalk();
+      else if (this.path) [mx, my] = this.followPath(dt);
+    }
+    this.player.update(mx, my, VILLAGE.walkSpeed);
+
+    const feet = this.feet();
+    const depth = depthAt(feet.y);
+    this.player.sprite.setDepth(depth);
+    this.lantern.depth = depth;
+    this.lantern.update(dt);
+    this.updateLight(time);
+
+    const here = zoneAt(this.zones, feet.x, feet.y);
+    if (here !== this.here) {
+      this.here = here;
+      this.events.emit('station', here);
+    }
+    const inGate = contains(this.gate, feet.x, feet.y);
+    if (inGate && !this.inGate && !this.leaving) this.setOut();
+    this.inGate = inGate;
+  }
+
+  /** Steers along the way points; ends the walk at the last one or when stuck. */
+  private followPath(dt: number): [number, number] {
+    const path = this.path!;
+    const feet = this.feet();
+    let s = steer(feet, path[0]);
+    while (s.dist < VILLAGE.waypointReach && path.length > 0) {
+      path.shift();
+      this.bestDist = Infinity;
+      this.stuckFor = 0;
+      if (path.length === 0) {
+        const target = this.target;
+        this.cancelWalk();
+        if (target === 'gate') this.setOut();
+        else if (target) this.events.emit('arrived', target);
+        return [0, 0];
       }
-      this.registry.set('resetArmed', false);
-      this.registry.set('devReveal', false);
-      this.registry.set('mapZoom', 1);
-      writeSave(safeStorage(), emptySave());
-      this.scene.restart({});
-    });
-    return t;
-  }
-
-  // DEV: starts the test arena (a fight outside the map that saves nothing).
-  private arenaButton(x: number, y: number): void {
-    const t = this.text(x, y, 'DEV  arena', 12, devButtonStyle(this.u)).setOrigin(1, 0);
-    t.setInteractive({ useHandCursor: true }).on('pointerup', () =>
-      this.scene.start('Game', { arena: true }),
-    );
-  }
-
-  // DEV: a small button that adds 5 of every herb and 50 embers to the stash.
-  private devButton(x: number, y: number): Phaser.GameObjects.Text {
-    const t = this.text(x, y, 'DEV  +herbs +embers', 12, devButtonStyle(this.u)).setOrigin(1, 0);
-    t.setInteractive({ useHandCursor: true }).on('pointerup', () =>
-      this.commit({ ...this.save, stash: grantTestLoot(this.save.stash, 5, 50) }),
-    );
-    return t;
-  }
-
-  private flask(x: number, y: number, h: number, color: number, alpha: number): void {
-    this.track(
-      this.add
-        .image(x, y, 'potion')
-        .setTint(color)
-        .setDisplaySize(h * 0.87, h)
-        .setAlpha(alpha),
-    );
-  }
-
-  private tapZone(x: number, y: number, w: number, h: number, onTap: () => void): void {
-    const zone = this.track(
-      this.add.zone(x + w / 2, y + h / 2, w, h).setInteractive({ useHandCursor: true }),
-    );
-    zone.on('pointerup', onTap);
-  }
-
-  // ---------------------------------------------------------------- helpers
-
-  private track<T extends Phaser.GameObjects.GameObject>(o: T): T {
-    this.objects.push(o);
-    return o;
-  }
-
-  private text(
-    x: number,
-    y: number,
-    value: string,
-    size: number,
-    opts: Phaser.Types.GameObjects.Text.TextStyle = {},
-  ) {
-    return this.track(
-      this.add.text(x, y, value, {
-        fontFamily: FONT,
-        fontSize: `${Math.round(size * this.u)}px`,
-        color: '#ffffff',
-        ...opts,
-      }),
-    );
-  }
-
-  private button(x: number, y: number, label: string, onClick: () => void): void {
-    const u = this.u;
-    const w = 240 * u;
-    const h = 52 * u;
-    const g = this.track(this.add.graphics());
-    const draw = (hover: boolean) => {
-      g.clear();
-      g.fillStyle(COLORS.accent, hover ? 1 : 0.92).fillRoundedRect(x - w / 2, y - h / 2, w, h, 12 * u);
-    };
-    draw(false);
-    this.text(x, y, label, 18, { fontStyle: 'bold', color: '#1c1917' }).setOrigin(0.5);
-    const zone = this.track(this.add.zone(x, y, w, h).setInteractive({ useHandCursor: true }));
-    zone.on('pointerover', () => draw(true));
-    zone.on('pointerout', () => draw(false));
-    zone.on('pointerup', onClick);
-  }
-
-  private setOut(): void {
-    this.scene.start('WorldMap');
+      s = steer(feet, path[0]);
+    }
+    if (s.dist < this.bestDist - 0.5) {
+      this.bestDist = s.dist;
+      this.stuckFor = 0;
+    } else {
+      this.stuckFor += dt;
+      if (this.stuckFor > STUCK_SEC) {
+        this.cancelWalk();
+        return [0, 0];
+      }
+    }
+    return [s.x, s.y];
   }
 }

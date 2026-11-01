@@ -2,6 +2,8 @@ import * as Phaser from 'phaser';
 import { BootScene } from './scenes/BootScene';
 import { GameScene } from './scenes/GameScene';
 import { UIScene } from './scenes/UIScene';
+import { VillageHudScene } from './scenes/VillageHudScene';
+import { VillageMenuScene } from './scenes/VillageMenuScene';
 import { VillageScene } from './scenes/VillageScene';
 import { WorldMapScene } from './scenes/WorldMapScene';
 import { renderScale, viewportSize } from './ui/display';
@@ -32,7 +34,7 @@ const game = new Phaser.Game({
   },
   input: { activePointers: 3 },
   render: { antialias: true, powerPreference: 'high-performance' },
-  scene: [BootScene, WorldMapScene, VillageScene, GameScene, UIScene],
+  scene: [BootScene, WorldMapScene, VillageScene, VillageHudScene, VillageMenuScene, GameScene, UIScene],
 });
 
 let resizeTimer: number | undefined;
