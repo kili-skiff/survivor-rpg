@@ -143,27 +143,38 @@ describe the game as built; some of it changes in Milestone 2 (gold, camps).
 - [x] Hex rewards like the doors in Hades: each hex shows what clearing it brings (gold, chest, rare card, full health, herb harvest), rolled per expedition (`config/rewards.ts`, `logic/rewards.ts`)
 - [ ] Follow-ups: a weapon built around crowd control (e.g. a mortar), XP that keeps up with enemy health (check in play first), tune or drop what does not feel good from the wild-build batch, more weapons
 
-### Milestone 2: new core loop
+### Milestone 2: weapons and lasting progress
 
-The decisions in "Decided, not built yet" in `docs/vision.md`. They change the economy, save data
-and the loop, so later content builds on them. Each step is its own PR.
+Why players go out again and again: a main weapon that carries the build, progress that lasts beyond a
+death, and reasons to go in every direction (see "Long-term motivation" in `docs/vision.md`). Each step is
+its own PR, in this order.
 
-- [ ] Gold becomes Embers, kept on death (chests, elites, quests and merchant pay embers)
-- [ ] More watchfires on the map (one every two to three rings), so they can replace camps
-- [ ] Camps go away: lit watchfires are the waypoints (rest, healing, fast travel, setting out)
-- [ ] Phoenix Feather: bought with embers, takes you home after a won fight away from a watchfire
-- [ ] New death rules: keep embers and everything permanent, lose level-ups, ores, herbs and finds
-- [ ] Main weapons chosen in the village, each with its own special skill; the dash stays for all (replaces the planned class and skill tree)
-- [ ] Ember upgrades: a flat list of permanent bonuses (e.g. health, speed, pickup radius, faster gathering)
-- [ ] Ores and the blacksmith (in the village from the start): weapon upgrades and lanterns
+Phase 1, main weapons (the build is the main weapon; weapons from cards are extras for more cleave):
+
+- [ ] Main weapons: the armory in the village to choose one before an expedition (free for now), Arcane Bolt and a second one, the boomerang (flies out and back, hits both ways)
+- [ ] Modifiers for main weapons, like the Daedalus hammer in Hades: cards that change how the weapon behaves (e.g. split, ricochet, homing; heavy bolt or volley); most stack, a few true opposites exclude each other
+- [ ] Extra weapons as extras: tune blades, aura and Chain Lightning back to support the main weapon; a dev test arena that compares weapons (kills per minute, damage per second)
+
+Phase 2, lasting progress:
+
+- [ ] Gold becomes Embers, kept on death (chests, elites, quests, hex rewards and the merchant pay embers)
+- [ ] The ember shop in the village: permanent upgrades (a flat list) and unlocks of extra weapons and cards
+- [ ] Scaling pass once upgrades exist: rings 1–2 easy, from ring 3 on harder, a target per ring
+
+Phase 3, reasons for every direction:
+
+- [ ] Rescuing villagers (start with 2–3): the village grows, each brings something new
+- [ ] A boss per biome that drops weapon fragments; fragments unlock further main weapons (e.g. sword, spear)
+
+The goal at the end: the old tower (Milestone 4). Also part of the new loop, after the phases above: more
+watchfires that replace camps as waypoints, the Phoenix Feather, the new death rules (keep embers and
+everything permanent, lose level-ups and finds), a special skill per main weapon, ores and the blacksmith.
 
 ### Milestone 3: depth
 
 - [ ] Herb garden: plant herbs and harvest more of them, growing in real time, new plants from seeds
-- [ ] Weapon fragments and seeds as finds that only count once you are home; the blacksmith forges fragments into new weapons or variants
 - [ ] Event hexes marked "?" (luck, choice, challenge, encounter)
-- [ ] Rescuing villagers who bring special unlocks (core systems like blacksmith, herbalist and trader are in the village from the start)
-- [ ] A boss per biome, guarding a dungeon or an important place
+- [ ] More bosses, guarding dungeons or important places; seeds as finds that only count once you are home
 
 ### Milestone 4: world and endgame
 
