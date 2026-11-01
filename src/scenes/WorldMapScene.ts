@@ -1,4 +1,5 @@
 import * as Phaser from 'phaser';
+import { MAP_FOG } from '../config/mapFog';
 import { BIOMES, POIS } from '../config/world';
 import { CHARACTER_SPRITES, SHEET } from '../config/sprites';
 import { FIRE_QUEST, TOWER_QUEST, VILLAGERS } from '../config/quests';
@@ -23,6 +24,7 @@ import {
   pixelToHexFlat,
   type Hex,
 } from '../logic/hex';
+import { brightHexes } from '../logic/mapLight';
 import { hash32 } from '../logic/rng';
 import { loadSave, safeStorage, writeSave, type SaveData } from '../logic/save';
 import { lootCount, lootGained } from '../logic/expedition';
@@ -37,6 +39,7 @@ import {
   isUsedUp,
   travelKind,
   type TravelKind,
+  type WorldProgress,
 } from '../logic/worldProgress';
 import { GOALS } from '../config/goals';
 import { goalLabel } from '../logic/goals';
@@ -57,8 +60,6 @@ const DRAG_THRESHOLD = 8;
 /** Map zoom limits (1 = default size) */
 const MIN_ZOOM = 0.5;
 const MAX_ZOOM = 2.5;
-/** Darkens hexes cleared on this expedition */
-const USED_TINT = 0x4d4d57;
 /** Ring and pin colour for quest goals on the map */
 const QUEST_COLOR = 0xc084fc;
 
@@ -123,6 +124,11 @@ export class WorldMapScene extends Phaser.Scene {
   private headerH = 0;
   private panelH = 0;
   private time0 = 0;
+  /** Hexes shown at full brightness for this progress (`logic/mapLight.ts`); the rest is dimmed */
+  private bright = new Set<string>();
+  private brightFor: WorldProgress | null = null;
+  /** Light level of each hex, 1 = bright, 0 = dimmed; eased so hexes fade when the player moves */
+  private light = new Map<string, number>();
   /** The elder handing over the lantern at the very first start */
   private introPanel: DialoguePanel | null = null;
   /** Short notice about newly earned deeds, fading out by itself */
@@ -145,6 +151,9 @@ export class WorldMapScene extends Phaser.Scene {
     this.touches = new Map();
     this.pinch = null;
     this.deedToast = null;
+    this.bright = new Set();
+    this.brightFor = null;
+    this.light = new Map();
 
     this.cameras.main.setBackgroundColor(COLORS.bg);
     this.map = this.add.graphics().setDepth(-1);
@@ -243,7 +252,7 @@ export class WorldMapScene extends Phaser.Scene {
 
   override update(_t: number, deltaMs: number): void {
     this.time0 += deltaMs / 1000;
-    this.drawMap();
+    this.drawMap(deltaMs / 1000);
     // DEV: "fog off" also clears the drifting clouds, so the tiles can be checked unobscured.
     this.fog.update(deltaMs / 1000, this.time0, (key) => isLit(this.save.world, key), !this.devReveal());
     const pos = hexToPixelFlat(parseHexKey(this.save.world.position), this.hexSize);
@@ -413,10 +422,11 @@ export class WorldMapScene extends Phaser.Scene {
 
   // ---------------------------------------------------------------- drawing
 
-  private drawMap(): void {
+  private drawMap(deltaSec: number): void {
     const g = this.map;
     const u = this.u;
     const progress = this.save.world;
+    this.updateLight(progress, deltaSec);
     const targets = new Set(
       [...this.world.hexes.values()]
         .filter((h) => isDiscovered(progress, h.key) && travelKind(this.world, progress, h.hex) !== 'blocked')
@@ -436,18 +446,19 @@ export class WorldMapScene extends Phaser.Scene {
       } else if (withTiles) continue;
       else {
         const fill = h.poi === 'village' ? VILLAGE_FILL : BIOMES[h.biome].color;
-        g.fillStyle(fill, isUsedUp(progress, h.key) ? 0.25 : 0.85).lineStyle(1.5 * u, 0x0d0b12, 0.9);
+        const alpha = Phaser.Math.Linear(MAP_FOG.dim.fillAlpha, 0.85, this.lightOf(h.key));
+        g.fillStyle(fill, alpha).lineStyle(1.5 * u, 0x0d0b12, 0.9);
       }
       this.hexPath(g, p.x, p.y, this.hexSize - 1.5 * u);
       g.fillPath().strokePath();
     }
     // The fog stays faint over unexplored hexes: they should look as black as ever.
     this.fog.drawCover(unexplored, FOG_FILL, this.hexSize - 1.5 * u);
-    // Hexes cleared on this expedition are greyed out: used up until you return home.
+    // Hexes that are not cleared and not next to you, the village or a lit watchfire are dimmed.
     for (const { hex, image } of this.tiles) {
       const discovered = this.isVisible(hex.key);
       image.setVisible(discovered);
-      if (discovered) image.setTint(isUsedUp(progress, hex.key) ? USED_TINT : 0xffffff);
+      if (discovered) image.setTint(mixColor(MAP_FOG.dim.tint, 0xffffff, this.lightOf(hex.key)));
     }
 
     const o = this.outlines;
@@ -488,6 +499,7 @@ export class WorldMapScene extends Phaser.Scene {
 
     for (const { hex, icon } of this.herbIcons) {
       icon.setVisible(this.isVisible(hex.key) && !isUsedUp(progress, hex.key));
+      icon.setAlpha(Phaser.Math.Linear(MAP_FOG.dim.symbolAlpha, 1, this.lightOf(hex.key)));
     }
     // Goals change with every expedition, so the symbols follow the current one. They only show next to
     // the player.
@@ -503,8 +515,28 @@ export class WorldMapScene extends Phaser.Scene {
     }
     for (const { hex, text } of this.poiLabels) {
       text.setVisible(this.isVisible(hex.key));
+      text.setAlpha(Phaser.Math.Linear(MAP_FOG.dim.symbolAlpha, 1, this.lightOf(hex.key)));
       text.setColor(progress.waypoints.includes(hex.key) ? css(COLORS.accent) : '#ffffff');
     }
+  }
+
+  /** Eases the light level of every hex towards its target (bright or dimmed). */
+  private updateLight(progress: WorldProgress, deltaSec: number): void {
+    if (this.brightFor !== progress) {
+      this.brightFor = progress;
+      this.bright = brightHexes(this.world, progress);
+    }
+    const step = deltaSec / MAP_FOG.dim.fadeSec;
+    const reveal = this.devReveal(); // DEV: "fog off" shows every tile at full brightness.
+    for (const key of this.world.hexes.keys()) {
+      const target = reveal || this.bright.has(key) ? 1 : 0;
+      const now = this.light.get(key) ?? target;
+      this.light.set(key, now < target ? Math.min(target, now + step) : Math.max(target, now - step));
+    }
+  }
+
+  private lightOf(key: string): number {
+    return this.light.get(key) ?? 1;
   }
 
   /**
@@ -1140,4 +1172,10 @@ export class WorldMapScene extends Phaser.Scene {
       },
     });
   }
+}
+
+/** Blends two 0xRRGGBB colours: `t` = 0 gives `a`, 1 gives `b`. */
+function mixColor(a: number, b: number, t: number): number {
+  const channel = (shift: number) => Math.round(((a >> shift) & 0xff) * (1 - t) + ((b >> shift) & 0xff) * t);
+  return (channel(16) << 16) | (channel(8) << 8) | channel(0);
 }

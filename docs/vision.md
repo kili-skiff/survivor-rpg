@@ -57,8 +57,8 @@ The sections below already describe the target; this list is the to-do for the c
 - **Fog of war:** unexplored hexes are hidden.
 - **Points of interest** are rare and spread out (never next to each other) and sit on some hexes: watchfires, merchants with special goods, dungeon
   entrances, places where villagers wait to be rescued, and occasionally an outpost or a second village.
-- **Hexes reset after an expedition:** a hex cleared on an expedition is used up (greyed out on the
-  map) and can be walked through without a fight; when you return home everything fills again.
+- **Hexes reset after an expedition:** a hex cleared on an expedition is used up (it stays lit on the
+  map while the rest is dimmed) and can be walked through without a fight; when you return home everything fills again.
 - **Waypoints are lit watchfires.** You rest and heal there, travel between lit watchfires and the
   village, and can start expeditions from them. Camps go away. A watchfire reveals the land around it
   on the map, but hexes stay dark in a fight: watchfires give orientation, not protection.
