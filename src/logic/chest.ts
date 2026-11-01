@@ -34,7 +34,8 @@ export function rollChest(loadout: Loadout, ring: number, rng: Rng): ChestReward
   const upgrades: UpgradeOption[] = [];
   let build = loadout;
   for (let i = 0; i < count; i++) {
-    const option = rollUpgradeOptions(build, rng, 1, false)[0];
+    // From the plain pool: a chest is a surprise, not a level-up (no card kept for the main weapon).
+    const option = rollUpgradeOptions(build, rng, 1, false, false)[0];
     if (option.kind === 'heal') break;
     upgrades.push(option);
     build = applyUpgrade(build, option);

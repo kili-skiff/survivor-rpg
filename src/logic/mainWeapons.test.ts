@@ -87,3 +87,19 @@ describe('main weapon card', () => {
     expect(options.some((o) => o.kind === 'weapon' && o.id === 'bolt')).toBe(false);
   });
 });
+
+describe('chests and the main weapon', () => {
+  it('chests do not always bring the main weapon', async () => {
+    const { rollChest } = await import('./chest');
+    const { createStartLoadout } = await import('./stats');
+    const { createRng } = await import('./rng');
+    const rng = createRng(4);
+    let other = 0;
+    for (let i = 0; i < 40; i++) {
+      for (const u of rollChest(createStartLoadout('bolt'), 1, rng).upgrades) {
+        if (!(u.kind === 'weapon' && u.id === 'bolt')) other += 1;
+      }
+    }
+    expect(other).toBeGreaterThan(20);
+  });
+});

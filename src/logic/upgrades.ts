@@ -120,13 +120,22 @@ function drawFrom(
   return picked;
 }
 
-/** Draws up to `count` distinct upgrades, weighted, without replacement. */
-export function rollUpgradeOptions(loadout: Loadout, rng: Rng, count = 3, boons = true): UpgradeOption[] {
+/**
+ * Draws up to `count` distinct upgrades, weighted, without replacement. A level-up choice (`levelUp`) keeps
+ * one card for the main weapon; chests draw from the plain pool.
+ */
+export function rollUpgradeOptions(
+  loadout: Loadout,
+  rng: Rng,
+  count = 3,
+  boons = true,
+  levelUp = true,
+): UpgradeOption[] {
   const pool = availableUpgrades(loadout, boons);
   // One card for the main weapon while it can still grow (at a random place among the cards).
   const main = mainWeaponOf(loadout);
   const mainIndex = pool.findIndex((e) => e.option.kind === 'weapon' && e.option.id === main);
-  if (MAIN_WEAPON_CARD_GUARANTEED && mainIndex >= 0 && count > 0) {
+  if (levelUp && MAIN_WEAPON_CARD_GUARANTEED && mainIndex >= 0 && count > 0) {
     const [entry] = pool.splice(mainIndex, 1);
     const rest = drawFrom(pool, loadout, rng, count - 1);
     const at = Math.floor(rng() * (rest.length + 1)) % (rest.length + 1);
