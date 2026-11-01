@@ -123,11 +123,13 @@ export class BootScene extends Phaser.Scene {
     });
 
     // Hex rewards (config/rewards.ts): coloured on a dark disc, like the goal symbols.
-    make('reward-gold', 32, 32, (g) => {
+    make('reward-embers', 32, 32, (g) => {
       g.fillStyle(0x0d0b12, 0.8).fillCircle(16, 16, 16);
-      g.fillStyle(0xfde047).fillCircle(16, 16, 10);
-      g.fillStyle(0xca8a04).fillCircle(16, 16, 7);
-      g.fillStyle(0xfef08a).fillRect(14.5, 10, 3, 12);
+      g.fillStyle(0xf97316, 0.35).fillCircle(16, 16, 11);
+      g.fillStyle(0xfb923c).fillCircle(16, 16, 7);
+      g.fillStyle(0xfde68a).fillTriangle(16, 5, 19, 16, 13, 16).fillTriangle(16, 27, 19, 16, 13, 16);
+      g.fillStyle(0xfde68a).fillTriangle(5, 16, 16, 13, 16, 19).fillTriangle(27, 16, 16, 13, 16, 19);
+      g.fillStyle(0xfef3c7).fillCircle(16, 16, 3);
     });
     make('reward-chest', 32, 32, (g) => {
       g.fillStyle(0x0d0b12, 0.8).fillCircle(16, 16, 16);
@@ -270,11 +272,12 @@ export class BootScene extends Phaser.Scene {
         .fillRect(18 * S, 12 * S, 2 * S, 12 * S);
       g.fillStyle(0xfde68a).fillRect(11 * S, 13 * S, 4 * S, 3 * S);
     });
-    make('coin', 16, 16, (g) => {
-      g.fillStyle(0x92400e).fillCircle(8, 8.6, 7);
-      g.fillStyle(0xfbbf24).fillCircle(8, 8, 7);
-      g.fillStyle(0xfde68a).fillCircle(8, 8, 4.5);
-      g.fillStyle(0xf59e0b).fillRect(7, 5, 2, 6);
+    // An ember: the light a monster ate, released when it falls; you catch it in your lantern.
+    make('ember', 16, 16, (g) => {
+      g.fillStyle(0xf97316, 0.3).fillCircle(8, 8, 8);
+      g.fillStyle(0xfb923c, 0.85).fillCircle(8, 8, 5);
+      g.fillStyle(0xfde68a).fillTriangle(8, 2, 10, 8, 6, 8).fillTriangle(8, 14, 10, 8, 6, 8);
+      g.fillStyle(0xfef3c7).fillCircle(8, 8, 2.2);
     });
     // White herb sprite, tinted per herb type.
     make('herb', 22, 24, (g) => {

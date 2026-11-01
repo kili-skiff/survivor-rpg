@@ -3,7 +3,7 @@
 import { DEEDS, type DeedId } from '../config/deeds';
 import { MODIFIERS } from '../config/modifiers';
 import { HERBS } from '../config/herbs';
-import { GOLD_KEY } from '../config/merchant';
+import { EMBER_KEY } from '../config/merchant';
 import type { PlayerStats, WeaponId } from '../config/types';
 import { MAIN_WEAPONS, START_WEAPON } from '../config/weapons';
 import { addLoot, type Loot } from '../logic/expedition';
@@ -24,9 +24,9 @@ import {
 } from '../logic/upgrades';
 import { isLit, walkTo } from '../logic/worldProgress';
 
-/** Adds `amount` of every herb and `gold` gold to the stash. */
-export function grantTestLoot(stash: Loot, amount: number, gold: number): Loot {
-  const gift: Loot = { [GOLD_KEY]: gold };
+/** Adds `amount` of every herb and `embers` embers to the stash. */
+export function grantTestLoot(stash: Loot, amount: number, embers: number): Loot {
+  const gift: Loot = { [EMBER_KEY]: embers };
   for (const id of Object.keys(HERBS)) gift[id] = amount;
   return addLoot(stash, gift);
 }

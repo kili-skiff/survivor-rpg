@@ -14,8 +14,8 @@ import { ArmoryPanel } from '../panels/ArmoryPanel';
 import { WEAPONS } from '../config/weapons';
 import { DEEDS } from '../config/deeds';
 import { MerchantPanel } from '../panels/MerchantPanel';
-import { buyLantern, buyRecipe, goldOf, sellHerb } from '../logic/merchant';
-import { GOLD_KEY } from '../config/merchant';
+import { buyLantern, buyRecipe, embersOf, embersText, sellHerb } from '../logic/merchant';
+import { EMBER_KEY } from '../config/merchant';
 import { DialoguePanel, type DialoguePanelOptions } from '../panels/DialoguePanel';
 import { devButtonStyle, isDevMode } from '../dev/devMode'; // DEV:
 import { SHOW_RESET_BUTTON } from '../config/build';
@@ -212,8 +212,8 @@ export class VillageScene extends Phaser.Scene {
     const sub = this.text(left, y, `${plural(this.save.segmentsCleared, 'area')} cleared · `, 12, {
       color: '#a1a1aa',
     });
-    this.text(left + sub.width, y, `${goldOf(this.save.stash)} gold`, 12, {
-      color: '#fde047',
+    this.text(left + sub.width, y, embersText(embersOf(this.save.stash)), 12, {
+      color: '#fdba74',
       fontStyle: 'bold',
     });
     y += 28 * u;
@@ -320,7 +320,7 @@ export class VillageScene extends Phaser.Scene {
     const list = (loot: Loot) =>
       Object.entries(loot)
         .map(([id, n]) =>
-          id === GOLD_KEY ? `${n} gold` : `${n} ${HERBS[id as keyof typeof HERBS]?.name ?? id}`,
+          id === EMBER_KEY ? embersText(n) : `${n} ${HERBS[id as keyof typeof HERBS]?.name ?? id}`,
         )
         .join(', ');
     if (a.reason === 'fallen') {
@@ -480,7 +480,7 @@ export class VillageScene extends Phaser.Scene {
       this.tapZone(sx, y, half, h, () => this.showPanel(panel));
     };
     station(x0, 'Cauldron', 'Brew potions.', 'cauldron');
-    station(x0 + half + gap, 'Merchant', 'Lanterns, recipes, gold.', 'merchant');
+    station(x0 + half + gap, 'Merchant', 'Lanterns, recipes, sell herbs.', 'merchant');
 
     // Deeds and the armory (the main weapon for the next expedition)
     y += h + gap;
@@ -559,9 +559,9 @@ export class VillageScene extends Phaser.Scene {
     );
   }
 
-  // DEV: a small button that adds 5 of every herb and 50 gold to the stash.
+  // DEV: a small button that adds 5 of every herb and 50 embers to the stash.
   private devButton(x: number, y: number): Phaser.GameObjects.Text {
-    const t = this.text(x, y, 'DEV  +herbs +gold', 12, devButtonStyle(this.u)).setOrigin(1, 0);
+    const t = this.text(x, y, 'DEV  +herbs +embers', 12, devButtonStyle(this.u)).setOrigin(1, 0);
     t.setInteractive({ useHandCursor: true }).on('pointerup', () =>
       this.commit({ ...this.save, stash: grantTestLoot(this.save.stash, 5, 50) }),
     );

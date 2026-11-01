@@ -19,8 +19,8 @@ export const VILLAGERS: Record<VillagerId, VillagerDef> = {
 /** The first quest: the elder gives you a lantern and sends you to light the watchfires. */
 export const FIRE_QUEST = {
   name: 'Light the Watchfires',
-  /** Gold for lighting the first watchfire (enough for the first better lantern) */
-  rewardGold: 30,
+  /** Embers for lighting the first watchfire (enough for the first better lantern) */
+  rewardEmbers: 30,
   elder: {
     offered:
       'The darkness has broken in, wanderer. The old watchfires went cold, and with them the safe roads.\n\n' +

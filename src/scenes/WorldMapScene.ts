@@ -227,7 +227,7 @@ export class WorldMapScene extends Phaser.Scene {
       // Below the fog, like the tiles they sit on.
       const icon = this.add.image(0, 0, GOALS.icons.survive).setDepth(0.31);
       this.goalIcons.push({ hex: h, icon });
-      this.rewardIcons.push({ hex: h, icon: this.add.image(0, 0, REWARDS.icons.gold).setDepth(0.31) });
+      this.rewardIcons.push({ hex: h, icon: this.add.image(0, 0, REWARDS.icons.embers).setDepth(0.31) });
     }
     this.fog = new MapFog(
       this,

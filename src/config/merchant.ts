@@ -64,12 +64,12 @@ export const HERB_PRICES: Record<HerbId, number> = {
   starlily: 6,
 };
 
-export const GOLD = {
-  /** Chance that a defeated (normal) enemy drops gold */
+export const EMBERS = {
+  /** Chance that a defeated (normal) enemy drops embers */
   dropChance: 0.006,
-  /** Gold per drop: 1, plus one more every `extraEveryRings` rings */
+  /** Embers per drop: 1, plus one more every `extraEveryRings` rings */
   extraEveryRings: 3,
 } as const;
 
-/** Loot key under which gold is kept in the expedition loot and the stash */
-export const GOLD_KEY = 'gold';
+/** Loot key under which embers are kept in the stash */
+export const EMBER_KEY = 'embers';
