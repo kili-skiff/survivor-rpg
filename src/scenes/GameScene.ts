@@ -47,7 +47,14 @@ import {
   type Loadout,
 } from '../logic/stats';
 import { applyModifierStats, isModifierLevel, modifiersOf, rollModifierOptions } from '../logic/modifiers';
-import { applyUpgrade, rollRareOptions, rollUpgradeOptions, type UpgradeOption } from '../logic/upgrades';
+import {
+  applyUpgrade,
+  mainWeaponCanGrow,
+  offersMainWeapon,
+  rollRareOptions,
+  rollUpgradeOptions,
+  type UpgradeOption,
+} from '../logic/upgrades';
 import { REWARDS } from '../config/rewards';
 import { situationalDamage } from '../logic/hitEffects';
 import { seasonWorld, segmentForHex } from '../logic/worldgen';
@@ -68,6 +75,7 @@ import { devMainWeapon, devSwapMainWeapon, godModeStats, randomBuild } from '../
 import {
   ARENA,
   buildSummary,
+  DamageMeter,
   dummyPositions,
   logLine,
   newArenaState,
@@ -189,9 +197,13 @@ export class GameScene extends Phaser.Scene {
   private endAfterMenu = false;
   /** DEV: "clear area" was pressed; the fight counts as won */
   private devCleared = false;
+  /** Level-ups in a row without a main weapon card (MAIN_WEAPON_OFFER) */
+  private mainMisses = 0;
   /** DEV: the test arena: started with `arena: true`; its state while it runs */
   private devArenaOn = false;
   private devArena: ArenaState | null = null;
+  /** DEV: the damage meter of this fight (null outside dev mode) */
+  private devMeter: DamageMeter | null = null;
 
   constructor() {
     super('Game');
@@ -212,6 +224,7 @@ export class GameScene extends Phaser.Scene {
     this.chestOpen = false;
     this.pendingChests = [];
     this.pendingLevelUps = 0;
+    this.mainMisses = 0;
     this.secondWinds = 0;
     this.surgeUntil = 0;
     this.endInfo = null;
@@ -278,8 +291,11 @@ export class GameScene extends Phaser.Scene {
         durationSec: ARENA.durationSec,
       };
       this.ring = arena.ring;
-      this.enemies.devOnDamage = (source, amount) => arena.meter.add(source, amount, this.clock);
     }
+    // DEV: the damage meter, in every fight (the arena's own in the arena).
+    this.devMeter = isDevMode() ? (this.devArena?.meter ?? new DamageMeter()) : null;
+    const meter = this.devMeter;
+    if (meter) this.enemies.devOnDamage = (source, amount) => meter.add(source, amount, this.clock);
     this.enemies.setRing(this.ring);
     // Each biome has its own ground tile; without one, the grey placeholder is tinted instead.
     const groundTile = segment.biome ? GROUND_TEXTURES[segment.biome] : undefined;
@@ -542,6 +558,11 @@ export class GameScene extends Phaser.Scene {
   // DEV: whole screen lit, in god mode, in invincible mode and in the test arena.
   private devFullLight(): boolean {
     return this.devGodMode() || this.devInvincible() || this.devArenaOn;
+  }
+
+  // DEV: the damage meter of this fight.
+  devDamageMeter(): DamageMeter | null {
+    return this.devMeter;
   }
 
   // DEV: the test arena's state (null outside the arena).
@@ -1026,7 +1047,7 @@ export class GameScene extends Phaser.Scene {
 
   private onEnemyKilled(e: Enemy): void {
     this.run.kills += 1;
-    this.devArena?.meter.kill(this.clock); // DEV: arena meter
+    this.devMeter?.kill(this.clock); // DEV: damage meter
     if (Math.random() < BALANCE.healDropChance) this.pickups.drop(e.x, e.y, 'heal', BALANCE.healAmount);
     else this.pickups.drop(e.x, e.y, 'xp', e.def.xp * (e.elite ? ELITE.xp : 1) * this.run.stats.xpGain);
     if (this.run.stats.bloodthirst > 0) this.heal(this.run.stats.bloodthirst);
@@ -1095,7 +1116,12 @@ export class GameScene extends Phaser.Scene {
         return;
       }
     }
-    this.events.emit('levelup', rollUpgradeOptions(this.run.loadout, Math.random), level);
+    const options = rollUpgradeOptions(this.run.loadout, Math.random, 3, true, this.mainMisses);
+    // Count level-ups without a main weapon card, so it cannot stay away for long.
+    if (mainWeaponCanGrow(this.run.loadout)) {
+      this.mainMisses = offersMainWeapon(options, this.run.loadout) ? 0 : this.mainMisses + 1;
+    }
+    this.events.emit('levelup', options, level);
   }
 
   /**

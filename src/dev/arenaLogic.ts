@@ -13,9 +13,9 @@ export const ARENA = {
   minRing: 1,
   maxRing: 6,
   /** Dummies: how many stand around the player and at which distances (px, taking turns; close ones for
-   * aura and blades, far ones for ranged weapons). Their health is a normal enemy's of the ring. */
-  dummies: 8,
-  dummyRadii: [65, 150],
+   * aura and blades at every size, far ones for ranged weapons). Their health is a normal enemy's of the ring. */
+  dummies: 9,
+  dummyRadii: [62, 95, 150],
   /** Damage per second is measured over this window (ms) */
   dpsWindowMs: 10000,
   /** How long the arena's countdown shows (it never ends the fight) */
@@ -107,14 +107,18 @@ export interface ArenaReadout {
   now: number;
 }
 
-/** The head of the arena box: where, and what the build does (the shares follow as bars). */
+/** What the build does: damage per second, kills per minute and the total (the shares follow as bars). */
+export function meterLines(meter: DamageMeter, now: number): string[] {
+  return [
+    `${shortNumber(meter.dps(now))} dps · ${Math.round(meter.killsPerMinute(now))} kills/min`,
+    `${shortNumber(meter.total)} damage in total`,
+  ];
+}
+
+/** The head of the arena box: where, then what the build does. */
 export function arenaLines(r: ArenaReadout): string[] {
   const where = r.mode === 'horde' ? `horde · ring ${r.ring}` : 'dummies';
-  return [
-    `ARENA ${where} · fell ${r.falls}×`,
-    `${shortNumber(r.meter.dps(r.now))} dps · ${Math.round(r.meter.killsPerMinute(r.now))} kills/min`,
-    `${shortNumber(r.meter.total)} damage in total`,
-  ];
+  return [`ARENA ${where} · fell ${r.falls}×`, ...meterLines(r.meter, r.now)];
 }
 
 /** Where the dummies stand: evenly around (x, y), taking turns between the distances in `radii`. */

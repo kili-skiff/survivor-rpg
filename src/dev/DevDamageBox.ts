@@ -1,5 +1,12 @@
 import * as Phaser from 'phaser';
-import { arenaLines, shortNumber, sourceName, type ArenaState } from './arenaLogic';
+import {
+  arenaLines,
+  meterLines,
+  shortNumber,
+  sourceName,
+  type ArenaState,
+  type DamageMeter,
+} from './arenaLogic';
 import { devButtonStyle } from './devMode';
 
 const DEPTH = 1000;
@@ -10,12 +17,20 @@ const EVERY_MS = 500;
 /** Folded in: only one short line. Kept for the session, also across arena restarts. */
 let folded = false;
 
+/** What the box shows: the fight's damage meter, and the arena when the fight is the test arena. */
+export interface DevDamageView {
+  meter: DamageMeter;
+  arena: ArenaState | null;
+  now: number;
+  logged: number;
+}
+
 /**
- * Dev only: the test arena's numbers in a small box on the right, always visible: where, damage per
- * second, kills per minute, falls, and a bar per damage source with its share. Tapping it folds it into
- * one short line (damage per second) and back.
+ * Dev only: the damage meter in a small box on the right, in every fight: damage per second, kills per
+ * minute, the total and a bar per damage source with its share; in the test arena also where and how
+ * often the player fell. Tapping it folds it into one short line (damage per second) and back.
  */
-export class DevArenaBox {
+export class DevDamageBox {
   private readonly bg: Phaser.GameObjects.Graphics;
   private readonly head: Phaser.GameObjects.Text;
   private readonly rows: Phaser.GameObjects.Text[];
@@ -27,7 +42,7 @@ export class DevArenaBox {
 
   constructor(
     scene: Phaser.Scene,
-    private readonly state: () => { arena: ArenaState; now: number; logged: number } | null,
+    private readonly state: () => DevDamageView | null,
   ) {
     this.bg = scene.add.graphics().setDepth(DEPTH);
     this.head = scene.add
@@ -44,8 +59,9 @@ export class DevArenaBox {
     );
   }
 
-  /** The box's top right corner. */
+  /** The box's top right corner (cheap to call every frame: it only redraws when something moved). */
   layout(right: number, top: number, u: number): void {
+    if (right === this.right && top === this.top && u === this.u) return;
     this.right = right;
     this.top = top;
     this.u = u;
@@ -72,7 +88,8 @@ export class DevArenaBox {
     const { u } = this;
     const pad = 8 * u;
     if (folded) {
-      this.head.setStyle(textStyle(u, 11)).setText(`ARENA ▸ ${shortNumber(s.arena.meter.dps(s.now))} dps`);
+      const name = s.arena ? 'ARENA' : 'DAMAGE';
+      this.head.setStyle(textStyle(u, 11)).setText(`${name} ▸ ${shortNumber(s.meter.dps(s.now))} dps`);
       const w = this.head.width + pad * 2;
       this.head.setPosition(this.right - w + pad, this.top + pad);
       g.fillStyle(0x1e0b33, 0.85).fillRoundedRect(
@@ -86,8 +103,10 @@ export class DevArenaBox {
     }
     const width = 176 * u;
     const left = this.right - width;
-    const lines = arenaLines({ ...s.arena, now: s.now });
-    lines[0] = lines[0].replace('ARENA', 'ARENA ▾');
+    const lines = s.arena
+      ? arenaLines({ ...s.arena, now: s.now })
+      : ['DAMAGE', ...meterLines(s.meter, s.now)];
+    lines[0] = lines[0].replace(/^(ARENA|DAMAGE)/, '$1 ▾');
     if (s.logged > 0) lines.push(`log: ${s.logged} saved`);
     this.head
       .setStyle(textStyle(u, 11))
@@ -95,7 +114,7 @@ export class DevArenaBox {
       .setPosition(left + pad, this.top + pad);
     const barH = 15 * u;
     const inner = width - pad * 2;
-    const shares = s.arena.meter.shares().slice(0, MAX_SOURCES);
+    const shares = s.meter.shares().slice(0, MAX_SOURCES);
     const barsTop = this.top + pad + this.head.height + 6 * u;
     const height = barsTop - this.top + shares.length * (barH + 3 * u) + pad - 3 * u;
     g.fillStyle(0x1e0b33, 0.85).fillRoundedRect(left, this.top, width, height, 8 * u);

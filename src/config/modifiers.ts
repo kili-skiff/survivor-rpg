@@ -36,26 +36,26 @@ export const MODIFIER_CHOICES = 3;
 
 /** The numbers behind the modifiers. */
 export const MOD = {
-  heavy: { damageMul: 2.5, pierce: 2, knockback: 160, scale: 1.8 },
-  volley: { extra: 3, damageMul: 0.6, spread: 0.2 },
+  heavy: { damageMul: 3.5, pierce: 2, knockback: 160, scale: 1.8 },
+  volley: { extra: 3, damageMul: 0.75, spread: 0.2 },
   /** How far a bolt looks for the next enemy after its last hit (px) */
-  ricochet: { bounces: 1, range: 170 },
+  ricochet: { bounces: 2, range: 170 },
   /** Share of the hit that jumps over, and how far (px) */
   spark: { share: 0.5, range: 110, showMs: 90 },
   /** Burst radius at the last hit (px, before area) */
-  blast: { radius: 42 },
+  blast: { radius: 64 },
   frost: { factor: 0.6, ms: 1500 },
   /** Stays at the turn for `holdMs` and hits everything near every `tickMs` */
-  whirl: { holdMs: 600, tickMs: 200 },
+  whirl: { holdMs: 800, tickMs: 150 },
   /** Pull towards the player on the way back (px/s, like knockback) */
   pull: { speed: 260 },
   wide: { area: 0.5 },
-  /** Circles the player once before it is caught, at this distance (px, before area) */
-  orbit: { radius: 70 },
+  /** Circles the player once before it is caught, at this distance (px, before area), with a share of the damage */
+  orbit: { radius: 70, damageMul: 0.3 },
   /** Hits per enemy on each way, and the time between two hits on the same enemy (ms) */
   keen: { hits: 2, gapMs: 250 },
   /** An ember every `step` px, burning for `ms`; every `tickMs` it deals `share` of the damage within `radius` */
-  trail: { step: 26, ms: 1500, tickMs: 300, share: 0.3, radius: 20 },
+  trail: { step: 26, ms: 1500, tickMs: 400, share: 0.1, radius: 20 },
 };
 
 export const MODIFIERS: Record<ModifierId, ModifierDef> = {
@@ -63,7 +63,7 @@ export const MODIFIERS: Record<ModifierId, ModifierDef> = {
     id: 'heavybolt',
     weapon: 'bolt',
     name: 'Heavy Bolt',
-    description: 'One big bolt: ×2.5 damage, +2 pierce and a hard push',
+    description: 'One big bolt: ×3.5 damage, +2 pierce and a hard push',
     texture: 'icon-mod-heavybolt',
     excludes: ['volley'],
   },
@@ -71,7 +71,7 @@ export const MODIFIERS: Record<ModifierId, ModifierDef> = {
     id: 'volley',
     weapon: 'bolt',
     name: 'Volley',
-    description: '+3 bolts in a wide fan, each with 60% damage',
+    description: '+3 bolts in a wide fan, each with 75% damage',
     texture: 'icon-mod-volley',
     excludes: ['heavybolt'],
   },
@@ -79,7 +79,7 @@ export const MODIFIERS: Record<ModifierId, ModifierDef> = {
     id: 'ricochet',
     weapon: 'bolt',
     name: 'Ricochet',
-    description: 'After its last hit a bolt bounces on to the next enemy',
+    description: 'After its last hit a bolt bounces on to the next enemy, up to two times',
     texture: 'icon-mod-ricochet',
   },
   sparkchain: {
@@ -130,7 +130,7 @@ export const MODIFIERS: Record<ModifierId, ModifierDef> = {
     id: 'orbit',
     weapon: 'boomerang',
     name: 'Orbit',
-    description: 'Circles you once before you catch it',
+    description: 'Circles you once before you catch it, hitting for 30% damage',
     texture: 'icon-mod-orbit',
   },
   keen: {

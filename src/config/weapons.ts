@@ -106,7 +106,7 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
     texture: 'icon-chain',
     rarity: 'magic',
     base: {
-      damage: 14,
+      damage: 11,
       cooldown: 1300,
       count: 1,
       pierce: 0,
@@ -120,13 +120,13 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
     },
     levels: [
       { text: 'Jumps one more time', mods: { chains: 1 } },
-      { text: '+6 damage', mods: { damage: 6 } },
+      { text: '+5 damage', mods: { damage: 5 } },
       { text: '+1 strike at a different enemy', mods: { count: 1 } },
       { text: 'Faster (−200 ms)', mods: { cooldown: -200 } },
       { text: 'Seeks out the biggest crowd, +2 jumps', mods: { seek: 1, chains: 2 } },
-      { text: '+8 damage, each hit takes 1% of health', mods: { damage: 8, percent: 0.01 } },
+      { text: '+6 damage, each hit takes 1% of health', mods: { damage: 6, percent: 0.01 } },
       { text: '+1 strike at a different enemy', mods: { count: 1 } },
-      { text: '+10 damage, +3 jumps', mods: { damage: 10, chains: 3 } },
+      { text: '+8 damage, +3 jumps', mods: { damage: 8, chains: 3 } },
     ],
   },
   boomerang: {
@@ -168,6 +168,12 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
  */
 export const MAIN_WEAPONS: readonly WeaponId[] = ['bolt', 'boomerang'];
 export const START_WEAPON: WeaponId = 'bolt';
+/**
+ * How the main weapon comes up in level-up choices. Among some 30 possible cards it would come too rarely,
+ * and it is the backbone of the build: its card is drawn `weight` times as often as another weapon's, and after
+ * `pityAfter` level-ups in a row without it, the next choice is sure to have it.
+ */
+export const MAIN_WEAPON_OFFER = { weight: 6, pityAfter: 2 };
 export const MAX_WEAPONS = 4;
 /** Base radius of the aura in px (multiplied by area) */
 export const AURA_BASE_RADIUS = 70;

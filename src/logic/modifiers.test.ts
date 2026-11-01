@@ -90,11 +90,11 @@ describe('weapon modifiers', () => {
     };
     const heavy = applyModifierStats(base, ['heavybolt']);
     expect(heavy.count).toBe(1);
-    expect(heavy.damage).toBe(25);
+    expect(heavy.damage).toBe(35);
     expect(heavy.pierce).toBe(3);
     const volley = applyModifierStats(base, ['volley']);
     expect(volley.count).toBe(6);
-    expect(volley.damage).toBeCloseTo(6);
+    expect(volley.damage).toBeCloseTo(7.5);
     expect(applyModifierStats(base, ['wideblade']).area).toBe(1.5);
     expect(applyModifierStats(base, ['orbit'])).toEqual(base);
   });
