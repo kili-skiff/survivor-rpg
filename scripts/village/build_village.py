@@ -18,6 +18,7 @@ Output in public/assets/village/:
   village.json        the map in Tiled's JSON format: ground layers, and object layers for props,
                       stations (doors and people that open a panel), the gate and the spawn point
   CREDITS-village.txt authors and licences of every pack used
+After a rebuild, bump ART_VERSION in src/config/village.ts so browsers do not keep the old files.
 With --preview, also writes village-preview.png (the map as drawn) and village-night.png (a rough night look).
 
 Night grading as for the fight sprites: less colour, a little darker. Things that glow (fires, lanterns,
