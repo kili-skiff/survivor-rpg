@@ -14,10 +14,12 @@ export interface Settings {
   lighting: boolean;
   /** Small health bar under the player in fights. */
   healthBar: boolean;
+  /** The hint on the menu of places in the village was seen (the menu opened once). */
+  villageTipSeen: boolean;
 }
 
 export function defaultSettings(): Settings {
-  return { skillSide: 'right', lighting: true, healthBar: true };
+  return { skillSide: 'right', lighting: true, healthBar: true, villageTipSeen: false };
 }
 
 /** Reads settings leniently: unknown or broken values fall back to the defaults. */
@@ -29,6 +31,7 @@ export function parseSettings(raw: unknown): Settings {
     skillSide: data.skillSide === 'left' || data.skillSide === 'right' ? data.skillSide : base.skillSide,
     lighting: typeof data.lighting === 'boolean' ? data.lighting : base.lighting,
     healthBar: typeof data.healthBar === 'boolean' ? data.healthBar : base.healthBar,
+    villageTipSeen: data.villageTipSeen === true,
   };
 }
 

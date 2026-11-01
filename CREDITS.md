@@ -7,6 +7,19 @@ Art and other assets made by others, with their source and licence.
 | World map hex tiles (`public/assets/tiles/hex-tiles.png`)                        | The Clover Patch (cuddlyclover)                                                                                                                                                                                                                                                                                                                                                          | [Fantasy Hex Tiles](https://cuddlyclover.itch.io/fantasy-hex-tiles)                                                                                                                             | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)       |
 | Fight characters: watchman, zombie, ghoul, brute (`public/assets/sprites/*.png`) | Stephen Challener (Redshrike), Johannes Sjölund (wulax), bluecarrot16, Benjamin K. Smith (BenCreating), JaidynReiman, Eliza Wyatt (ElizaWy), Sander Frenken (castelonia), Napsio, Nila122, Matthew Krohn (makrohn), Durrani, Evert, MuffinElZangano, TheraHedwig, dalonedrau, Tuomo Untinen (reemax), AntumDeluge; per layer in [LPC-CREDITS.csv](public/assets/sprites/LPC-CREDITS.csv) | [Liberated Pixel Cup](https://lpc.opengameart.org/) via the [Universal LPC Spritesheet Character Generator](https://github.com/LiberatedPixelCup/Universal-LPC-Spritesheet-Character-Generator) | [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/) |
 
+The walkable village (`public/assets/village/`: ground tiles, buildings and decorations, the map) is built from these
+LPC packs on OpenGameArt by `scripts/village/build_village.py`: [[LPC] Terrains](https://opengameart.org/content/lpc-terrains),
+[[LPC] Roofs](https://opengameart.org/content/lpc-roofs) (its example houses, with [LPC] Colonial Buildings),
+[[LPC] Windows & Doors](https://opengameart.org/content/lpc-windows-doors),
+[[LPC] Medieval Village Decorations](https://opengameart.org/node/90157) and
+[[LPC] Blacksmith](https://opengameart.org/content/lpc-blacksmith), mainly by bluecarrot16, Lanea Zimmerman (Sharm),
+Daniel Armstrong (HughSpectrum), Casper Nilsson, Reemax and many more. Every author, per pack, is listed in
+[CREDITS-village.txt](public/assets/village/CREDITS-village.txt). Licences of the packs: CC BY-SA 3.0 / 4.0, with parts
+under CC BY, OGA-BY, GPL and CC0; the village files are shared under
+[CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/). Changed for this game: parts cut out and packed,
+darker colours, brick walls recoloured to timber and stone, doors, lit windows and signs placed on the houses, a lantern
+hung on a pole, the camp fire of the Nest set into the rim of a well.
+
 The village tile in the hex tileset was changed for this game: the well in the middle of the plaza
 is replaced by the Nest, a fire bowl with a flame, drawn by `scripts/tiles/build_nest.py`. The unchanged
 original tile is kept in `scripts/tiles/originals/village.png` (not part of the build).
