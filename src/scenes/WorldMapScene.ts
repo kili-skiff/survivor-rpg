@@ -95,7 +95,7 @@ export class WorldMapScene extends Phaser.Scene {
   private selected: Hex | null = null;
   /** Fog and fallback hexes, below the tiles */
   private map!: Phaser.GameObjects.Graphics;
-  /** Travel targets and selection, above the tiles */
+  /** Selection and quest marks, above the tiles */
   private outlines!: Phaser.GameObjects.Graphics;
   /** Watchfires: a glow through the fog, a burning fire once lit */
   private fires!: Phaser.GameObjects.Graphics;
@@ -440,11 +440,6 @@ export class WorldMapScene extends Phaser.Scene {
     const u = this.u;
     const progress = this.save.world;
     this.updateLight(progress, deltaSec);
-    const targets = new Set(
-      [...this.world.hexes.values()]
-        .filter((h) => isDiscovered(progress, h.key) && travelKind(this.world, progress, h.hex) !== 'blocked')
-        .map((h) => h.key),
-    );
     const pulse = 0.55 + Math.sin(this.time0 * 4) * 0.35;
     const withTiles = this.tiles.length > 0;
     g.clear();
@@ -476,15 +471,6 @@ export class WorldMapScene extends Phaser.Scene {
 
     const o = this.outlines;
     o.clear();
-    // Reachable hexes: a thin, faint rim so the tiles and their symbols stay readable.
-    const targetPulse = 0.4 + Math.sin(this.time0 * 4) * 0.12;
-    for (const key of targets) {
-      const p = hexToPixelFlat(parseHexKey(key), this.hexSize);
-      o.lineStyle(1.5 * u, COLORS.accent, targetPulse);
-      this.hexPath(o, p.x, p.y, this.hexSize - 3 * u);
-      o.strokePath();
-    }
-
     if (this.selected) {
       const p = hexToPixelFlat(this.selected, this.hexSize);
       o.lineStyle(3.5 * u, 0xffffff, 1);

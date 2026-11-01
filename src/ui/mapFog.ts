@@ -4,7 +4,7 @@ import { WORLD } from '../config/world';
 import { fogDensity } from '../logic/fogNoise';
 import { COLORS } from './theme';
 
-/** Fog sits above the tiles and herbs but below travel targets, quest marks, fires and the player. */
+/** Fog sits above the tiles and herbs but below the selection, quest marks, fires and the player. */
 const FOG_DEPTH = 0.4;
 /** Firelight sits on top of the fog: it lights the land, but the wisps stay visible through it. */
 const GLOW_DEPTH = 0.45;
