@@ -27,12 +27,21 @@ export const BALANCE = {
 
 /** Further rings are harder: enemies get more health and damage and come in denser waves. */
 export const RINGS = {
-  /** Enemy health +30% per ring beyond the first */
-  hpPerRing: 0.3,
-  /** Enemy damage +12% per ring beyond the first */
-  damagePerRing: 0.12,
-  /** Enemies come 20% faster per ring beyond the first (see SPAWN) */
-  spawnRatePerRing: 0.2,
+  /**
+   * Per ring (index 0 = ring 1): enemy health, enemy damage and how many enemies come (see SPAWN), each a
+   * multiplier. Rings 1–2 stay easy; from ring 3 on enemies get tougher and hit harder, while the crowd
+   * grows evenly. Beyond the last ring the last step repeats.
+   */
+  table: [
+    { hp: 1.0, damage: 1.0, spawnRate: 1.0 },
+    { hp: 1.2, damage: 1.05, spawnRate: 1.1 },
+    { hp: 1.6, damage: 1.3, spawnRate: 1.4 },
+    { hp: 2.1, damage: 1.5, spawnRate: 1.6 },
+    { hp: 2.7, damage: 1.65, spawnRate: 1.8 },
+    { hp: 3.5, damage: 1.85, spawnRate: 2.0 },
+    { hp: 4.6, damage: 2.1, spawnRate: 2.25 },
+    { hp: 6.0, damage: 2.4, spawnRate: 2.5 },
+  ],
 } as const;
 
 /**

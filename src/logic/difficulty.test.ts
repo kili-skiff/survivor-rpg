@@ -11,6 +11,18 @@ describe('ring difficulty', () => {
     expect(far.spawnRate).toBeGreaterThan(1.1);
   });
 
+  it('rises with every ring, gently at first, and keeps rising past the table', () => {
+    for (let r = 2; r <= 10; r++) {
+      const a = ringModifiers(r - 1);
+      const b = ringModifiers(r);
+      expect(b.hp).toBeGreaterThan(a.hp);
+      expect(b.damage).toBeGreaterThan(a.damage);
+      expect(b.spawnRate).toBeGreaterThan(a.spawnRate);
+    }
+    // Rings 1–2 stay easy: the step to ring 2 is smaller than later ones.
+    expect(ringModifiers(2).hp - ringModifiers(1).hp).toBeLessThan(ringModifiers(4).hp - ringModifiers(3).hp);
+  });
+
   it('has elites only from their ring on, more often further out, with a cap', () => {
     expect(eliteChance(1)).toBe(0);
     expect(eliteChance(ELITE.minRing)).toBeGreaterThan(0);
