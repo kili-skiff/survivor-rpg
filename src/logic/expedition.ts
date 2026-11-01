@@ -25,10 +25,31 @@ export interface Expedition {
   startedFrom: string;
   /** Hex keys cleared on this expedition: used up, walked through freely until you return home */
   cleared: string[];
+  /** Hex keys walked on this expedition in order, from the start to where the player stands (footsteps) */
+  path: string[];
 }
 
+/** The longest path kept; older steps drop off the start so a very long expedition cannot bloat the save. */
+export const MAX_PATH_LENGTH = 400;
+
 export function startExpedition(fromKey: string): Expedition {
-  return { build: null, loot: {}, areasCleared: 0, startedFrom: fromKey, cleared: [] };
+  return { build: null, loot: {}, areasCleared: 0, startedFrom: fromKey, cleared: [], path: [fromKey] };
+}
+
+/** The path with one more hex at the end. Standing still (the same hex again) adds nothing. */
+export function extendPath(path: readonly string[], key: string): string[] {
+  if (path[path.length - 1] === key) return [...path];
+  const next = [...path, key];
+  return next.length > MAX_PATH_LENGTH ? next.slice(next.length - MAX_PATH_LENGTH) : next;
+}
+
+/**
+ * Makes a loaded path usable: it starts somewhere (older saves had none) and ends where the player
+ * stands, so the footsteps always lead to the player.
+ */
+export function normalizePath(path: readonly string[], startedFrom: string, position: string): string[] {
+  const base = path.length > 0 ? path : [startedFrom];
+  return extendPath(base, position);
 }
 
 export function addLoot(a: Loot, b: Loot): Loot {
@@ -149,6 +170,8 @@ export function parseExpedition(raw: unknown): Expedition | null {
     areasCleared: isNumber(d.areasCleared) ? Math.max(0, Math.floor(d.areasCleared)) : 0,
     startedFrom: d.startedFrom,
     cleared: Array.isArray(d.cleared) ? d.cleared.filter((k): k is string => typeof k === 'string') : [],
+    // Added in version 14: missing in older saves, filled in by `normalizePath` once the position is known.
+    path: Array.isArray(d.path) ? d.path.filter((k): k is string => typeof k === 'string') : [],
   };
 }
 

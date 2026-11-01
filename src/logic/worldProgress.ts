@@ -1,4 +1,4 @@
-import { parseExpedition, type Expedition } from './expedition';
+import { normalizePath, parseExpedition, type Expedition } from './expedition';
 import { areNeighbors, hexKey, hexNeighbors, ORIGIN, parseHexKey, type Hex } from './hex';
 import type { RunOutcome } from './segment';
 import type { World } from './worldgen';
@@ -137,6 +137,7 @@ export function parseWorldProgress(raw: unknown): WorldProgress | null {
   ) {
     return null;
   }
+  const expedition = parseExpedition(d.expedition);
   return {
     seasonId: d.seasonId,
     generatorVersion: d.generatorVersion,
@@ -145,7 +146,9 @@ export function parseWorldProgress(raw: unknown): WorldProgress | null {
     cleared: d.cleared,
     // Added later: default when missing.
     waypoints: isKeyList(d.waypoints) ? d.waypoints : [],
-    expedition: parseExpedition(d.expedition),
+    expedition: expedition
+      ? { ...expedition, path: normalizePath(expedition.path, expedition.startedFrom, d.position) }
+      : null,
     litWatchfires: isKeyList(d.litWatchfires) ? d.litWatchfires : [],
     expeditions:
       typeof d.expeditions === 'number' && Number.isFinite(d.expeditions)

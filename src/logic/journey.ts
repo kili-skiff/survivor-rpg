@@ -4,7 +4,14 @@
 import { BALANCE } from '../config/balance';
 import type { DeedDef } from '../config/deeds';
 import { WORLD } from '../config/world';
-import { addLoot, lootAfterDeath, startExpedition, type ExpeditionBuild, type Loot } from './expedition';
+import {
+  addLoot,
+  extendPath,
+  lootAfterDeath,
+  startExpedition,
+  type ExpeditionBuild,
+  type Loot,
+} from './expedition';
 import { hexKey, ORIGIN, type Hex } from './hex';
 import type { SaveData } from './save';
 import type { RunOutcome } from './segment';
@@ -120,6 +127,7 @@ export function finishFight(
           loot,
           areasCleared: expedition.areasCleared + 1,
           cleared: expedition.cleared.includes(key) ? expedition.cleared : [...expedition.cleared, key],
+          path: extendPath(expedition.path, key),
         },
       },
     },
@@ -142,7 +150,14 @@ export function walkHome(save: SaveData, target: Hex): SaveData {
 
 /** Walking back into a hex cleared on this expedition: no fight, the expedition goes on. */
 export function walkThrough(save: SaveData, target: Hex): SaveData {
-  return { ...save, world: walkTo(save.world, target) };
+  const moved = walkTo(save.world, target);
+  const expedition = moved.expedition;
+  return {
+    ...save,
+    world: expedition
+      ? { ...moved, expedition: { ...expedition, path: extendPath(expedition.path, hexKey(target)) } }
+      : moved,
+  };
 }
 
 /** Going home from wherever you are: the expedition ends and all its loot goes into the stash. */
