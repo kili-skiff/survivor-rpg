@@ -1468,13 +1468,13 @@ export class UIScene extends Phaser.Scene {
     return groups;
   }
 
-  // DEV: the damage meter sits on the right below the counters (kills, gold, herbs), which come and go.
+  // DEV: the damage meter sits on the right below the counters (kills, embers, herbs), which come and go.
   private placeDevDamageBox(): void {
     if (!this.devDamageBox) return;
     const u = this.u;
     let bottom = this.killsText.y + this.killsText.height;
-    if (this.goldText.visible && this.goldText.text)
-      bottom = Math.max(bottom, this.goldText.y + this.goldText.height);
+    if (this.emberText.visible && this.emberText.text)
+      bottom = Math.max(bottom, this.emberText.y + this.emberText.height);
     // The herb label has a row of herb dots under it.
     if (this.herbText.text) bottom = Math.max(bottom, this.herbText.y + this.herbText.height + 14 * u);
     const right = this.scale.width - this.sa.right - 12 * u;
