@@ -1,4 +1,5 @@
 import * as Phaser from 'phaser';
+import { FOOTSTEPS } from '../config/footsteps';
 import { MAP_FOG } from '../config/mapFog';
 import { BIOMES, POIS } from '../config/world';
 import { CHARACTER_SPRITES, SHEET } from '../config/sprites';
@@ -24,6 +25,7 @@ import {
   pixelToHexFlat,
   type Hex,
 } from '../logic/hex';
+import { footstepsOf, type Footstep } from '../logic/footsteps';
 import { brightHexes } from '../logic/mapLight';
 import { hash32 } from '../logic/rng';
 import { loadSave, safeStorage, writeSave, type SaveData } from '../logic/save';
@@ -93,6 +95,15 @@ export class WorldMapScene extends Phaser.Scene {
   private selected: Hex | null = null;
   /** Fog and fallback hexes, below the tiles */
   private map!: Phaser.GameObjects.Graphics;
+  /** The way walked on this expedition, above the fog and below the selection */
+  private footprints!: Phaser.GameObjects.Graphics;
+  /** What the footprints were last drawn from: the path, the discovered hexes and the reveal switch */
+  private footprintsFor: {
+    path: readonly string[] | null;
+    discovered: readonly string[];
+    reveal: boolean;
+  } | null = null;
+  private footsteps: Footstep[] = [];
   /** Selection and quest marks, above the tiles */
   private outlines!: Phaser.GameObjects.Graphics;
   /** Watchfires: a glow through the fog, a burning fire once lit */
@@ -157,6 +168,10 @@ export class WorldMapScene extends Phaser.Scene {
 
     this.cameras.main.setBackgroundColor(COLORS.bg);
     this.map = this.add.graphics().setDepth(-1);
+    // Above the fog and its glow (0.4 to 0.45) so the prints stay clear, below selection and marks (0.5).
+    this.footprints = this.add.graphics().setDepth(0.46);
+    this.footprintsFor = null;
+    this.footsteps = [];
     this.outlines = this.add.graphics().setDepth(0.5);
     this.fires = this.add.graphics().setDepth(0.6);
     this.hudCam = this.cameras.add(0, 0, this.scale.width, this.scale.height);
@@ -222,6 +237,7 @@ export class WorldMapScene extends Phaser.Scene {
     // Everything so far belongs to the map; the HUD camera only draws the HUD.
     this.hudCam.ignore([
       this.map,
+      this.footprints,
       this.outlines,
       this.fires,
       this.marker,
@@ -456,6 +472,8 @@ export class WorldMapScene extends Phaser.Scene {
       if (discovered) image.setTint(mixColor(MAP_FOG.dim.tint, 0xffffff, this.lightOf(hex.key)));
     }
 
+    this.drawFootprints(progress);
+
     const o = this.outlines;
     o.clear();
     if (this.selected) {
@@ -504,6 +522,73 @@ export class WorldMapScene extends Phaser.Scene {
       text.setAlpha(Phaser.Math.Linear(MAP_FOG.dim.symbolAlpha, 1, this.lightOf(hex.key)));
       text.setColor(progress.waypoints.includes(hex.key) ? css(COLORS.accent) : '#ffffff');
     }
+  }
+
+  /** The way walked on this expedition. Only redrawn when the path, what is visible or the reveal switch changes. */
+  private drawFootprints(progress: WorldProgress): void {
+    const path = progress.expedition?.path ?? null;
+    const reveal = this.devReveal(); // DEV: "fog off" shows the whole path.
+    const last = this.footprintsFor;
+    if (last && last.path === path && last.discovered === progress.discovered && last.reveal === reveal)
+      return;
+    if (!last || last.path !== path) this.footsteps = path ? footstepsOf(path) : [];
+    this.footprintsFor = { path, discovered: progress.discovered, reveal };
+
+    const g = this.footprints;
+    g.clear();
+    const size = this.hexSize;
+    for (const step of this.footsteps) {
+      if (!this.isVisible(step.key)) continue;
+      // The foot turns a little outwards, like a real step.
+      const angle = step.angle + step.side * 0.14;
+      const x = step.x * size;
+      const y = step.y * size;
+      // A dark shadow first, so the print also shows on light tiles.
+      g.fillStyle(FOOTSTEPS.shadowColor, step.alpha * FOOTSTEPS.shadowAlpha);
+      this.fillPrint(g, x, y + FOOTSTEPS.shadowShift * size, angle, size);
+      g.fillStyle(FOOTSTEPS.color, step.alpha);
+      this.fillPrint(g, x, y, angle, size);
+    }
+  }
+
+  /** One footprint: the ball of the foot and a smaller heel behind it. */
+  private fillPrint(g: Phaser.GameObjects.Graphics, x: number, y: number, angle: number, size: number): void {
+    this.fillOval(g, x, y, angle, FOOTSTEPS.length * size, FOOTSTEPS.width * size, 0.28, 0.55);
+    this.fillOval(g, x, y, angle, FOOTSTEPS.length * size, FOOTSTEPS.width * size, -0.95, 0.38);
+  }
+
+  /**
+   * A small filled oval for a footprint: `shift` moves it along the direction of the foot as a share of
+   * `length`, `scale` shrinks it (the ball of the foot is the big oval, the heel a small one).
+   */
+  private fillOval(
+    g: Phaser.GameObjects.Graphics,
+    x: number,
+    y: number,
+    angle: number,
+    length: number,
+    width: number,
+    shift: number,
+    scale: number,
+  ): void {
+    const cos = Math.cos(angle);
+    const sin = Math.sin(angle);
+    const cx = x + cos * length * shift * 0.5;
+    const cy = y + sin * length * shift * 0.5;
+    const rx = (length * scale) / 2;
+    const ry = (width * (scale < 0.4 ? 0.8 : 1)) / 2;
+    g.beginPath();
+    for (let i = 0; i < 10; i++) {
+      const t = (i / 10) * Math.PI * 2;
+      const px = Math.cos(t) * rx;
+      const py = Math.sin(t) * ry;
+      const ox = cx + px * cos - py * sin;
+      const oy = cy + px * sin + py * cos;
+      if (i === 0) g.moveTo(ox, oy);
+      else g.lineTo(ox, oy);
+    }
+    g.closePath();
+    g.fillPath();
   }
 
   /** Eases the light level of every hex towards its target (bright or dimmed). */

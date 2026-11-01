@@ -43,9 +43,9 @@ The world, story and in-game terms (Embers, the Nest, watchfires) are in [docs/l
 ```
 src/
   config/    Game data: weapons, items, skills, enemies, herbs, potions, merchant, villagers and quests,
-             deeds, segments, world, map tiles, map fog, character sprites, ground tiles, balancing (NO Phaser)
+             deeds, segments, world, map tiles, map fog, footsteps, character sprites, ground tiles, balancing (NO Phaser)
   logic/     Pure game logic (NO Phaser, tested): stats, XP, upgrades, spawning, segments, save data,
-             hex math, seeded RNG, world generation, world progress, expeditions and journeys,
+             hex math, seeded RNG, world generation, world progress, expeditions and journeys, footsteps,
              potions (brewing, belt, buffs), lantern pendulum physics, merchant (gold, lanterns, recipes), ring difficulty, horde steering and enemy behaviours (swarm, behaviors), the spawn director (waves, breathers, rings and walls), chests,
              quests, deeds, device settings, fog noise
   entities/  Pooled Phaser objects (Enemy, Projectile, Pickup)
