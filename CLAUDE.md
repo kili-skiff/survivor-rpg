@@ -75,9 +75,11 @@ src/
   ui/        Display helpers (pixel density, safe area), colors, the drifting night fog on the world map (mapFog)
   dev/       Dev-only test helpers behind one switch (DEV_TOOLS); calls are marked `// DEV:`
 public/assets/  Art files served as they are (tiles/ for the world map, sprites/ for fight characters,
-                ground/ for the fight ground, one seamless tile per biome)
+                ground/ for the fight ground, one seamless tile per biome, village/ for the walkable village)
 scripts/lpc/    Builds the character sheets from LPC layers (Python + Pillow; see the script's header)
 scripts/ground/ Generates the ground tiles (Python + Pillow + numpy; our own art, replaceable)
+scripts/village/ Builds the walkable village from LPC packs: map (Tiled JSON), ground tiles, props atlas
+                (Python + Pillow; see the script's header; not used by the game yet)
 ```
 
 ## Rules
