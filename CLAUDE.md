@@ -72,7 +72,7 @@ src/
   panels/    Village panels (CauldronPanel, MerchantPanel, DeedsPanel, ArmoryPanel, HearthPanel, DialoguePanel): drawn on top of any scene,
              logic lives in logic/
   scenes/    Boot (placeholder graphics), WorldMap (hex map, travel), Village (the walkable village: map,
-             walking, night light) with VillageHud on top (shortcut bar, station button, touch stick, panels),
+             walking, night light) with VillageHud on top (menu of places, station button, touch stick, panels),
              VillageMenu (the village as a menu: stash, belt, panels; opened in the house, and the whole village
              where its art is missing, e.g. in the single-file build),
              Game (one fight, owns run state, wires systems), UI (HUD, touch, menus during a fight)
@@ -210,7 +210,7 @@ weapon, ores and the blacksmith.
 - [ ] Richer expedition panel on the map: health bar and the collected weapons, items and skills
 - [ ] Walkable village: house, garden, cauldron, merchant, blacksmith as places to walk to. Built so far: a first
       village from LPC art (prototype houses, to be replaced; `scripts/village/`), walking with keys or the touch
-      stick, houses and fences in the way, night light, a shortcut bar that walks you to a place and opens its
+      stick, houses and fences in the way, night light, a menu of places (top right) that walks you to one and opens its
       panel there, the gate to the map; the menu village opens in your house. Next: villagers standing in the
       village, a house panel for stash and belt
 - [ ] Sound effects and music

@@ -22,7 +22,7 @@ interface HudData {
 }
 
 /**
- * On top of the walkable village: the shortcut bar (tap a place and the watchman walks there), the button
+ * On top of the walkable village: the menu of places at the top right (tap one and the watchman walks there), the button
  * for the place you stand at, the touch stick, the note about what came home, and the village panels.
  * Runs unzoomed, so the panels look as in the menu village.
  */
@@ -37,6 +37,8 @@ export class VillageHudScene extends Phaser.Scene {
   private objects: Phaser.GameObjects.GameObject[] = [];
   private panel: VillagePanel | null = null;
   private openId: StationId | null = null;
+  /** The menu with all places is unfolded */
+  private menuOpen = false;
   private here: StationId | null = null;
   private keys: Record<string, Phaser.Input.Keyboard.Key> | null = null;
   private stickPointerId: number | null = null;
@@ -69,6 +71,7 @@ export class VillageHudScene extends Phaser.Scene {
     this.objects = [];
     this.panel = null;
     this.openId = null;
+    this.menuOpen = false;
     this.here = this.world.stationHere();
     this.stickPointerId = null;
     this.stickGfx = this.add.graphics().setDepth(20);
@@ -102,6 +105,7 @@ export class VillageHudScene extends Phaser.Scene {
       return;
     }
     this.openId = id;
+    this.menuOpen = false;
     this.world.setFrozen(true);
     this.stickPointerId = null;
     this.build();
@@ -131,7 +135,13 @@ export class VillageHudScene extends Phaser.Scene {
       kb.on('keydown-E', use);
       kb.on('keydown-SPACE', use);
       kb.on('keydown-ENTER', use);
-      kb.on('keydown-ESC', () => this.openId !== null && this.close());
+      kb.on('keydown-ESC', () => {
+        if (this.openId !== null) this.close();
+        else if (this.menuOpen) {
+          this.menuOpen = false;
+          this.build();
+        }
+      });
     }
     // The touch stick: anywhere on the village that is not a button.
     this.input.on('pointerdown', (p: Phaser.Input.Pointer, over: Phaser.GameObjects.GameObject[]) => {
@@ -231,79 +241,122 @@ export class VillageHudScene extends Phaser.Scene {
       t.setDepth(1);
     }
 
-    // Shortcut bar at the bottom: every place, and the way out
-    const items: { id: WalkTarget; label: string; news: boolean }[] = [
-      ...STATIONS.map((s) => ({
-        id: s.id as WalkTarget,
-        label: s.short,
-        news: s.id === 'elder' && hasNews(this.save, 'elder'),
-      })),
-      { id: 'gate', label: 'Set out', news: false },
-    ];
-    const wide = W > H * 1.3;
-    const perRow = wide ? items.length : 4;
-    const rows = Math.ceil(items.length / perRow);
-    const gap = 6 * u;
-    const chipH = 38 * u;
-    const barW = Math.min(right - left, wide ? 900 * u : 520 * u);
-    const barX = (W - barW) / 2;
-    const chipW = (barW - gap * (perRow - 1)) / perRow;
-    const barTop = H - this.sa.bottom - 12 * u - rows * chipH - (rows - 1) * gap;
-    const walking = this.world.walkingTo();
-    items.forEach((item, i) => {
-      const cx = barX + (i % perRow) * (chipW + gap);
-      const cy = barTop + Math.floor(i / perRow) * (chipH + gap);
-      const primary = item.id === 'gate';
-      const active = walking === item.id || (item.id !== 'gate' && this.here === item.id);
-      const g = this.track(this.add.graphics());
-      g.fillStyle(primary ? COLORS.accent : COLORS.panel, primary ? 0.95 : 0.88).fillRoundedRect(
-        cx,
-        cy,
-        chipW,
-        chipH,
-        9 * u,
+    // The places, folded into a menu at the top right (open, it lists them; tap one to walk there)
+    const news = hasNews(this.save, 'elder');
+    const bs = 40 * u;
+    const bx = right - bs;
+    const by = top;
+    const burger = this.track(this.add.graphics());
+    burger.fillStyle(COLORS.panel, this.menuOpen ? 1 : 0.88).fillRoundedRect(bx, by, bs, bs, 9 * u);
+    burger
+      .lineStyle(1.5 * u, this.menuOpen ? 0xffffff : COLORS.panelEdge, 0.9)
+      .strokeRoundedRect(bx, by, bs, bs, 9 * u);
+    burger.fillStyle(0xffffff, 0.95);
+    for (let i = -1; i <= 1; i++)
+      burger.fillRoundedRect(bx + 11 * u, by + bs / 2 + i * 8 * u - 1.5 * u, bs - 22 * u, 3 * u, 1.5 * u);
+    if (news && !this.menuOpen) this.badge(bx + bs - 3 * u, by + 3 * u);
+    this.tapZone(bx, by, bs, bs, () => {
+      this.menuOpen = !this.menuOpen;
+      this.build();
+    });
+
+    if (this.menuOpen) {
+      // A tap anywhere else folds it again.
+      const away = this.track(
+        this.add
+          .zone(W / 2, H / 2, W, H)
+          .setInteractive()
+          .setDepth(2),
       );
-      g.lineStyle(
-        1.5 * u,
-        active ? 0xffffff : primary ? COLORS.accent : COLORS.panelEdge,
-        active ? 0.9 : 0.8,
-      );
-      g.strokeRoundedRect(cx, cy, chipW, chipH, 9 * u);
-      this.text(cx + chipW / 2, cy + chipH / 2, item.label, 13, {
-        fontStyle: 'bold',
-        color: primary ? '#1c1917' : '#ffffff',
-      }).setOrigin(0.5);
-      if (item.news) {
-        g.fillStyle(COLORS.accent, 1).fillCircle(cx + chipW - 8 * u, cy + 8 * u, 7 * u);
-        this.text(cx + chipW - 8 * u, cy + 8 * u, '!', 11, { fontStyle: 'bold', color: '#1c1917' }).setOrigin(
-          0.5,
-        );
-      }
-      this.tapZone(cx, cy, chipW, chipH, () => {
-        this.world.walkTo(item.id);
+      away.on('pointerup', () => {
+        this.menuOpen = false;
         this.build();
       });
-    });
+      const items: { id: WalkTarget; label: string; news: boolean }[] = [
+        ...STATIONS.map((st) => ({
+          id: st.id as WalkTarget,
+          label: st.short,
+          news: st.id === 'elder' && news,
+        })),
+        { id: 'gate', label: 'Set out', news: false },
+      ];
+      const rowH = 40 * u;
+      const gap = 4 * u;
+      const pad = 8 * u;
+      const mw = Math.min(200 * u, right - left);
+      const mx = right - mw;
+      const my = by + bs + 8 * u;
+      const mh = pad * 2 + items.length * rowH + (items.length - 1) * gap;
+      const g = this.track(this.add.graphics().setDepth(3));
+      g.fillStyle(COLORS.panel, 0.97).fillRoundedRect(mx, my, mw, mh, 12 * u);
+      g.lineStyle(1.5 * u, COLORS.panelEdge, 1).strokeRoundedRect(mx, my, mw, mh, 12 * u);
+      const walking = this.world.walkingTo();
+      items.forEach((item, i) => {
+        const iy = my + pad + i * (rowH + gap);
+        const ix = mx + pad;
+        const iw = mw - pad * 2;
+        const primary = item.id === 'gate';
+        const active = walking === item.id || (item.id !== 'gate' && this.here === item.id);
+        if (primary || active) {
+          g.fillStyle(primary ? COLORS.accent : 0xffffff, primary ? 0.95 : 0.1).fillRoundedRect(
+            ix,
+            iy,
+            iw,
+            rowH,
+            8 * u,
+          );
+        }
+        this.text(ix + 12 * u, iy + rowH / 2, item.label, 14, {
+          fontStyle: 'bold',
+          color: primary ? '#1c1917' : '#ffffff',
+        })
+          .setOrigin(0, 0.5)
+          .setDepth(4);
+        if (item.news) this.badge(ix + iw - 14 * u, iy + rowH / 2, 4);
+        this.tapZone(
+          ix,
+          iy,
+          iw,
+          rowH,
+          () => {
+            this.menuOpen = false;
+            this.world.walkTo(item.id);
+            this.build();
+          },
+          4,
+        );
+      });
+    }
 
     // The place you stand at: one big button to use it
     if (this.here) {
-      const def = STATIONS.find((s) => s.id === this.here)!;
+      const def = STATIONS.find((st) => st.id === this.here)!;
       const bw = Math.min(260 * u, right - left);
       const bh = 50 * u;
-      const by = barTop - 14 * u - bh;
-      const bx = W / 2 - bw / 2;
+      const ay = H - this.sa.bottom - 24 * u - bh;
+      const ax = W / 2 - bw / 2;
       const g = this.track(this.add.graphics());
-      g.fillStyle(COLORS.accent, 0.96).fillRoundedRect(bx, by, bw, bh, 12 * u);
-      this.text(W / 2, by + bh / 2, def.action, 17, { fontStyle: 'bold', color: '#1c1917' }).setOrigin(0.5);
-      this.tapZone(bx, by, bw, bh, () => this.open(def.id));
+      g.fillStyle(COLORS.accent, 0.96).fillRoundedRect(ax, ay, bw, bh, 12 * u);
+      this.text(W / 2, ay + bh / 2, def.action, 17, { fontStyle: 'bold', color: '#1c1917' }).setOrigin(0.5);
+      this.tapZone(ax, ay, bw, bh, () => this.open(def.id));
     }
+  }
+
+  /** The small "!" of a villager with news */
+  private badge(x: number, y: number, depth = 1): void {
+    const g = this.track(this.add.graphics().setDepth(depth));
+    g.fillStyle(COLORS.accent, 1).fillCircle(x, y, 7 * this.u);
+    this.text(x, y, '!', 11, { fontStyle: 'bold', color: '#1c1917' }).setOrigin(0.5).setDepth(depth);
   }
 
   // ---------------------------------------------------------------- helpers
 
-  private tapZone(x: number, y: number, w: number, h: number, onTap: () => void): void {
+  private tapZone(x: number, y: number, w: number, h: number, onTap: () => void, depth = 1): void {
     const zone = this.track(
-      this.add.zone(x + w / 2, y + h / 2, w, h).setInteractive({ useHandCursor: true }),
+      this.add
+        .zone(x + w / 2, y + h / 2, w, h)
+        .setInteractive({ useHandCursor: true })
+        .setDepth(depth),
     );
     zone.on('pointerup', onTap);
   }

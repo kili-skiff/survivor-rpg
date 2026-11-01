@@ -65,7 +65,7 @@ const STUCK_SEC = 1.2;
 /**
  * The walkable village: the map from public/assets/village, the watchman walking with keys or the touch
  * stick (read from the shared InputState), houses and fences in his way, night light. Walking to a
- * station (by tapping it on the shortcut bar) finds a way around the houses. The buttons, the panels
+ * station (by tapping it in the menu of places) finds a way around the houses. The buttons, the panels
  * and the stick live in VillageHudScene on top, which talks to this scene through its events:
  * `station` (the station you stand at changed) and `arrived` (a walk to a station ended).
  * Without the village art (e.g. in the single-file build) it opens the menu village instead.

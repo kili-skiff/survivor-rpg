@@ -20,13 +20,13 @@ export type StationId = 'hearth' | 'cauldron' | 'merchant' | 'armory' | 'deeds' 
 
 export interface StationDef {
   id: StationId;
-  /** Short name on the shortcut bar */
+  /** Short name in the menu of places */
   short: string;
   /** What the button says when you stand there */
   action: string;
 }
 
-/** In the order of the shortcut bar */
+/** In the order of the menu of places */
 export const STATIONS: readonly StationDef[] = [
   { id: 'hearth', short: 'Hearth', action: 'Tend the Hearth' },
   { id: 'cauldron', short: 'Cauldron', action: 'Brew potions' },
