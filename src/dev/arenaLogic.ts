@@ -107,14 +107,18 @@ export interface ArenaReadout {
   now: number;
 }
 
-/** The head of the arena box: where, and what the build does (the shares follow as bars). */
+/** What the build does: damage per second, kills per minute and the total (the shares follow as bars). */
+export function meterLines(meter: DamageMeter, now: number): string[] {
+  return [
+    `${shortNumber(meter.dps(now))} dps · ${Math.round(meter.killsPerMinute(now))} kills/min`,
+    `${shortNumber(meter.total)} damage in total`,
+  ];
+}
+
+/** The head of the arena box: where, then what the build does. */
 export function arenaLines(r: ArenaReadout): string[] {
   const where = r.mode === 'horde' ? `horde · ring ${r.ring}` : 'dummies';
-  return [
-    `ARENA ${where} · fell ${r.falls}×`,
-    `${shortNumber(r.meter.dps(r.now))} dps · ${Math.round(r.meter.killsPerMinute(r.now))} kills/min`,
-    `${shortNumber(r.meter.total)} damage in total`,
-  ];
+  return [`ARENA ${where} · fell ${r.falls}×`, ...meterLines(r.meter, r.now)];
 }
 
 /** Where the dummies stand: evenly around (x, y), taking turns between the distances in `radii`. */

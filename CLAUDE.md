@@ -36,6 +36,8 @@ The world, story and in-game terms (Embers, the Nest, watchfires) are in [docs/l
   with the modifiers of the main weapon; tap to take it),
   "weapon" (swaps the main weapon for the next one at level 1) and
   "invincible" (no damage taken or dealt, whole screen lit; for watching a horde in peace; replaces god mode),
+  a damage meter on the right in every fight (damage per second, kills per minute, total, a bar per weapon and
+  modifier effect; tap to fold it; `dev/DevDamageBox.ts`),
   and a readout that is always visible: FPS (average, worst frame of the last half second; lights up below 50 FPS),
   living enemies, kills per minute (last 30 s) and the spawn director's phase with its pressure; "reset save" in the
   village (second tap confirms; device settings stay; shown to everyone while `SHOW_RESET_BUTTON` in
@@ -165,7 +167,7 @@ Phase 1, main weapons (the build is the main weapon; weapons from cards are extr
 - [x] Main weapons: the armory in the village to choose one before an expedition (free for now, saved as `mainWeapon`), Arcane Bolt and a second one, the boomerang (flies a wide loop out and back, hits both ways; `systems/weapons/BoomerangWeapon.ts`). Main weapons come only from the armory; cards bring their level steps. Dev: "pick upgrade" and "main weapon" to try steps and compare weapons
 - [x] Modifiers for main weapons, like the Daedalus hammer in Hades: at level 5, 10, 15 … a choice of three modifiers of the main weapon replaces the cards (`config/modifiers.ts`, `logic/modifiers.ts`). Bolt: Heavy Bolt or Volley, Ricochet, Spark Chain, Blast Tip, Frost Bolt. Boomerang: Whirl or Undertow, Wide Blade, Orbit, Keen Edge, Ember Trail. Most stack, the opposites exclude each other; values in `MOD`, to be tuned by playing
 - [x] A dev test arena that compares weapons: damage per second, kills per minute and the share of each weapon and modifier effect, against a horde of a chosen ring or standing dummies
-- [x] Extra weapons as extras, first pass measured in the arena: the main weapon's card is drawn 8 times as often and is sure to come after two level-ups without it, so it comes in about two of three level-ups (`MAIN_WEAPON_OFFER`; chests draw from the plain pool); Chain Lightning about half, aura and blades about 20% less; weak modifiers stronger, Ember Trail and Orbit weaker. Fine-tuning by playing
+- [x] Extra weapons as extras, first pass measured in the arena: the main weapon's card is drawn 6 times as often (other weapons a bit less than before) and is sure to come after two level-ups without it, so it comes in about every second level-up and some weapon card in two of three (`MAIN_WEAPON_OFFER`, `WEIGHTS` in `logic/upgrades.ts`; chests draw from the plain pool); Chain Lightning about half, aura and blades about 20% less; weak modifiers stronger, Ember Trail and Orbit weaker. Fine-tuning by playing
 
 Phase 2, lasting progress:
 

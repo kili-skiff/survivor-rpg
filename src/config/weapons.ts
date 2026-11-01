@@ -173,7 +173,7 @@ export const START_WEAPON: WeaponId = 'bolt';
  * and it carries the build: its card is drawn `weight` times as often as another weapon's, and after
  * `pityAfter` level-ups in a row without it, the next choice is sure to have it.
  */
-export const MAIN_WEAPON_OFFER = { weight: 8, pityAfter: 2 };
+export const MAIN_WEAPON_OFFER = { weight: 6, pityAfter: 2 };
 export const MAX_WEAPONS = 4;
 /** Base radius of the aura in px (multiplied by area) */
 export const AURA_BASE_RADIUS = 70;

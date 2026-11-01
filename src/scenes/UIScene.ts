@@ -19,7 +19,7 @@ import { RARITIES } from '../config/rarity';
 import { describeUpgrade, type UpgradeOption } from '../logic/upgrades';
 import { DevPanel } from '../dev/DevPanel'; // DEV:
 import { DevUpgradePicker } from '../dev/DevUpgradePicker'; // DEV:
-import { DevArenaBox } from '../dev/DevArenaBox'; // DEV:
+import { DevDamageBox } from '../dev/DevDamageBox'; // DEV:
 import type { DevGroup } from '../dev/DevPanel'; // DEV:
 import { devMainWeapon, devUpgradeList } from '../dev/devLogic'; // DEV:
 import { isDevMode } from '../dev/devMode'; // DEV:
@@ -84,7 +84,7 @@ export class UIScene extends Phaser.Scene {
   private pauseBtn!: Phaser.GameObjects.Text;
   private devPanel: DevPanel | null = null; // DEV:
   private devPicker: DevUpgradePicker | null = null; // DEV: pick any upgrade by hand
-  private devArenaBox: DevArenaBox | null = null; // DEV: the test arena's numbers
+  private devDamageBox: DevDamageBox | null = null; // DEV: the damage meter on the right
   private skillButtons: SkillButton[] = [];
   private potionButtons: PotionButton[] = [];
   private loadoutIcons: Phaser.GameObjects.GameObject[] = [];
@@ -171,15 +171,19 @@ export class UIScene extends Phaser.Scene {
     this.devPanel = isDevMode()
       ? new DevPanel(this, this.u, this.devGroups(), () => this.gs.devStats())
       : null;
-    this.devArenaBox =
-      isDevMode() && this.gs.devArenaState()
-        ? new DevArenaBox(this, () => {
-            const arena = this.gs.devArenaState();
-            return arena
-              ? { arena, now: this.gs.devStats().nowMs, logged: this.gs.devArenaLogLines().length }
-              : null;
-          })
-        : null; // DEV: the test arena's numbers
+    this.devDamageBox = isDevMode()
+      ? new DevDamageBox(this, () => {
+          const meter = this.gs.devDamageMeter();
+          return meter
+            ? {
+                meter,
+                arena: this.gs.devArenaState(),
+                now: this.gs.devStats().nowMs,
+                logged: this.gs.devArenaLogLines().length,
+              }
+            : null;
+        })
+      : null; // DEV: the damage meter
     this.devPicker = isDevMode()
       ? new DevUpgradePicker(this, {
           list: () => devUpgradeList(this.gs.run.loadout),
@@ -228,8 +232,9 @@ export class UIScene extends Phaser.Scene {
     this.drawHud();
     this.devPanel?.setVisible(this.overlayKind === 'none' && !this.devPicker?.isOpen); // DEV: hidden while a menu is open
     this.devPanel?.update(); // DEV:
-    this.devArenaBox?.setVisible(this.overlayKind === 'none' && !this.devPicker?.isOpen); // DEV:
-    this.devArenaBox?.update(); // DEV:
+    this.devDamageBox?.setVisible(this.overlayKind === 'none' && !this.devPicker?.isOpen); // DEV:
+    this.placeDevDamageBox(); // DEV:
+    this.devDamageBox?.update(); // DEV:
   }
 
   // ---------------------------------------------------------------- Input
@@ -414,7 +419,6 @@ export class UIScene extends Phaser.Scene {
     this.killsText
       .setFontSize(Math.round(14 * u))
       .setPosition(right - this.pauseBtn.width - 10 * u, top + 6 * u);
-    this.devArenaBox?.layout(right, top + 50 * u, u); // DEV: under the counters on the right
 
     // Skill buttons stand in a column at the screen edge the player chose, so the thumb
     // reaches all of them without stretching across the screen. Dash, used most, sits lowest.
@@ -709,7 +713,7 @@ export class UIScene extends Phaser.Scene {
     // DEV: below the icon rows; rows wrap before the arena box on the right.
     const { width: W } = this.scale;
     // In landscape the arena box sits beside the panel; in portrait the panel starts below it.
-    const reserve = (this.devArenaBox && W > this.scale.height ? 196 : 12) * u;
+    const reserve = (this.devDamageBox && W > this.scale.height ? 196 : 12) * u;
     this.devPanel?.layout(this.devPanelLeft, bottom + 4 * u, u, W - this.sa.right - reserve);
   }
 
@@ -1461,6 +1465,19 @@ export class UIScene extends Phaser.Scene {
       );
     }
     return groups;
+  }
+
+  // DEV: the damage meter sits on the right below the counters (kills, gold, herbs), which come and go.
+  private placeDevDamageBox(): void {
+    if (!this.devDamageBox) return;
+    const u = this.u;
+    let bottom = this.killsText.y + this.killsText.height;
+    if (this.goldText.visible && this.goldText.text)
+      bottom = Math.max(bottom, this.goldText.y + this.goldText.height);
+    // The herb label has a row of herb dots under it.
+    if (this.herbText.text) bottom = Math.max(bottom, this.herbText.y + this.herbText.height + 14 * u);
+    const right = this.scale.width - this.sa.right - 12 * u;
+    this.devDamageBox.layout(right, Math.round(bottom + 10 * u), u);
   }
 
   // DEV: opens the upgrade picker; the fight pauses while it is open.
