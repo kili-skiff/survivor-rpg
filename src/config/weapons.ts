@@ -140,7 +140,7 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
       cooldown: 1300,
       count: 1,
       pierce: 0,
-      speed: 380,
+      speed: 420,
       area: 1,
       knockback: 60,
       splash: 0,
@@ -174,5 +174,7 @@ export const AURA_BASE_RADIUS = 70;
 /** How far a boomerang flies out (px, times the area) and its hit reach (added to the enemy radius) */
 export const BOOMERANG_RANGE = 230;
 export const BOOMERANG_REACH = 16;
+/** The boomerang's loop: how far it bends to the side (share of its range) and how much the throw turns against the bend (radians) */
+export const BOOMERANG_CURVE = { width: 0.38, aimTilt: 0.35 };
 /** Base orbit radius of the blades in px */
 export const BLADES_BASE_RADIUS = 72;
