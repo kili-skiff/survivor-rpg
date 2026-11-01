@@ -15,7 +15,7 @@ import type {
   WeaponId,
   WeaponStats,
 } from '../config/types';
-import { START_WEAPON, WEAPONS } from '../config/weapons';
+import { WEAPONS } from '../config/weapons';
 import type { Enemy } from '../entities/Enemy';
 import type { Pickup } from '../entities/Pickup';
 import { InputState } from '../input/InputState';
@@ -263,7 +263,8 @@ export class GameScene extends Phaser.Scene {
     this.lanternLevel = saved.lanternLevel;
     this.deedBonus = deedBonus(saved.deeds);
     this.potions = new PotionSystem(saved.belt, now);
-    const loadout = build?.loadout ?? createStartLoadout(START_WEAPON);
+    // A fresh expedition starts with the main weapon chosen in the armory.
+    const loadout = build?.loadout ?? createStartLoadout(saved.mainWeapon);
     const stats = computePlayerStats(loadout, this.deedBonus);
     this.run = {
       started: true,

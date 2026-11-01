@@ -8,10 +8,11 @@ import type { DeedId } from '../config/deeds';
 import { freshQuests, parseQuests, type QuestProgress } from './quests';
 import { LANTERN_TIERS, STARTING_RECIPES } from '../config/merchant';
 import { POTION_IDS } from '../config/potions';
-import type { PotionId } from '../config/types';
+import type { PotionId, WeaponId } from '../config/types';
+import { MAIN_WEAPONS, START_WEAPON } from '../config/weapons';
 import { createWorldProgress, parseWorldProgress, type WorldProgress } from './worldProgress';
 
-export const SAVE_VERSION = 14;
+export const SAVE_VERSION = 15;
 const SAVE_KEY = 'survivor-rpg.save';
 
 export interface SaveData {
@@ -32,6 +33,8 @@ export interface SaveData {
   quests: QuestProgress;
   /** Added in version 9: lantern tiers bought from the merchant (0..LANTERN_TIERS.length) */
   lanternLevel: number;
+  /** Added in version 15: the main weapon chosen in the armory for the next expedition */
+  mainWeapon: WeaponId;
   /** Added in version 9: potion recipes the player knows */
   recipes: PotionId[];
   /** Added in version 10: deeds earned by exploring; kept when the map is reset */
@@ -63,6 +66,7 @@ export function emptySave(): SaveData {
     belt: {},
     quests: freshQuests(),
     lanternLevel: 0,
+    mainWeapon: START_WEAPON,
     recipes: [...STARTING_RECIPES],
     deeds: [],
   };
@@ -90,13 +94,14 @@ export function migrate(raw: unknown): SaveData {
   // (version 2 added `segmentsCleared`, version 3 `world`, version 4 `stash`, waypoints and expeditions,
   // version 5 `belt`, version 6 `cleared` hexes of the current expedition, version 7 `quests`,
   // version 8 `litWatchfires` in the world progress, version 9 `lanternLevel` and `recipes`, version 10 `deeds`, version 11 `fire` quest stage in the quests, version 12 `weaponSteps` in the
-  // expedition build's loadout; parseLoadout fills it in: without it, weapons count their first steps in order, version 13 `expeditions` in the world progress (missing = 0), version 14 `path` in the expedition (missing = start and current position)).
+  // expedition build's loadout; parseLoadout fills it in: without it, weapons count their first steps in order, version 13 `expeditions` in the world progress (missing = 0), version 14 `path` in the expedition (missing = start and current position), version 15 `mainWeapon` (missing = Arcane Bolt)).
   const data2 = raw as Partial<SaveData> & {
     world?: unknown;
     stash?: unknown;
     belt?: unknown;
     quests?: unknown;
     lanternLevel?: unknown;
+    mainWeapon?: unknown;
     recipes?: unknown;
     deeds?: unknown;
   };
@@ -112,9 +117,14 @@ export function migrate(raw: unknown): SaveData {
     belt: parseBelt(data2.belt),
     quests: parseQuests(data2.quests),
     lanternLevel: parseLanternLevel(data2.lanternLevel),
+    mainWeapon: parseMainWeapon(data2.mainWeapon),
     recipes: parseRecipes(data2.recipes),
     deeds: parseDeeds(data2.deeds),
   };
+}
+
+function parseMainWeapon(raw: unknown): WeaponId {
+  return MAIN_WEAPONS.find((id) => id === raw) ?? START_WEAPON;
 }
 
 function parseLanternLevel(raw: unknown): number {

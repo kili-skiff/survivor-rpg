@@ -129,11 +129,50 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
       { text: '+10 damage, +3 jumps', mods: { damage: 10, chains: 3 } },
     ],
   },
+  boomerang: {
+    id: 'boomerang',
+    name: 'Boomerang',
+    description: 'Flies out to the nearest enemy and back, hitting everything on both ways.',
+    texture: 'icon-boomerang',
+    rarity: 'common',
+    base: {
+      damage: 16,
+      cooldown: 1300,
+      count: 1,
+      pierce: 0,
+      speed: 380,
+      area: 1,
+      knockback: 60,
+      splash: 0,
+      percent: 0,
+      chains: 0,
+      seek: 0,
+    },
+    levels: [
+      { text: '+1 boomerang', mods: { count: 1 } },
+      { text: '+6 damage', mods: { damage: 6 } },
+      { text: 'Flies further and hits wider (+20%)', mods: { area: 0.2 } },
+      { text: 'Faster (−250 ms)', mods: { cooldown: -250 } },
+      { text: 'Hits throw enemies back harder', mods: { knockback: 90 } },
+      { text: '+1 boomerang', mods: { count: 1 } },
+      { text: '+8 damage, each hit takes 1% of health', mods: { damage: 8, percent: 0.01 } },
+      { text: 'Flies faster, +6 damage', mods: { speed: 90, damage: 6 } },
+    ],
+  },
 };
 
+/**
+ * Main weapons: the auto attack you choose in the village (the armory) before an expedition. They carry
+ * the build; the other weapons come from cards as extras. A main weapon is never offered as a new weapon
+ * on a card, only its level steps.
+ */
+export const MAIN_WEAPONS: readonly WeaponId[] = ['bolt', 'boomerang'];
 export const START_WEAPON: WeaponId = 'bolt';
 export const MAX_WEAPONS = 4;
 /** Base radius of the aura in px (multiplied by area) */
 export const AURA_BASE_RADIUS = 70;
+/** How far a boomerang flies out (px, times the area) and its hit reach (added to the enemy radius) */
+export const BOOMERANG_RANGE = 230;
+export const BOOMERANG_REACH = 16;
 /** Base orbit radius of the blades in px */
 export const BLADES_BASE_RADIUS = 72;

@@ -10,6 +10,8 @@ import { acceptTowerQuest, questsOnArrival, scoutAvailable, talkToScout } from '
 import { emptySave, loadSave, safeStorage, writeSave, type SaveData } from '../logic/save';
 import { CauldronPanel } from '../panels/CauldronPanel';
 import { DeedsPanel } from '../panels/DeedsPanel';
+import { ArmoryPanel } from '../panels/ArmoryPanel';
+import { WEAPONS } from '../config/weapons';
 import { DEEDS } from '../config/deeds';
 import { MerchantPanel } from '../panels/MerchantPanel';
 import { buyLantern, buyRecipe, goldOf, sellHerb } from '../logic/merchant';
@@ -39,7 +41,7 @@ const HERB_LIST: HerbDef[] = Object.values(HERBS);
 const POTIONS_BLOCK_H = 162;
 const STATIONS_BLOCK_H = 186;
 
-type PanelId = 'cauldron' | 'merchant' | 'deeds' | VillagerId;
+type PanelId = 'cauldron' | 'merchant' | 'deeds' | 'armory' | VillagerId;
 
 /**
  * The village: shows the stash of everything brought home, the potion belt for the next
@@ -52,7 +54,7 @@ export class VillageScene extends Phaser.Scene {
   private sa: SafeArea = { top: 0, right: 0, bottom: 0, left: 0 };
   private objects: Phaser.GameObjects.GameObject[] = [];
   private openPanel: PanelId | null = null;
-  private panel: CauldronPanel | MerchantPanel | DeedsPanel | DialoguePanel | null = null;
+  private panel: CauldronPanel | MerchantPanel | DeedsPanel | ArmoryPanel | DialoguePanel | null = null;
 
   constructor() {
     super('Village');
@@ -290,6 +292,16 @@ export class VillageScene extends Phaser.Scene {
             : undefined,
         },
       );
+    } else if (this.openPanel === 'armory') {
+      this.panel = new ArmoryPanel(
+        this,
+        { width: W, height: H, u, sa: this.sa },
+        {
+          chosen: this.save.mainWeapon,
+          onChoose: (id) => this.commit({ ...this.save, mainWeapon: id }),
+          onClose: () => this.showPanel(null),
+        },
+      );
     } else if (this.openPanel) {
       this.panel = new DialoguePanel(
         this,
@@ -465,16 +477,11 @@ export class VillageScene extends Phaser.Scene {
     station(x0, 'Cauldron', 'Brew potions.', 'cauldron');
     station(x0 + half + gap, 'Merchant', 'Lanterns, recipes, gold.', 'merchant');
 
-    // Deeds, and the herb garden as the next step
+    // Deeds and the armory (the main weapon for the next expedition)
     y += h + gap;
     const earned = DEEDS.filter((d) => this.save.deeds.includes(d.id)).length;
     station(x0, 'Deeds', `${earned} of ${DEEDS.length} earned.`, 'deeds');
-    const gx = x0 + half + gap;
-    g.lineStyle(1.5 * u, COLORS.panelEdge, 0.8).strokeRoundedRect(gx, y, half, h, 10 * u);
-    this.text(gx + 12 * u, y + 10 * u, 'Herb garden', 14, { fontStyle: 'bold', color: '#d4d4d8' });
-    if (h >= 56 * u) {
-      this.text(gx + 12 * u, y + 30 * u, 'Coming soon.', 11, { color: css(COLORS.accent) });
-    }
+    station(x0 + half + gap, 'Armory', `Main weapon: ${WEAPONS[this.save.mainWeapon].name}.`, 'armory');
 
     // Villagers: tap to talk; a "!" means they have something new to say.
     y += h + gap;
