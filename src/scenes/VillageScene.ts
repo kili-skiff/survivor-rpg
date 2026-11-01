@@ -36,11 +36,22 @@ interface PropMeta {
   light: [number, number, number] | null;
 }
 
+/** A light in the village: where it burns, the ground it lights, how far it reaches */
 interface Glow {
   x: number;
-  y: number;
+  /** Height of the flame or window (y of the source) */
+  sourceY: number;
+  /** The ground below it: the bottom of its prop */
+  groundY: number;
   radius: number;
+  /** Fires and lanterns flicker and give off a little warm haze; windows burn steady */
+  flame: boolean;
 }
+
+/** Soft round falloff without a bright plateau, for cutting light into the night */
+const SOFT_LIGHT = 'village-soft-light';
+/** The night layer is drawn at a quarter of the map size and scaled up: it is all soft gradients */
+const NIGHT_SCALE = 4;
 
 export type WalkTarget = StationId | 'gate';
 
@@ -76,11 +87,11 @@ export class VillageScene extends Phaser.Scene {
   private inGate = true;
   private frozen = false;
   private leaving = false;
-  private darkness: Phaser.GameObjects.Rectangle | null = null;
+  private night: Phaser.GameObjects.RenderTexture | null = null;
   private glows: Glow[] = [];
-  private glowImages: Phaser.GameObjects.Image[] = [];
+  /** A faint warm haze right around each flame (additive) */
+  private hazes: Phaser.GameObjects.Image[] = [];
   private blockers: Phaser.Physics.Arcade.StaticGroup | null = null;
-  private lanternGlow: Phaser.GameObjects.Image | null = null;
   private mapW = 0;
   private mapH = 0;
 
@@ -100,7 +111,8 @@ export class VillageScene extends Phaser.Scene {
     }
     this.zones = [];
     this.glows = [];
-    this.glowImages = [];
+    this.hazes = [];
+    this.night = null;
     this.path = null;
     this.target = null;
     this.here = null;
@@ -199,7 +211,7 @@ export class VillageScene extends Phaser.Scene {
       }
       if (m.light) {
         const [lx, ly, r] = m.light;
-        this.glows.push({ x: bx + lx, y: by - ly, radius: r });
+        this.glows.push({ x: bx + lx, sourceY: by - ly, groundY: by, radius: r, flame: m.frames > 1 });
       }
     }
     for (const o of map.getObjectLayer('colliders')?.objects ?? []) {
@@ -255,42 +267,89 @@ export class VillageScene extends Phaser.Scene {
   // ---------------------------------------------------------------- light
 
   private buildLight(): void {
-    const on = loadSettings(safeStorage()).lighting;
-    this.darkness = this.add
-      .rectangle(0, 0, this.mapW, this.mapH, VILLAGE.nightColor, VILLAGE.nightDarkness)
+    if (!loadSettings(safeStorage()).lighting) return;
+    if (!this.textures.exists(SOFT_LIGHT)) {
+      // Alpha falls off smoothly from the middle: (1 - r²)², no hard edge and no flat bright disc.
+      const n = 128;
+      const tex = this.textures.createCanvas(SOFT_LIGHT, n, n);
+      if (!tex) return;
+      const ctx = tex.getContext();
+      const img = ctx.createImageData(n, n);
+      for (let y = 0; y < n; y++) {
+        for (let x = 0; x < n; x++) {
+          const d = Math.hypot(x + 0.5 - n / 2, y + 0.5 - n / 2) / (n / 2);
+          const a = d >= 1 ? 0 : (1 - d * d) ** 2;
+          const i = (y * n + x) * 4;
+          img.data[i] = img.data[i + 1] = img.data[i + 2] = 255;
+          img.data[i + 3] = Math.round(a * 255);
+        }
+      }
+      ctx.putImageData(img, 0, 0);
+      tex.refresh();
+    }
+    this.night = this.add
+      .renderTexture(0, 0, Math.ceil(this.mapW / NIGHT_SCALE), Math.ceil(this.mapH / NIGHT_SCALE))
       .setOrigin(0)
-      .setDepth(5)
-      .setVisible(on);
-    const glow = () =>
-      this.add
-        .image(0, 0, 'light')
-        .setDepth(5.1)
-        .setBlendMode(Phaser.BlendModes.ADD)
-        .setTint(VILLAGE.glowColor)
-        .setVisible(on);
-    this.glowImages = this.glows.map((g) => glow().setPosition(g.x, g.y));
-    this.lanternGlow = glow();
+      .setScale(NIGHT_SCALE)
+      .setDepth(5);
+    this.hazes = this.glows
+      .filter((g) => g.flame)
+      .map((g) =>
+        this.add
+          .image(g.x, g.sourceY, SOFT_LIGHT)
+          .setDepth(5.1)
+          .setBlendMode(Phaser.BlendModes.ADD)
+          .setTint(VILLAGE.glowColor),
+      );
   }
 
+  /**
+   * The night is one dark layer; every light erases a soft hole into it, so it shows the colours below
+   * instead of painting orange on top: a pool on the ground (flattened, as the view looks down at an
+   * angle) and a small bright spot at the flame or window itself.
+   */
   private updateLight(time: number): void {
+    const night = this.night;
+    if (!night) return;
+    const k = 1 / NIGHT_SCALE;
+    const erase = Phaser.BlendModes.ERASE;
+    const cut = (x: number, y: number, rx: number, ry: number, alpha: number) => {
+      night.stamp(SOFT_LIGHT, undefined, x * k, y * k, {
+        scaleX: (rx * 2 * k) / 128,
+        scaleY: (ry * 2 * k) / 128,
+        alpha,
+        blendMode: erase,
+      });
+    };
+    night.clear();
+    night.fill(VILLAGE.nightColor, VILLAGE.nightDarkness);
+    let haze = 0;
     for (const [i, g] of this.glows.entries()) {
-      const flicker = 1 + Math.sin(time * 0.008 + i * 1.7) * 0.04 + Math.sin(time * 0.019 + i) * 0.03;
-      const size = g.radius * 2 * flicker;
-      this.glowImages[i].setDisplaySize(size, size).setAlpha(VILLAGE.glowStrength);
-    }
-    const l = this.lantern.light(time);
-    if (this.lanternGlow) {
-      this.lanternGlow.setVisible(!!l && !!this.darkness?.visible);
-      if (l) {
-        const flicker = 1 + Math.sin(time * 0.011) * 0.03;
-        const size = VILLAGE.lanternRadius * 2 * flicker;
-        this.lanternGlow
-          .setPosition(l.x, l.y)
-          .setDisplaySize(size, size)
-          .setTint(l.color ?? VILLAGE.glowColor)
-          .setAlpha(VILLAGE.glowStrength * 0.8);
+      const flicker = g.flame
+        ? 1 + Math.sin(time * 0.009 + i * 1.7) * 0.035 + Math.sin(time * 0.021 + i) * 0.02
+        : 1;
+      const r = g.radius * VILLAGE.lightReach * flicker;
+      cut(g.x, g.groundY - r * 0.12, r, r * VILLAGE.groundSquash, VILLAGE.lightStrength);
+      cut(g.x, g.sourceY, r * 0.4, r * 0.4, VILLAGE.lightStrength);
+      if (g.flame) {
+        const size = r * VILLAGE.hazeSize * flicker;
+        this.hazes[haze++].setDisplaySize(size, size).setAlpha(VILLAGE.hazeStrength);
       }
     }
+    // The watchman's lantern lights the ground around his feet.
+    const l = this.lantern.light(time);
+    if (l) {
+      const r = VILLAGE.lanternRadius * (1 + Math.sin(time * 0.011) * 0.025);
+      cut(
+        this.player.x,
+        this.player.y + FEET_Y - 4,
+        r,
+        r * VILLAGE.groundSquash,
+        VILLAGE.lightStrength * 0.9,
+      );
+      cut(l.x, l.y, r * 0.35, r * 0.35, VILLAGE.lightStrength * 0.7);
+    }
+    night.render();
   }
 
   // ---------------------------------------------------------------- camera

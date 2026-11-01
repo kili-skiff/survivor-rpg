@@ -52,12 +52,19 @@ export const VILLAGE = {
   waypointReach: 6,
   /** Night over the village: darkness colour and strength (0..1), lighter than in a fight */
   nightColor: 0x05040e,
-  nightDarkness: 0.62,
-  /** Warm glow of fires, lanterns and windows (additive) */
-  glowStrength: 0.22,
+  nightDarkness: 0.72,
+  /** Lights take the night away: how much at their middle (0..1) */
+  lightStrength: 0.85,
+  /** Reach of a light as a share of the radius its prop gives */
+  lightReach: 0.85,
+  /** Pools of light on the ground are flattened, as the view looks down at an angle */
+  groundSquash: 0.6,
+  /** Faint warm haze right around fires and lanterns (additive), its size as a share of the reach */
+  hazeSize: 0.7,
+  hazeStrength: 0.12,
   glowColor: 0xffb060,
-  /** Radius of the lantern's glow around the watchman (px) */
-  lanternRadius: 90,
+  /** Reach of the light around the watchman's lantern (px) */
+  lanternRadius: 85,
   /** Seconds the note about what you brought home stays on screen */
   arrivalNoteSec: 7,
 } as const;
