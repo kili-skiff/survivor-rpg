@@ -92,6 +92,9 @@ export class SpawnDirector {
   angle = 0;
   /** Surges started so far in this fight */
   surges = 0;
+  /** The last surge of a survival fight: not yet, announced or running, or over (then nothing comes) */
+  finaleState: 'none' | 'coming' | 'over' = 'none';
+  private pendingAnnounce: Announcement | null = null;
   private duration: number;
   private left: number;
   private budget = 0;
@@ -107,13 +110,37 @@ export class SpawnDirector {
 
   /** Current spawn rate multiple, for dev readouts. */
   get pressure(): number {
+    if (this.finaleState === 'over') return 0;
     return pressure(this.phase, this.kind, 1 - this.left / this.duration, this.params);
+  }
+
+  /** A breather of `sec` seconds right now (e.g. when the watchfire is found); the stream goes on after. */
+  calm(sec: number): void {
+    if (this.finaleState !== 'none') return;
+    this.phase = 'breather';
+    this.duration = sec;
+    this.left = sec;
+    this.budget = 0;
+  }
+
+  /** Announces the last surge of a survival fight; once it is over, nothing new comes. Only once. */
+  finale(): void {
+    if (this.finaleState !== 'none') return;
+    this.finaleState = 'coming';
+    this.kind = 'swarm';
+    this.angle = this.rng() * Math.PI * 2;
+    this.phase = 'warning';
+    const warning = this.params.surges.swarm.warningSec;
+    this.duration = warning;
+    this.left = warning;
+    this.pendingAnnounce = { kind: 'swarm', angle: this.angle, text: this.params.finaleText };
   }
 
   update(dt: number, input: DirectorInput): DirectorStep {
     const step = this.step;
     step.orders.length = 0;
-    step.announce = null;
+    step.announce = this.pendingAnnounce;
+    this.pendingAnnounce = null;
     let room = Math.max(0, input.room);
 
     this.left -= dt;
@@ -158,6 +185,13 @@ export class SpawnDirector {
       }
       case 'surge':
         this.phase = 'breather';
+        if (this.finaleState === 'coming') {
+          // After the last surge the fight winds down: nothing new until the end.
+          this.finaleState = 'over';
+          this.duration = Infinity;
+          this.left = Infinity;
+          break;
+        }
         this.setDuration(p.breatherSec);
         break;
       case 'breather':

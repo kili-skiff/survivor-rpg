@@ -1439,6 +1439,12 @@ export class UIScene extends Phaser.Scene {
             short: 'invincible',
             run: () => gs.devToggleInvincible(),
           },
+          {
+            label: () => 'autopilot',
+            active: () => gs.devAutopilot(),
+            short: 'autopilot',
+            run: () => gs.devToggleAutopilot(),
+          },
         ],
       },
     ];

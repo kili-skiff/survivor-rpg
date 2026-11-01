@@ -36,6 +36,8 @@ The world, story and in-game terms (Embers, the Nest, watchfires) are in [docs/l
   with the modifiers of the main weapon; tap to take it),
   "weapon" (swaps the main weapon for the next one at level 1) and
   "invincible" (no damage taken or dealt, whole screen lit; for watching a horde in peace; replaces god mode),
+  "autopilot" (moves like a player who kites: away from close enemies, circling where it started;
+  `autopilotDirection`; for measuring how hard a ring is),
   a damage meter on the right in every fight (damage per second, kills per minute, total, a bar per weapon and
   modifier effect; tap to fold it; `dev/DevDamageBox.ts`),
   and a readout that is always visible: FPS (average, worst frame of the last half second; lights up below 50 FPS),
@@ -144,7 +146,7 @@ describe the game as built; some of it changed in Milestone 2 (gold became ember
 - [x] Deeds: exploration milestones (new rings, watchfires, the tower); since the Hearth they pay embers and unlock upgrades instead of giving stats
 - [x] Spread the swarm: soft separation, sideways drift, reaction delay and varied speed, so enemies do not pile into one blob (`logic/swarm.ts`)
 - [ ] Finetune the swarm (work in progress): in tight crowds enemies seem to shove each other, so smooth their movement, soften the hard overlap push and maybe shrink the personal space; values in `SWARM`. This is about how enemies move, not when they come. Done so far: flyers (bats) keep their distance among themselves instead of stacking into one point, and each enemy sways and steps at its own pace (`rhythmJitter`). A loose blob around the player is fine, it belongs to the genre.
-- [x] Spawn director: pacing instead of a constant stream: build-up, announced surge (a swarm from one side, later a ring or a wall) and a breather; the strength of the stream is a smooth curve per ring and fight time (`SPAWN`, `logic/spawning.ts`) (`logic/director.ts`, values in `config/director.ts`)
+- [x] Spawn director: pacing instead of a constant stream: build-up, announced surge (a swarm from one side, later a ring or a wall) and a breather; the strength of the stream is a smooth curve per ring and fight time (`SPAWN`, `logic/spawning.ts`) (`logic/director.ts`, values in `config/director.ts`); survival fights end with an announced last surge and then calm down, a found watchfire brings a breather and slows enemies near it while you light it
 - [x] Behaviour per enemy type, as data in `config/enemies.ts`: the bat flies nearly straight over the crowd (`flies`), the ghoul is a pouncer (runs up, crouches over a landing circle, leaps in an arc, lands stunned; `logic/charge.ts`), the zombie and the colossus chase; types can be limited to rings (`minRing`) (`logic/behaviors.ts`). The `flank` behaviour (arc, aiming ahead) stays in the code for later types
 - [ ] More behaviours and new enemy types: ranged, orbiters, runners that pass by; bat flocks that sweep from side to side (a surge kind of the spawn director)
 - [ ] Elites with a mechanic, their own movement and fair health (target fight length)
@@ -176,7 +178,7 @@ Phase 2, lasting progress:
 - [x] The Hearth (ember shop) in the village: 10 permanent upgrades with ranks bought with embers (`config/emberUpgrades.ts`, `logic/hearth.ts`, `panels/HearthPanel.ts`); deeds pay embers and six of them unlock an upgrade; save version 18. Prices to be tuned by playing
 - [x] Watchfires as waypoints, camps gone, the Phoenix Feather: one watchfire on the road and two in every direction (`WORLD.watchfireBands`); lit ones heal you, are waypoints and let you go home for free; anywhere else (but next to the village) going home burns a Phoenix Feather (merchant, 30 embers, carry 3; `goHome`, `homeWay` in `logic/journey.ts`); the scout is gone; save version 19, map reset (generator version 7)
 - [ ] Unlocks of extra weapons and cards at the Hearth (later: what you can find on runs grows with what you unlock)
-- [ ] Scaling pass once upgrades exist: rings 1–2 easy, from ring 3 on harder, a target per ring
+- [x] Scaling pass: a table per ring for enemy health, damage and numbers (`RINGS.table`), rings 1–2 easy, from ring 3 on clearly harder; measured with the dev autopilot and random builds at the level you have there (ring 3 ≈ level 7, ring 5 ≈ level 13); softer endings from #71 (a last surge, a breather at the fire, light holds enemies back). Fine-tuning by playing
 
 Phase 3, reasons for every direction:
 

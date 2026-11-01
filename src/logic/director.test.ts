@@ -376,3 +376,51 @@ describe('the edge of the view', () => {
     for (const p of points) expect(Math.abs(p)).toBeLessThan(1e-6);
   });
 });
+
+describe('softer endings', () => {
+  const step = 0.1;
+  const input = { time: 100, rate: 5, room: 1000 };
+  const spawnedOver = (d: SpawnDirector, sec: number) => {
+    let n = 0;
+    for (let t = 0; t < sec; t += step) for (const o of d.update(step, input).orders) n += o.count;
+    return n;
+  };
+
+  it('a calm is a breather right away, and the stream comes back after it', () => {
+    const d = new SpawnDirector(createRng(1));
+    spawnedOver(d, 30);
+    d.calm(8);
+    expect(d.phase).toBe('breather');
+    expect(spawnedOver(d, 7.5)).toBeLessThan(5 * 8 * DIRECTOR.breatherMult + 2);
+    expect(spawnedOver(d, 20)).toBeGreaterThan(20);
+  });
+
+  it('announces the last surge once, then nothing new comes', () => {
+    const d = new SpawnDirector(createRng(2));
+    spawnedOver(d, 10);
+    d.finale();
+    d.finale();
+    const first = d.update(step, input);
+    expect(first.announce?.text).toBe(DIRECTOR.finaleText);
+    expect(d.update(step, input).announce).toBeNull();
+    // Warning and surge, then quiet for good.
+    spawnedOver(d, DIRECTOR.surges.swarm.warningSec + DIRECTOR.surges.swarm.surgeSec + 0.5);
+    expect(d.finaleState).toBe('over');
+    expect(spawnedOver(d, 60)).toBe(0);
+  });
+
+  it('the last surge brings enemies', () => {
+    const d = new SpawnDirector(createRng(3));
+    d.finale();
+    expect(spawnedOver(d, DIRECTOR.surges.swarm.warningSec + DIRECTOR.surges.swarm.surgeSec)).toBeGreaterThan(
+      10,
+    );
+  });
+
+  it('no calm interrupts the last surge', () => {
+    const d = new SpawnDirector(createRng(4));
+    d.finale();
+    d.calm(8);
+    expect(d.phase).toBe('warning');
+  });
+});

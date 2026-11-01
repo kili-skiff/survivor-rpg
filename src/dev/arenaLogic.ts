@@ -146,11 +146,13 @@ export interface ArenaState {
   ring: number;
   /** How often the player "fell" (in the arena that refills health instead) */
   falls: number;
+  /** Damage the player took (after armor), to measure how hard a ring is */
+  taken: number;
   meter: DamageMeter;
 }
 
 export function newArenaState(ring = ARENA.minRing): ArenaState {
-  return { mode: 'horde', ring, falls: 0, meter: new DamageMeter() };
+  return { mode: 'horde', ring, falls: 0, taken: 0, meter: new DamageMeter() };
 }
 
 /** A short text of a build for the measurement log: level, weapons with levels, modifiers, items. */
