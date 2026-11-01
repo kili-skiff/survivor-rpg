@@ -247,6 +247,30 @@ export class EnemySystem {
     });
   }
 
+  /** A breather right now, e.g. when the watchfire is found. */
+  calm(sec: number): void {
+    this.director.calm(sec);
+  }
+
+  /** The announced last surge of a survival fight; nothing new comes after it. */
+  finale(): void {
+    this.director.finale();
+  }
+
+  /**
+   * Slows every enemy within `radius` of (x, y) to `factor` of its speed for a short moment; call it
+   * every frame to keep them slow (the lit watchfire). A stronger slow (Frost Nova) is kept.
+   */
+  slowAround(x: number, y: number, radius: number, factor: number, ms = 150): void {
+    const now = this.now();
+    for (const e of this.active()) {
+      if ((e.x - x) ** 2 + (e.y - y) ** 2 > (radius + e.radius) ** 2) continue;
+      if (now < e.slowUntil && e.slowFactor <= factor) continue;
+      e.slowFactor = factor;
+      e.slowUntil = now + ms;
+    }
+  }
+
   /** What the director is doing, for the dev readout. */
   get directorState(): { phase: DirectorPhase; pressure: number } {
     return { phase: this.director.phase, pressure: this.director.pressure };
