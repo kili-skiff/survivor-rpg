@@ -197,6 +197,7 @@ describe('save', () => {
       recipes: ['healing'],
       deeds: [],
       hearth: {},
+      feathers: 0,
     });
   });
 

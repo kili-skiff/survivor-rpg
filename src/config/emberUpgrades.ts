@@ -89,7 +89,7 @@ export const EMBER_UPGRADES: readonly EmberUpgradeDef[] = [
     maxRank: 3,
     basePrice: 20,
     perRank: { regen: 0.2 },
-    unlockedBy: 'firstCamp',
+    unlockedBy: 'twoWatchfires',
   },
   {
     id: 'greed',
@@ -119,7 +119,7 @@ export const EMBER_UPGRADES: readonly EmberUpgradeDef[] = [
     maxRank: 3,
     basePrice: 30,
     perRank: { haste: -0.03 },
-    unlockedBy: 'threeWatchfires',
+    unlockedBy: 'fiveWatchfires',
   },
   {
     id: 'pouch',

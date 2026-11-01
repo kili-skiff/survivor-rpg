@@ -22,8 +22,8 @@ export interface World {
   hexes: Map<string, WorldHex>;
   /** Hex key of the old tower in the outermost ring */
   tower: string;
-  /** Hex key of the camp close to the village on the way to the tower */
-  roadCamp: string | null;
+  /** Hex key of the first watchfire, two steps out on the way to the tower */
+  roadFire: string | null;
 }
 
 const BIOME_IDS = Object.keys(BIOMES) as BiomeId[];
@@ -68,8 +68,8 @@ export function generateWorld(
   }
 
   ensureHerbsNearHome(seed, hexes);
-  const { tower, roadCamp } = placePois(seed, hexes, radius);
-  return { seed, radius, hexes, tower, roadCamp };
+  const { tower, roadFire } = placePois(seed, hexes, radius);
+  return { seed, radius, hexes, tower, roadFire };
 }
 
 /** The hex at roughly `ring` steps from the village in direction `angle` (radians). */
@@ -140,15 +140,15 @@ function fitsPoi(h: WorldHex, id: PoiId, placed: WorldHex[]): boolean {
 }
 
 /**
- * Points of interest: the village in the centre, the old tower in the outermost ring, a camp two
- * steps from the village in the tower's direction (a first stop on the way), then rare camps,
- * merchants and dungeons spread out over the map.
+ * Points of interest: the village in the centre, the old tower in the outermost ring, a watchfire two
+ * steps from the village in the tower's direction (a first stop on the way), two watchfires in every
+ * direction (one closer, one further out), then rare merchants and dungeons spread out over the map.
  */
 function placePois(
   seed: number,
   hexes: Map<string, WorldHex>,
   radius: number,
-): { tower: string; roadCamp: string | null } {
+): { tower: string; roadFire: string | null } {
   const rng = createRng(hash32(seed, SALT.poi));
   const village = hexes.get(hexKey(ORIGIN))!;
   village.poi = 'village';
@@ -163,31 +163,34 @@ function placePois(
   tower.herbs = false;
   placed.push(tower);
 
-  // The road camp: of the hexes two steps out, the one closest to the tower.
-  let roadCamp: WorldHex | undefined;
+  // The road fire: of the hexes two steps out, the one closest to the tower.
+  let roadFire: WorldHex | undefined;
   for (const h of order) {
-    if (h.ring !== 2 || !fitsPoi(h, 'camp', placed)) continue;
-    if (!roadCamp || hexDistance(h.hex, tower.hex) < hexDistance(roadCamp.hex, tower.hex)) roadCamp = h;
+    if (h.ring !== 2 || !fitsPoi(h, 'watchfire', placed)) continue;
+    if (!roadFire || hexDistance(h.hex, tower.hex) < hexDistance(roadFire.hex, tower.hex)) roadFire = h;
   }
-  if (roadCamp) {
-    roadCamp.poi = 'camp';
-    placed.push(roadCamp);
+  if (roadFire) {
+    roadFire.poi = 'watchfire';
+    placed.push(roadFire);
   }
 
-  // Watchfires: one in each slice around the village, so every direction has something to find.
-  const slice = (Math.PI * 2) / WORLD.watchfires;
-  for (let i = 0; i < WORLD.watchfires; i++) {
-    const fire = order.find((h) => {
-      if (h.poi || h.ring < WORLD.watchfireRingMin || h.ring > WORLD.watchfireRingMax) return false;
-      const p = hexToPixel(h.hex, 1);
-      const angle = (Math.atan2(p.y, p.x) + Math.PI * 2) % (Math.PI * 2);
-      return Math.floor(angle / slice) === i && fitsPoi(h, 'watchfire', placed);
-    });
-    if (!fire) continue;
-    fire.poi = 'watchfire';
-    placed.push(fire);
+  // Watchfires: in each slice around the village one closer and one further out, so every direction
+  // has places to rest and travel to.
+  const slice = (Math.PI * 2) / WORLD.watchfireSlices;
+  for (const [min, max] of WORLD.watchfireBands) {
+    for (let i = 0; i < WORLD.watchfireSlices; i++) {
+      const fire = order.find((h) => {
+        if (h.poi || h.ring < min || h.ring > max) return false;
+        const p = hexToPixel(h.hex, 1);
+        const angle = (Math.atan2(p.y, p.x) + Math.PI * 2) % (Math.PI * 2);
+        return Math.floor(angle / slice) === i && fitsPoi(h, 'watchfire', placed);
+      });
+      if (!fire) continue;
+      fire.poi = 'watchfire';
+      placed.push(fire);
+    }
   }
-  for (const id of ['dungeon', 'merchant', 'camp'] as const) {
+  for (const id of ['dungeon', 'merchant'] as const) {
     const def = POIS[id];
     for (const h of order) {
       if (h.poi || h.ring < def.minRing || rng() >= def.chance || !fitsPoi(h, id, placed)) continue;
@@ -195,7 +198,7 @@ function placePois(
       placed.push(h);
     }
   }
-  return { tower: tower.key, roadCamp: roadCamp?.key ?? null };
+  return { tower: tower.key, roadFire: roadFire?.key ?? null };
 }
 
 /**

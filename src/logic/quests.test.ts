@@ -13,13 +13,11 @@ import {
   questRevealed,
   questsAfterMove,
   questsOnArrival,
-  scoutAvailable,
-  talkToScout,
   toggleTracking,
 } from './quests';
 import { emptySave, migrate } from './save';
 import { generateWorld } from './worldgen';
-import { addWaypoint, travelKind, walkTo } from './worldProgress';
+import { travelKind, walkTo } from './worldProgress';
 
 const world = generateWorld('quest-test', SEASON.generatorVersion);
 const progress = emptySave().world;
@@ -29,31 +27,25 @@ describe('tower quest', () => {
     const q = questsOnArrival(freshQuests());
     expect(q.tower).toBe('offered');
     expect(questsOnArrival({ ...q, tower: 'done' }).tower).toBe('done');
-    expect(scoutAvailable(q)).toBe(false);
-    expect(talkToScout(q).scoutTalked).toBe(false);
     expect(acceptTowerQuest(freshQuests()).tower).toBe('none');
     expect(acceptTowerQuest(q).tower).toBe('active');
   });
 
-  it('reveals and marks the tower, and the road camp once the scout told you', () => {
+  it('reveals and marks the tower', () => {
     const active = acceptTowerQuest(questsOnArrival(freshQuests()));
     expect(questRevealed(freshQuests(), world, progress)).toEqual([]);
     expect(questRevealed(active, world, progress)).toEqual([world.tower]);
-    const told = talkToScout(active);
-    expect(questRevealed(told, world, progress)).toEqual([world.tower, world.roadCamp]);
-    expect(questMarked(told, world, progress)).toEqual([world.tower, world.roadCamp]);
-    // The camp mark goes away once the camp is a waypoint.
-    expect(questMarked(told, world, addWaypoint(progress, world.roadCamp!))).toEqual([world.tower]);
+    expect(questMarked(active, world, progress)).toEqual([world.tower]);
   });
 
   it('can switch the map marks off and on', () => {
-    const told = talkToScout(acceptTowerQuest(questsOnArrival(freshQuests())));
-    const off = toggleTracking(told);
+    const active = acceptTowerQuest(questsOnArrival(freshQuests()));
+    const off = toggleTracking(active);
     expect(off.tracked).toBe(false);
     expect(questMarked(off, world, progress)).toEqual([]);
-    expect(questGoals(off, world, progress)).toEqual([world.tower, world.roadCamp]);
+    expect(questGoals(off, world, progress)).toEqual([world.tower]);
     // Revealed hexes stay visible either way.
-    expect(questRevealed(off, world, progress)).toEqual([world.tower, world.roadCamp]);
+    expect(questRevealed(off, world, progress)).toEqual([world.tower]);
     expect(toggleTracking(off).tracked).toBe(true);
   });
 
@@ -72,10 +64,10 @@ describe('tower quest', () => {
 
   it('is saved and survives broken data', () => {
     expect(parseQuests(null)).toEqual(freshQuests());
-    expect(parseQuests({ tower: 'weird', scoutTalked: 'yes' })).toEqual(freshQuests());
+    expect(parseQuests({ tower: 'weird' })).toEqual(freshQuests());
     const save = {
       ...emptySave(),
-      quests: { fire: 'done' as const, tower: 'active' as const, scoutTalked: true, tracked: false },
+      quests: { fire: 'done' as const, tower: 'active' as const, tracked: false },
     };
     expect(migrate(JSON.parse(JSON.stringify(save))).quests).toEqual(save.quests);
     expect(migrate({ version: 6 }).quests).toEqual(freshQuests());

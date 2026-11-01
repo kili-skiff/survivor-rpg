@@ -17,10 +17,11 @@ import { finishFight, returnHome, teleport, walkHome, walkThrough } from './jour
 import { emptySave, migrate, type SaveData } from './save';
 import { computePlayerStats, createStartLoadout } from './stats';
 import { generateWorld, type World } from './worldgen';
-import { isUsedUp, travelKind } from './worldProgress';
+import { isLit, isUsedUp, travelKind } from './worldProgress';
 
 const world: World = generateWorld('expedition-test', 1);
-const camp = [...world.hexes.values()].find((h) => h.poi === 'camp' && h.ring <= 2)!;
+// The road fire two steps out: lighting it makes it a waypoint.
+const fire = world.hexes.get(world.roadFire!)!;
 
 function build(hp = 40, level = 3): ExpeditionBuild {
   return { level, xp: 2, hp, loadout: createStartLoadout('bolt') };
@@ -71,12 +72,12 @@ describe('expeditions', () => {
     expect(save.world.position).toBe('1,0');
   });
 
-  it('heals at camps and unlocks them as waypoints', () => {
-    const path = pathTo(camp.hex);
+  it('lighting a watchfire heals and makes it a waypoint', () => {
+    const path = pathTo(fire.hex);
     const before = clearPath(emptySave(), path.slice(0, -1));
-    const { save, report } = finishFight(before, world, camp.hex, 'cleared', build(5), {});
+    const { save, report } = finishFight(before, world, fire.hex, 'cleared', build(5), {});
     expect(report.rested).toBe(true);
-    expect(save.world.waypoints).toContain(camp.key);
+    expect(isLit(save.world, fire.key)).toBe(true);
     // Fully healed, including health from the Hearth.
     expect(save.world.expedition?.build?.hp).toBe(
       computePlayerStats(createStartLoadout('bolt'), hearthBonus(save.hearth)).maxHp,
@@ -101,20 +102,20 @@ describe('expeditions', () => {
     expect(home.stash).toEqual({ herb: 3 });
   });
 
-  it('teleports between the village and waypoints', () => {
-    const path = pathTo(camp.hex);
+  it('teleports between the village and lit watchfires', () => {
+    const path = pathTo(fire.hex);
     let save = clearPath(emptySave(), path, { herb: 1 });
-    // From the camp back home: keeps the loot.
-    if (camp.ring > 1) expect(travelKind(world, save.world, ORIGIN)).toBe('teleport');
+    // From the watchfire back home: keeps the loot.
+    if (fire.ring > 1) expect(travelKind(world, save.world, ORIGIN)).toBe('teleport');
     save = teleport(save, ORIGIN);
     expect(save.world.position).toBe('0,0');
     // Herbs come home; the stash also holds embers from deeds earned on the way.
     expect(save.stash.herb).toBe(path.length);
-    // From home to the camp: starts a fresh expedition there.
-    expect(travelKind(world, save.world, camp.hex)).toBe(camp.ring > 1 ? 'teleport' : 'fight');
-    save = teleport(save, camp.hex);
-    expect(save.world.position).toBe(camp.key);
-    expect(save.world.expedition).toEqual(startExpedition(camp.key));
+    // From home to the watchfire: starts a fresh expedition there.
+    expect(travelKind(world, save.world, fire.hex)).toBe(fire.ring > 1 ? 'teleport' : 'fight');
+    save = teleport(save, fire.hex);
+    expect(save.world.position).toBe(fire.key);
+    expect(save.world.expedition).toEqual(startExpedition(fire.key));
   });
 
   it('walks back through hexes cleared on this expedition without a fight', () => {
@@ -172,11 +173,10 @@ describe('expeditions', () => {
     const v3 = {
       version: 3,
       runs: 1,
-      world: { ...emptySave().world, waypoints: undefined, expedition: undefined },
+      world: { ...emptySave().world, expedition: undefined },
     };
     const save = migrate(v3);
     expect(save.stash).toEqual({});
-    expect(save.world.waypoints).toEqual([]);
     expect(save.world.expedition).toBeNull();
   });
 });
@@ -249,10 +249,10 @@ describe('expedition path', () => {
   });
 
   it('starts anew when setting out from a waypoint and is gone once home', () => {
-    const out = teleport(clearPath(emptySave(), pathTo(camp.hex)), ORIGIN);
+    const out = teleport(clearPath(emptySave(), pathTo(fire.hex)), ORIGIN);
     expect(out.world.expedition).toBeNull();
-    const again = teleport(out, camp.hex);
-    expect(again.world.expedition?.path).toEqual([camp.key]);
+    const again = teleport(out, fire.hex);
+    expect(again.world.expedition?.path).toEqual([fire.key]);
   });
 
   it('adds nothing when you stay on the same hex and keeps only the newest steps', () => {

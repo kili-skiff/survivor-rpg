@@ -13,14 +13,12 @@ export interface QuestProgress {
   /** The first quest: the elder gives you the lantern and sends you to light a watchfire */
   fire: QuestStage;
   tower: QuestStage;
-  /** The scout told you about the camp on the way to the tower */
-  scoutTalked: boolean;
   /** Quest goals are marked on the map (the player can switch this off) */
   tracked: boolean;
 }
 
 export function freshQuests(): QuestProgress {
-  return { fire: 'offered', tower: 'none', scoutTalked: false, tracked: true };
+  return { fire: 'offered', tower: 'none', tracked: true };
 }
 
 /** Taking the lantern: the watchfire quest starts. */
@@ -57,15 +55,6 @@ export function acceptTowerQuest(q: QuestProgress): QuestProgress {
   return q.tower === 'offered' ? { ...q, tower: 'active' } : q;
 }
 
-/** The scout only has something to tell once the tower quest is under way. */
-export function scoutAvailable(q: QuestProgress): boolean {
-  return q.tower === 'active' || q.tower === 'done';
-}
-
-export function talkToScout(q: QuestProgress): QuestProgress {
-  return scoutAvailable(q) ? { ...q, scoutTalked: true } : q;
-}
-
 /** Standing next to the tower completes the quest. */
 export function questsAfterMove(q: QuestProgress, world: World, progress: WorldProgress): QuestProgress {
   if (q.tower !== 'active') return q;
@@ -80,18 +69,15 @@ export function questRevealed(q: QuestProgress, world: World, progress: WorldPro
   const fire = q.fire === 'active' ? nearestWatchfire(world, progress) : null;
   if (fire) keys.push(fire);
   if (q.tower === 'active' || q.tower === 'done') keys.push(world.tower);
-  if (q.scoutTalked && world.roadCamp) keys.push(world.roadCamp);
   return keys;
 }
 
-/** Hexes that are quest goals: the tower until reached, the road camp until it is a waypoint. */
+/** Hexes that are quest goals: the nearest cold watchfire while that quest runs, the tower until reached. */
 export function questGoals(q: QuestProgress, world: World, progress: WorldProgress): string[] {
   const keys: string[] = [];
   const fire = q.fire === 'active' ? nearestWatchfire(world, progress) : null;
   if (fire) keys.push(fire);
   if (q.tower === 'active') keys.push(world.tower);
-  if (q.scoutTalked && world.roadCamp && !progress.waypoints.includes(world.roadCamp))
-    keys.push(world.roadCamp);
   return keys;
 }
 
@@ -119,7 +105,6 @@ export function parseQuests(raw: unknown): QuestProgress {
         ? base.fire
         : 'done',
     tower,
-    scoutTalked: d.scoutTalked === true,
     tracked: d.tracked !== false,
   };
 }

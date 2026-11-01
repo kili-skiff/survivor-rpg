@@ -25,8 +25,8 @@ The world, story and in-game terms (Embers, the Nest, watchfires) are in [docs/l
   horde of a chosen ring and standing dummies; the readout adds damage per second, total damage, kills per
   minute and the share of each weapon and modifier effect in a box on the right (tap to fold it); "reset", "leave"; "log"
   saves a measurement with its build, "copy" copies all of them as text; dummies have a normal enemy's health
-  and fill up instead of dying; `dev/arenaLogic.ts`); "reveal" (fog off on screen only) and "jump here" on the
-  map; in a fight a foldable "DEV" panel (its header shows the frame rate and enemies and names the active
+  and fill up instead of dying; `dev/arenaLogic.ts`); "reveal" (fog off on screen only), "light fires" (lights every watchfire, or puts them all out) and
+  "jump here" on the map; in a fight a foldable "DEV" panel (its header shows the frame rate and enemies and names the active
   modes; tapped, it shows the details and the buttons in short groups; it hides while a menu is open) with
   "clear" (wins the fight), "god" (no damage, much stronger, whole screen lit), "elite" (spawns one) and
   "level up" (opens a level-up menu), "wild" (every weapon and item at its highest level), "🎲 build L10"
@@ -127,7 +127,7 @@ scripts/ground/ Generates the ground tiles (Python + Pillow + numpy; our own art
 ### Milestone 1: vertical slice
 
 A small but complete piece of the game from `docs/vision.md`. Each step is its own PR. Done items
-describe the game as built; some of it changes in Milestone 2 (gold, camps).
+describe the game as built; some of it changed in Milestone 2 (gold became embers, camps became watchfires).
 
 - [x] Segments with a goal (e.g. survive N minutes) and a result screen
 - [x] Hex world map from a seed: rings, biomes, fog of war; tap a neighbour hex to play it
@@ -136,12 +136,12 @@ describe the game as built; some of it changes in Milestone 2 (gold, camps).
 - [x] Herbs that grow in hexes by biome, gathered by standing next to them
 - [x] Brewing of three potions in the village, packed into a belt and drunk with a button in a fight
 - [x] First quest: the elder sends you to an old tower at the edge of the map (the way there;
-      the tower stays sealed for now), the scout points out a camp on the way
+      the tower stays sealed for now); the scout and the camps were dropped later for watchfires
 - [x] Gold and the village merchant: lantern tiers (+light for good, the best lights up the whole screen), potion recipes, selling herbs
 - [x] Ring difficulty and elite enemies (golden ring, often leave a chest)
 - [x] Treasure chests (rare from anyone, likely from elites) with a slot-machine roll (gold, upgrades; equipment later)
 - [x] Intro quest: at the first start the elder hands over the lantern and points to the nearest watchfire; lighting it pays gold
-- [x] Deeds: exploration milestones (new rings, camps, watchfires, the tower); since the Hearth they pay embers and unlock upgrades instead of giving stats
+- [x] Deeds: exploration milestones (new rings, watchfires, the tower); since the Hearth they pay embers and unlock upgrades instead of giving stats
 - [x] Spread the swarm: soft separation, sideways drift, reaction delay and varied speed, so enemies do not pile into one blob (`logic/swarm.ts`)
 - [ ] Finetune the swarm (work in progress): in tight crowds enemies seem to shove each other, so smooth their movement, soften the hard overlap push and maybe shrink the personal space; values in `SWARM`. This is about how enemies move, not when they come. Done so far: flyers (bats) keep their distance among themselves instead of stacking into one point, and each enemy sways and steps at its own pace (`rhythmJitter`). A loose blob around the player is fine, it belongs to the genre.
 - [x] Spawn director: pacing instead of a constant stream: build-up, announced surge (a swarm from one side, later a ring or a wall) and a breather; the strength of the stream is a smooth curve per ring and fight time (`SPAWN`, `logic/spawning.ts`) (`logic/director.ts`, values in `config/director.ts`)
@@ -174,6 +174,7 @@ Phase 2, lasting progress:
 
 - [x] Gold becomes Embers, kept on death: embers caught in a fight go straight into the stash, whatever the outcome (`bankEmbers`); enemies, elites, chests, quests, hex rewards and the merchant pay embers; old gold became embers (save version 17)
 - [x] The Hearth (ember shop) in the village: 10 permanent upgrades with ranks bought with embers (`config/emberUpgrades.ts`, `logic/hearth.ts`, `panels/HearthPanel.ts`); deeds pay embers and six of them unlock an upgrade; save version 18. Prices to be tuned by playing
+- [x] Watchfires as waypoints, camps gone, the Phoenix Feather: one watchfire on the road and two in every direction (`WORLD.watchfireBands`); lit ones heal you, are waypoints and let you go home for free; anywhere else (but next to the village) going home burns a Phoenix Feather (merchant, 30 embers, carry 3; `goHome`, `homeWay` in `logic/journey.ts`); the scout is gone; save version 19, map reset (generator version 7)
 - [ ] Unlocks of extra weapons and cards at the Hearth (later: what you can find on runs grows with what you unlock)
 - [ ] Scaling pass once upgrades exist: rings 1–2 easy, from ring 3 on harder, a target per ring
 
@@ -182,9 +183,9 @@ Phase 3, reasons for every direction:
 - [ ] Rescuing villagers (start with 2–3): the village grows, each brings something new
 - [ ] A boss per biome that drops weapon fragments; fragments unlock further main weapons (e.g. sword, spear)
 
-The goal at the end: the old tower (Milestone 4). Also part of the new loop, after the phases above: more
-watchfires that replace camps as waypoints, the Phoenix Feather, the new death rules (keep embers and
-everything permanent, lose level-ups and finds), a special skill per main weapon, ores and the blacksmith.
+The goal at the end: the old tower (Milestone 4). Also part of the new loop, after the phases above: the
+new death rules (keep embers and everything permanent, lose level-ups and finds), a special skill per main
+weapon, ores and the blacksmith.
 
 ### Milestone 3: depth
 

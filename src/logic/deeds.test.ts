@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import { DEEDS } from '../config/deeds';
-import { WORLD } from '../config/world';
 import { deedRewardText, deedUnlock, describeEarned, earnDeeds, parseDeeds } from './deeds';
 import { hearthBonus } from './hearth';
 import { embersOf } from './merchant';
@@ -40,18 +39,19 @@ describe('deeds', () => {
     expect(again.save).toBe(save);
   });
 
-  it('earns camp, watchfire and tower deeds from the saved progress', () => {
+  it('earns watchfire and tower deeds from the saved progress', () => {
     const base = emptySave();
-    const fires = Array.from({ length: WORLD.watchfires }, (_, i) => `fire-${i}`);
+    const fires = [...world.hexes.values()].filter((h) => h.poi === 'watchfire').map((h) => h.key);
     const save: SaveData = {
       ...base,
-      world: { ...base.world, waypoints: ['camp'], litWatchfires: fires.slice(0, 3) },
+      world: { ...base.world, litWatchfires: fires.slice(0, 5) },
       quests: { ...base.quests, tower: 'done' },
     };
     const ids = earnDeeds(save, world).save.deeds;
-    expect(ids).toEqual(['firstCamp', 'firstWatchfire', 'threeWatchfires', 'tower']);
-    const all = { ...save, world: { ...save.world, litWatchfires: fires } };
-    expect(earnDeeds(all, world).save.deeds).toContain('allWatchfires');
+    expect(ids).toEqual(['firstWatchfire', 'twoWatchfires', 'fiveWatchfires', 'tower']);
+    // Every watchfire on the map: Nightwatch.
+    const all = earnDeeds({ ...save, world: { ...base.world, litWatchfires: fires } }, world).save.deeds;
+    expect(all).toContain('allWatchfires');
   });
 
   it('every deed pays embers and has a unique id', () => {
@@ -97,10 +97,10 @@ describe('deeds on expeditions', () => {
     expect(save.deeds).toEqual(['ring2']);
   });
 
-  it('camps heal up to the health including the Hearth', () => {
-    const camp = hexes.find((h) => h.poi === 'camp')!;
+  it('watchfires heal up to the health including the Hearth', () => {
+    const fire = hexes.find((h) => h.poi === 'watchfire')!;
     const before = { ...emptySave(), hearth: { vitality: 2 } };
-    const { save } = finishFight(before, world, camp.hex, 'cleared', build(5), {});
+    const { save } = finishFight(before, world, fire.hex, 'cleared', build(5), {});
     const maxHp = computePlayerStats(createStartLoadout('bolt'), hearthBonus(save.hearth)).maxHp;
     expect(save.world.expedition?.build?.hp).toBe(maxHp);
     expect(maxHp).toBe(computePlayerStats(createStartLoadout('bolt')).maxHp + 20);

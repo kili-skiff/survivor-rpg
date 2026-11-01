@@ -1,5 +1,3 @@
-import { WORLD } from './world';
-
 // Deeds: milestones of exploring the world. Each one is earned once, pays embers straight into the
 // stash, and some unlock an upgrade at the Hearth (config/emberUpgrades.ts, `unlockedBy`). Kept when you
 // fall and when the map is reset (like recipes).
@@ -9,9 +7,9 @@ export type DeedId =
   | 'ring4'
   | 'ring6'
   | 'ring8'
-  | 'firstCamp'
   | 'firstWatchfire'
-  | 'threeWatchfires'
+  | 'twoWatchfires'
+  | 'fiveWatchfires'
   | 'allWatchfires'
   | 'tower';
 
@@ -19,10 +17,8 @@ export type DeedId =
 export type DeedCondition =
   /** Stand on a hex in this ring (or further out) */
   | { kind: 'ring'; ring: number }
-  /** Reach this many camps (waypoints) */
-  | { kind: 'camps'; count: number }
-  /** Light this many watchfires */
-  | { kind: 'watchfires'; count: number }
+  /** Light this many watchfires ('all': every one on the map) */
+  | { kind: 'watchfires'; count: number | 'all' }
   /** Reach the old tower (the elder's quest) */
   | { kind: 'tower' };
 
@@ -66,13 +62,6 @@ export const DEEDS: readonly DeedDef[] = [
     embers: 100,
   },
   {
-    id: 'firstCamp',
-    name: 'Fireside',
-    description: 'Reach a camp.',
-    condition: { kind: 'camps', count: 1 },
-    embers: 20,
-  },
-  {
     id: 'firstWatchfire',
     name: 'First Flame',
     description: 'Light a watchfire.',
@@ -80,17 +69,24 @@ export const DEEDS: readonly DeedDef[] = [
     embers: 25,
   },
   {
-    id: 'threeWatchfires',
+    id: 'twoWatchfires',
+    name: 'Fireside',
+    description: 'Light two watchfires.',
+    condition: { kind: 'watchfires', count: 2 },
+    embers: 20,
+  },
+  {
+    id: 'fiveWatchfires',
     name: 'Keeper of Fires',
-    description: 'Light three watchfires.',
-    condition: { kind: 'watchfires', count: 3 },
+    description: 'Light five watchfires.',
+    condition: { kind: 'watchfires', count: 5 },
     embers: 50,
   },
   {
     id: 'allWatchfires',
     name: 'Nightwatch',
     description: 'Light every watchfire.',
-    condition: { kind: 'watchfires', count: WORLD.watchfires },
+    condition: { kind: 'watchfires', count: 'all' },
     embers: 100,
   },
   {

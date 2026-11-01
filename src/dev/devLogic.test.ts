@@ -202,3 +202,15 @@ describe('random build', () => {
     expect(randomBuild(start, 10, createRng(5))).toEqual(randomBuild(start, 10, createRng(5)));
   });
 });
+
+describe('dev: all watchfires', () => {
+  it('lights every watchfire and puts them all out again', async () => {
+    const { toggleAllWatchfires } = await import('./devLogic');
+    const world = generateWorld(SEASON.seed, SEASON.generatorVersion);
+    const fires = [...world.hexes.values()].filter((h) => h.poi === 'watchfire').map((h) => h.key);
+    const lit = toggleAllWatchfires(world, emptySave());
+    expect([...lit.world.litWatchfires].sort()).toEqual([...fires].sort());
+    for (const k of fires) expect(isDiscovered(lit.world, k)).toBe(true);
+    expect(toggleAllWatchfires(world, lit).world.litWatchfires).toEqual([]);
+  });
+});

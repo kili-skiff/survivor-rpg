@@ -36,7 +36,7 @@ import { GROUND_TEXTURES, GROUND_TILE } from '../config/ground';
 import { parseHexKey } from '../logic/hex';
 import { planHerbBlooms } from '../logic/herbs';
 import { applyBuffs, damageTakenMultiplier } from '../logic/potions';
-import { currentBuild, finishFight, returnHome, type FightReport } from '../logic/journey';
+import { currentBuild, finishFight, goHome, homeWay, type FightReport, type HomeWay } from '../logic/journey';
 import { loadSave, recordRun, safeStorage, writeSave, type SaveData } from '../logic/save';
 import { loadSettings } from '../logic/settings';
 import type { RunOutcome } from '../logic/segment';
@@ -772,12 +772,19 @@ export class GameScene extends Phaser.Scene {
     return this.endInfo?.report?.outcome === 'cleared';
   }
 
-  /** After a won fight: end the expedition right away and bring all loot home. */
+  /** How the player can go home after this won fight: free, with a Phoenix Feather, or not at all. */
+  homeWayAfterFight(): { way: HomeWay; feathers: number } {
+    const save = this.endInfo?.save;
+    return save ? { way: homeWay(save), feathers: save.feathers } : { way: 'none', feathers: 0 };
+  }
+
+  /** After a won fight: end the expedition right away and bring all loot home (a feather if needed). */
   returnHomeFromFight(): void {
     if (!this.canReturnHome()) return;
     const storage = safeStorage();
     const before = loadSave(storage);
-    const home = returnHome(before);
+    const home = goHome(before);
+    if (!home) return;
     writeSave(storage, home);
     this.scene.stop('UI');
     const data: VillageSceneData = {
