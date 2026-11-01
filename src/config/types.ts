@@ -258,7 +258,7 @@ export type GoalKind = FightGoal['kind'];
 export type RolledGoalKind = Exclude<GoalKind, 'light'>;
 
 /** What clearing a hex brings on top of the fight itself (config/rewards.ts, logic/rewards.ts). */
-export type RewardKind = 'gold' | 'chest' | 'card' | 'heal' | 'herbs';
+export type RewardKind = 'embers' | 'chest' | 'card' | 'heal' | 'herbs';
 
 export interface SegmentDef {
   id: string;

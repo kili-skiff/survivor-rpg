@@ -20,10 +20,16 @@ import type { Enemy } from '../entities/Enemy';
 import type { Pickup } from '../entities/Pickup';
 import { InputState } from '../input/InputState';
 import { addXp } from '../logic/progression';
-import { addLoot, lootGained } from '../logic/expedition';
+import { lootGained } from '../logic/expedition';
 import { deedBonus } from '../logic/deeds';
-import { GOLD, GOLD_KEY } from '../config/merchant';
-import { goldPerDrop, lanternLightsAll, lanternMultiplier } from '../logic/merchant';
+import { EMBERS } from '../config/merchant';
+import {
+  bankEmbers,
+  embersPerDrop,
+  embersText,
+  lanternLightsAll,
+  lanternMultiplier,
+} from '../logic/merchant';
 import { dropsChest, rollChest, type ChestReward } from '../logic/chest';
 import type { ExpeditionBuild } from '../logic/expedition';
 import { GROUND_TEXTURES, GROUND_TILE } from '../config/ground';
@@ -101,8 +107,8 @@ export interface RunState {
   level: number;
   xp: number;
   kills: number;
-  /** Gold picked up in this fight */
-  gold: number;
+  /** Embers picked up in this fight */
+  embers: number;
   /** Herbs gathered in this fight */
   herbsGathered: number;
   herbsTotal: number;
@@ -121,7 +127,7 @@ export interface RunEndInfo {
   time: number;
   level: number;
   kills: number;
-  gold: number;
+  embers: number;
   herbsGathered: number;
   herbsTotal: number;
   save: SaveData;
@@ -307,7 +313,7 @@ export class GameScene extends Phaser.Scene {
       level: build?.level ?? 1,
       xp: build?.xp ?? 0,
       kills: 0,
-      gold: 0,
+      embers: 0,
       herbsGathered: 0,
       herbsTotal: 0,
       lit: 0,
@@ -425,7 +431,7 @@ export class GameScene extends Phaser.Scene {
   /** Takes what the chest held (after its roll was shown) and goes on with the fight. */
   takeChest(reward: ChestReward): void {
     if (!this.chestOpen) return;
-    this.run.gold += reward.gold;
+    this.run.embers += reward.embers;
     for (const option of reward.upgrades) this.run.loadout = applyUpgrade(this.run.loadout, option);
     if (reward.upgrades.length > 0) this.refreshStats();
     this.chestOpen = false;
@@ -895,9 +901,9 @@ export class GameScene extends Phaser.Scene {
     const { x, y } = this.player;
     switch (id) {
       case 'cache': {
-        const gold = goldPerDrop(this.ring) * BOONS.cacheDrops;
-        this.run.gold += gold;
-        this.numbers.show(x, y - 26, `+${gold} gold`, '#fde047', true);
+        const embers = embersPerDrop(this.ring) * BOONS.cacheDrops;
+        this.run.embers += embers;
+        this.numbers.show(x, y - 26, `+${embersText(embers)}`, '#fdba74', true);
         break;
       }
       case 'gemstorm':
@@ -1030,14 +1036,14 @@ export class GameScene extends Phaser.Scene {
     if (Math.random() < BALANCE.healDropChance) this.pickups.drop(e.x, e.y, 'heal', BALANCE.healAmount);
     else this.pickups.drop(e.x, e.y, 'xp', e.def.xp * (e.elite ? ELITE.xp : 1) * this.run.stats.xpGain);
     if (this.run.stats.bloodthirst > 0) this.heal(this.run.stats.bloodthirst);
-    // Any enemy may leave a treasure chest (elites much more often) or a little gold.
+    // Any enemy may leave a treasure chest (elites much more often) or a few embers.
     if (dropsChest(e.elite, Math.random, this.run.stats.fortune)) {
       this.pickups.drop(e.x, e.y + 10, 'chest', 0);
       this.events.emit('chestdrop');
     }
-    const goldMul = this.run.segment.reward === 'gold' ? REWARDS.goldDropMul : 1;
-    if (Math.random() < GOLD.dropChance * goldMul)
-      this.pickups.drop(e.x + 8, e.y - 6, 'gold', goldPerDrop(this.ring));
+    const embersMul = this.run.segment.reward === 'embers' ? REWARDS.embersDropMul : 1;
+    if (Math.random() < EMBERS.dropChance * embersMul)
+      this.pickups.drop(e.x + 8, e.y - 6, 'embers', embersPerDrop(this.ring));
   }
 
   private onPickup(p: Pickup): void {
@@ -1048,9 +1054,9 @@ export class GameScene extends Phaser.Scene {
       else this.openChest(reward);
       return;
     }
-    if (p.kind === 'gold') {
-      this.run.gold += p.value;
-      this.numbers.show(this.player.x, this.player.y - 26, `+${p.value} gold`, '#fde047', true);
+    if (p.kind === 'embers') {
+      this.run.embers += p.value;
+      this.numbers.show(this.player.x, this.player.y - 26, `+${embersText(p.value)}`, '#fdba74', true);
       return;
     }
     if (p.kind === 'heal') {
@@ -1132,10 +1138,10 @@ export class GameScene extends Phaser.Scene {
         this.run.hp = this.run.stats.maxHp;
         this.numbers.show(x, y - 26, 'full health', '#4ade80', true);
         break;
-      case 'gold': {
-        const gold = goldPerDrop(this.ring) * REWARDS.goldBonusDrops;
-        this.run.gold += gold;
-        this.numbers.show(x, y - 26, `+${gold} gold`, '#fde047', true);
+      case 'embers': {
+        const embers = embersPerDrop(this.ring) * REWARDS.embersBonusDrops;
+        this.run.embers += embers;
+        this.numbers.show(x, y - 26, `+${embersText(embers)}`, '#fdba74', true);
         break;
       }
       default:
@@ -1191,11 +1197,13 @@ export class GameScene extends Phaser.Scene {
         parseHexKey(this.hexKey),
         outcome,
         build,
-        this.run.gold > 0 ? addLoot(this.herbs.loot, { [GOLD_KEY]: this.run.gold }) : this.herbs.loot,
+        this.herbs.loot,
       );
       finalSave = result.save;
       report = result.report;
     }
+    // Embers count at once, whatever the outcome: they go straight into the stash.
+    finalSave = bankEmbers(finalSave, this.run.embers);
     // Potions not drunk stay in the belt, whatever the outcome.
     finalSave = { ...finalSave, belt: this.potions.remaining };
     writeSave(storage, finalSave);
@@ -1207,7 +1215,7 @@ export class GameScene extends Phaser.Scene {
       time,
       level: this.run.level,
       kills: this.run.kills,
-      gold: this.run.gold,
+      embers: this.run.embers,
       herbsGathered: this.herbs.gatheredCount,
       herbsTotal: this.herbs.totalCount,
       save: finalSave,

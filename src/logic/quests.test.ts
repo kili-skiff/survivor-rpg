@@ -110,14 +110,14 @@ describe('watchfire quest', () => {
     expect(questMarked({ ...active, fire: 'done' }, world, progress)).toEqual([]);
   });
 
-  it('pays gold once, when the first watchfire is lit', () => {
+  it('pays embers once, when the first watchfire is lit', () => {
     const active = acceptFireQuest(freshQuests());
-    expect(completeFireQuest(active, false)).toEqual({ quests: active, gold: 0 });
+    expect(completeFireQuest(active, false)).toEqual({ quests: active, embers: 0 });
     const done = completeFireQuest(active, true);
     expect(done.quests.fire).toBe('done');
-    expect(done.gold).toBeGreaterThan(0);
-    expect(completeFireQuest(done.quests, true).gold).toBe(0);
-    expect(completeFireQuest(freshQuests(), true).gold).toBe(0);
+    expect(done.embers).toBeGreaterThan(0);
+    expect(completeFireQuest(done.quests, true).embers).toBe(0);
+    expect(completeFireQuest(freshQuests(), true).embers).toBe(0);
   });
 
   it('is skipped by saves that are already further along', () => {

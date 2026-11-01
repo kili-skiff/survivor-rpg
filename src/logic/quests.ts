@@ -39,13 +39,13 @@ export function nearestWatchfire(world: World, progress: WorldProgress): string 
   return best?.key ?? null;
 }
 
-/** Lighting any watchfire completes the quest. Returns the gold reward (0 when nothing happened). */
+/** Lighting any watchfire completes the quest. Returns the embers reward (0 when nothing happened). */
 export function completeFireQuest(
   q: QuestProgress,
   litWatchfire: boolean,
-): { quests: QuestProgress; gold: number } {
-  if (!litWatchfire || q.fire !== 'active') return { quests: q, gold: 0 };
-  return { quests: { ...q, fire: 'done' }, gold: FIRE_QUEST.rewardGold };
+): { quests: QuestProgress; embers: number } {
+  if (!litWatchfire || q.fire !== 'active') return { quests: q, embers: 0 };
+  return { quests: { ...q, fire: 'done' }, embers: FIRE_QUEST.rewardEmbers };
 }
 
 /** Coming home for the first time: the elder offers the tower quest. */

@@ -1,4 +1,5 @@
 import * as Phaser from 'phaser';
+import { embersText } from '../logic/merchant';
 import { HERBS } from '../config/herbs';
 import { RECIPE_PRICES } from '../config/merchant';
 import { POTION_IDS, POTIONS } from '../config/potions';
@@ -133,7 +134,7 @@ export class CauldronPanel {
     const by = tall ? y + h - pad - bh / 2 : y + h / 2;
     if (!known) {
       // Unknown recipe: the merchant sells it.
-      this.text(bx, by, `Recipe from the\nmerchant · ${RECIPE_PRICES[id]} gold`, 11, {
+      this.text(bx, by, `Recipe from the\nmerchant · ${embersText(RECIPE_PRICES[id])}`, 11, {
         fontStyle: 'bold',
         color: '#fde047',
         align: 'center',

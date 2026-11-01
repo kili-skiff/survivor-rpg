@@ -10,7 +10,7 @@ import {
   startExpedition,
   type ExpeditionBuild,
 } from './expedition';
-import { GOLD_KEY } from '../config/merchant';
+import { EMBER_KEY } from '../config/merchant';
 import { deedBonus } from './deeds';
 import { acceptFireQuest, freshQuests } from './quests';
 import { finishFight, returnHome, teleport, walkHome, walkThrough } from './journey';
@@ -183,24 +183,24 @@ describe('expeditions', () => {
 describe('watchfire quest reward', () => {
   const fire = [...world.hexes.values()].find((h) => h.poi === 'watchfire')!;
 
-  it('pays gold into the stash when the first watchfire is lit, only once', () => {
+  it('pays embers into the stash when the first watchfire is lit, only once', () => {
     const active = { ...emptySave(), quests: acceptFireQuest(freshQuests()) };
     const first = finishFight(active, world, fire.hex, 'cleared', build(), {});
     expect(first.report.litWatchfire).toBe(true);
-    expect(first.report.questGold).toBeGreaterThan(0);
+    expect(first.report.questEmbers).toBeGreaterThan(0);
     expect(first.save.quests.fire).toBe('done');
-    expect(first.save.stash[GOLD_KEY]).toBe(first.report.questGold);
+    expect(first.save.stash[EMBER_KEY]).toBe(first.report.questEmbers);
     // Fighting there again lights nothing new and pays nothing.
     const again = finishFight(first.save, world, fire.hex, 'cleared', build(), {});
-    expect(again.report.questGold).toBe(0);
-    expect(again.save.stash[GOLD_KEY]).toBe(first.save.stash[GOLD_KEY]);
+    expect(again.report.questEmbers).toBe(0);
+    expect(again.save.stash[EMBER_KEY]).toBe(first.save.stash[EMBER_KEY]);
   });
 
   it('pays nothing without the quest', () => {
     const idle = { ...emptySave(), quests: { ...freshQuests(), fire: 'offered' as const } };
     const { report, save } = finishFight(idle, world, fire.hex, 'cleared', build(), {});
-    expect(report.questGold).toBe(0);
-    expect(save.stash[GOLD_KEY]).toBeUndefined();
+    expect(report.questEmbers).toBe(0);
+    expect(save.stash[EMBER_KEY]).toBeUndefined();
   });
 });
 

@@ -1,8 +1,8 @@
 // Buying and selling at the village merchant. Pure and tested.
 
 import {
-  GOLD,
-  GOLD_KEY,
+  EMBERS,
+  EMBER_KEY,
   HERB_PRICES,
   LANTERN_TIERS,
   RECIPE_PRICES,
@@ -11,20 +11,31 @@ import {
 import type { HerbId, PotionId } from '../config/types';
 import type { Loot } from './expedition';
 
-export function goldOf(stash: Loot): number {
-  return stash[GOLD_KEY] ?? 0;
+export function embersOf(stash: Loot): number {
+  return stash[EMBER_KEY] ?? 0;
 }
 
-function withGold(stash: Loot, gold: number): Loot {
+function withEmbers(stash: Loot, embers: number): Loot {
   const out = { ...stash };
-  if (gold > 0) out[GOLD_KEY] = gold;
-  else delete out[GOLD_KEY];
+  if (embers > 0) out[EMBER_KEY] = embers;
+  else delete out[EMBER_KEY];
   return out;
 }
 
-/** Gold dropped by one enemy in this ring. */
-export function goldPerDrop(ring: number): number {
-  return 1 + Math.floor(Math.max(0, ring) / GOLD.extraEveryRings);
+/** "1 ember", "5 embers". */
+export function embersText(n: number): string {
+  return `${n} ${n === 1 ? 'ember' : 'embers'}`;
+}
+
+/** Puts embers caught in a fight straight into the stash: they count at once, also when you fall. */
+export function bankEmbers<T extends { stash: Loot }>(save: T, embers: number): T {
+  if (embers <= 0) return save;
+  return { ...save, stash: withEmbers(save.stash, embersOf(save.stash) + embers) };
+}
+
+/** Embers dropped by one enemy in this ring. */
+export function embersPerDrop(ring: number): number {
+  return 1 + Math.floor(Math.max(0, ring) / EMBERS.extraEveryRings);
 }
 
 /** The lantern you own (null for the old one you start with). */
@@ -51,8 +62,8 @@ export function nextLantern(level: number): { tier: number; name: string; price:
 
 export function buyLantern(stash: Loot, level: number): { stash: Loot; level: number } | null {
   const next = nextLantern(level);
-  if (!next || goldOf(stash) < next.price) return null;
-  return { stash: withGold(stash, goldOf(stash) - next.price), level: level + 1 };
+  if (!next || embersOf(stash) < next.price) return null;
+  return { stash: withEmbers(stash, embersOf(stash) - next.price), level: level + 1 };
 }
 
 export function buyRecipe(
@@ -61,15 +72,15 @@ export function buyRecipe(
   id: PotionId,
 ): { stash: Loot; recipes: PotionId[] } | null {
   const price = RECIPE_PRICES[id];
-  if (known.includes(id) || goldOf(stash) < price) return null;
-  return { stash: withGold(stash, goldOf(stash) - price), recipes: [...known, id] };
+  if (known.includes(id) || embersOf(stash) < price) return null;
+  return { stash: withEmbers(stash, embersOf(stash) - price), recipes: [...known, id] };
 }
 
 /** Sells one herb from the stash. Null if there is none. */
 export function sellHerb(stash: Loot, id: HerbId): Loot | null {
   const n = stash[id] ?? 0;
   if (n < 1) return null;
-  const out = withGold(stash, goldOf(stash) + HERB_PRICES[id]);
+  const out = withEmbers(stash, embersOf(stash) + HERB_PRICES[id]);
   if (n - 1 > 0) out[id] = n - 1;
   else delete out[id];
   return out;
