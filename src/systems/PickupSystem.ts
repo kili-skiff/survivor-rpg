@@ -10,7 +10,7 @@ interface Target {
   y: number;
 }
 
-/** Drops XP gems, heals and gold, pulls them towards the player and reports collections. */
+/** Drops XP gems, heals and embers, pulls them towards the player and reports collections. */
 export class PickupSystem {
   private readonly group: Phaser.GameObjects.Group;
 
@@ -26,8 +26,8 @@ export class PickupSystem {
     const texture =
       kind === 'heal'
         ? 'heart'
-        : kind === 'gold'
-          ? 'coin'
+        : kind === 'embers'
+          ? 'ember'
           : kind === 'chest'
             ? 'chest'
             : value >= 5
@@ -38,8 +38,8 @@ export class PickupSystem {
       // Pool is full: add the XP to an existing gem.
       const any = (this.group.getChildren() as Pickup[]).find((c) => c.active && c.kind === 'xp');
       if (any && kind === 'xp') any.value += value;
-      // Gold and chests are never lost: with a full pool they are collected at once.
-      if (kind === 'gold' || kind === 'chest') this.onCollect({ kind, value } as Pickup);
+      // Embers and chests are never lost: with a full pool they are collected at once.
+      if (kind === 'embers' || kind === 'chest') this.onCollect({ kind, value } as Pickup);
       return;
     }
     p.setTexture(texture).setActive(true).setVisible(true).setDepth(1).setPosition(x, y);

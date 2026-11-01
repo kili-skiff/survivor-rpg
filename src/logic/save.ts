@@ -1,5 +1,6 @@
 // Versioned save data: old saves are migrated instead of discarded.
 
+import { bankEmbers } from './merchant';
 import { SEASON } from '../config/world';
 import { parseLoot, type Loot } from './expedition';
 import { parseBelt, type Belt } from './potions';
@@ -12,7 +13,7 @@ import type { PotionId, WeaponId } from '../config/types';
 import { MAIN_WEAPONS, START_WEAPON } from '../config/weapons';
 import { createWorldProgress, parseWorldProgress, type WorldProgress } from './worldProgress';
 
-export const SAVE_VERSION = 16;
+export const SAVE_VERSION = 17;
 const SAVE_KEY = 'survivor-rpg.save';
 
 export interface SaveData {
@@ -94,7 +95,7 @@ export function migrate(raw: unknown): SaveData {
   // (version 2 added `segmentsCleared`, version 3 `world`, version 4 `stash`, waypoints and expeditions,
   // version 5 `belt`, version 6 `cleared` hexes of the current expedition, version 7 `quests`,
   // version 8 `litWatchfires` in the world progress, version 9 `lanternLevel` and `recipes`, version 10 `deeds`, version 11 `fire` quest stage in the quests, version 12 `weaponSteps` in the
-  // expedition build's loadout; parseLoadout fills it in: without it, weapons count their first steps in order, version 13 `expeditions` in the world progress (missing = 0), version 14 `path` in the expedition (missing = start and current position), version 15 `mainWeapon` (missing = Arcane Bolt), version 16 `modifiers` in the expedition build's loadout (missing = none)).
+  // expedition build's loadout; parseLoadout fills it in: without it, weapons count their first steps in order, version 13 `expeditions` in the world progress (missing = 0), version 14 `path` in the expedition (missing = start and current position), version 15 `mainWeapon` (missing = Arcane Bolt), version 16 `modifiers` in the expedition build's loadout (missing = none), version 17 gold became embers: `gold` in the stash and in the expedition's loot moves to `embers` in the stash, since embers count at once).
   const data2 = raw as Partial<SaveData> & {
     world?: unknown;
     stash?: unknown;
@@ -105,7 +106,7 @@ export function migrate(raw: unknown): SaveData {
     recipes?: unknown;
     deeds?: unknown;
   };
-  return {
+  return goldToEmbers({
     version: SAVE_VERSION,
     bestTime: Number(data.bestTime) || base.bestTime,
     bestKills: Number(data.bestKills) || base.bestKills,
@@ -120,7 +121,32 @@ export function migrate(raw: unknown): SaveData {
     mainWeapon: parseMainWeapon(data2.mainWeapon),
     recipes: parseRecipes(data2.recipes),
     deeds: parseDeeds(data2.deeds),
-  };
+  });
+}
+
+/** Loot key of gold before version 17 */
+const OLD_GOLD_KEY = 'gold';
+
+/**
+ * Version 17: gold became embers. Gold in the stash and gold the expedition was carrying both become
+ * embers in the stash (embers are never part of the expedition's loot).
+ */
+function goldToEmbers(save: SaveData): SaveData {
+  const expedition = save.world.expedition;
+  const carried = expedition?.loot[OLD_GOLD_KEY] ?? 0;
+  const stored = save.stash[OLD_GOLD_KEY] ?? 0;
+  if (carried + stored <= 0) return save;
+  const stash = { ...save.stash };
+  delete stash[OLD_GOLD_KEY];
+  const world =
+    expedition && carried > 0
+      ? (() => {
+          const loot = { ...expedition.loot };
+          delete loot[OLD_GOLD_KEY];
+          return { ...save.world, expedition: { ...expedition, loot } };
+        })()
+      : save.world;
+  return bankEmbers({ ...save, stash, world }, carried + stored);
 }
 
 function parseMainWeapon(raw: unknown): WeaponId {

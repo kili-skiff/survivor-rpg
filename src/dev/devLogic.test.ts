@@ -19,9 +19,9 @@ import {
 } from './devLogic';
 
 describe('dev helpers', () => {
-  it('adds every herb and some gold to the stash and keeps what is there', () => {
+  it('adds every herb and some embers to the stash and keeps what is there', () => {
     const stash = grantTestLoot({ moonbloom: 2, healing: 1 }, 5, 50);
-    expect(stash.gold).toBe(50);
+    expect(stash.embers).toBe(50);
     expect(stash.moonbloom).toBe(7);
     expect(stash.healing).toBe(1);
     for (const id of Object.keys(HERBS)) expect(stash[id]).toBeGreaterThanOrEqual(5);

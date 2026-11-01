@@ -18,8 +18,6 @@ the story is sprinkled in lightly and never forced.
 Decisions from the lore and design session (October 2026) that the current code does not follow yet.
 The sections below already describe the target; this list is the to-do for the code.
 
-- **Gold becomes Embers** (same role: the long-term currency, spent at traders). Unlike gold today,
-  embers are **kept on death**.
 - **Camps go away.** Lit watchfires take over their role: rest, healing, waypoints and fast travel
   between each other and the village.
 - **Death:** you always wake up in the village (the Nest). Kept: embers, permanent upgrades, weapons,
@@ -72,7 +70,7 @@ The sections below already describe the target; this list is the to-do for the c
 
 **Hex rewards** (built, `config/rewards.ts`, `logic/rewards.ts`): like the doors in Hades, every hex with
 a fight shows what clearing it brings, next to its goal (on the hexes next to you), rolled anew for every
-expedition: _gold_ (more gold drops, a bonus at the end), a _treasure chest_ at the end, a _rare card_
+expedition: _embers_ (more ember drops, a bonus at the end), a _treasure chest_ at the end, a _rare card_
 (a choice of magic or legendary cards, from ring 2), _full health_, or a _herb harvest_ (twice the blooms,
 where herbs grow). You pick your way by what you need. Later: embers, unlocks, villagers, ores, and
 richer rewards further out.
@@ -182,7 +180,7 @@ One character for everyone; weapons are the build, in the spirit of Hades (decid
     elites, faster skills, damage while moving or at low health, thorns, dodge, extra pierce, bursts on
     every hit, and a Blood Pact that trades tougher enemies for damage. The item bonuses are folded into the
     weapons' numbers in `logic/stats.ts`; the situational ones in `logic/hitEffects.ts`.
-  - _One-time cards_ (`config/boons.ts`): act at once and are not part of the build (gold, all gems fly
+  - _One-time cards_ (`config/boons.ts`): act at once and are not part of the build (embers, all gems fly
     to you, full health, a shockwave, wiping the screen, a revive, a short damage surge). They are
     offered next to the other cards but never come out of chests.
   - _Chain Lightning_ is a new weapon: a strike that jumps from enemy to enemy; later levels add strikes,
@@ -398,18 +396,17 @@ up one by one.
   - a herb witch's hut in the mire: rare potion recipes
   - a crypt of fallen guardians in the graveyard: a boss and the first equipment
   - a trading post or second village far out: a better merchant, selling loot, a far waypoint
-- **Embers** (decided, replacing gold): the currency. Monsters release the light they ate and you
+- **Embers** (built, replaced gold): the currency. Monsters release the light they ate and you
   catch it in your lantern; traders accept embers because only they keep forges, lamps and potions
-  going. Kept on death. Spent on lanterns, ember upgrades, recipes and Phoenix Feathers.
-- **Gold** (built, to become embers): rare and slow, the long-term currency. Dropped rarely in fights (later mostly by
-  elites and chests); herbs, ores and items can be sold for it. Part of the expedition loot (lost on
-  death).
+  going. Rare from normal enemies, more from elites, chests and hex rewards; herbs can be sold for them.
+  They count at once: whatever you catch in a fight goes straight into the stash, also when you fall.
+  Spent on lanterns, ember upgrades, recipes and Phoenix Feathers.
 - **Merchant** (built, village): four lantern tiers (light +30%, +70%, +130%, for good; the
   Sunstone Lantern lights up the whole screen and could later come from a special place instead), potion recipes
   (start with the healing potion, buy the others), buys herbs. Later maybe seeds or maps; merchant
   points of interest on the map could sell rarer goods.
 - **Treasure chest** (built): any enemy may leave a chest by chance, elites far more often. Tapping
-  it pops the lid, then its reels spin like a slot machine before stopping on the rewards: gold and usually one upgrade, sometimes
+  it pops the lid, then its reels spin like a slot machine before stopping on the rewards: embers and usually one upgrade, sometimes
   three, rarely five. Later also equipment you keep (e.g. armour).
 - **Lantern and light radius:** a better lantern means a bigger light radius in fights. For now
   light is only visual (see Look and feel); later it could matter for gameplay.
@@ -425,7 +422,7 @@ up one by one.
   Saved the moment they are earned, so they stay when you fall, and kept when the map is reset.
   The village shows which are earned and which are still open. They give the watchfires a real
   purpose and make even a failed expedition count. Open: whether a new season lets you earn them
-  again; more deeds later (e.g. first elite, a dungeon cleared), maybe a reward in gold or a recipe.
+  again; more deeds later (e.g. first elite, a dungeon cleared), maybe a reward in embers or a recipe.
 - **Ember upgrades** (decided, grew out of the trainer idea): a flat list of permanent bonuses bought
   with embers (e.g. health, speed, pickup radius, a fourth belt slot), like the permanent power-ups in
   Vampire Survivors. No tree layout needed.

@@ -17,7 +17,7 @@ import type { SaveData } from './save';
 import type { RunOutcome } from './segment';
 import { deedBonus, earnDeeds } from './deeds';
 import { completeFireQuest } from './quests';
-import { GOLD_KEY } from '../config/merchant';
+import { EMBER_KEY } from '../config/merchant';
 import { computePlayerStats } from './stats';
 import type { World } from './worldgen';
 import {
@@ -37,8 +37,8 @@ export interface FightReport {
   litWatchfire: boolean;
   /** Deeds earned by this fight (e.g. a new ring reached) */
   deeds: DeedDef[];
-  /** Gold from the first watchfire quest, earned by this fight (0 when none) */
-  questGold: number;
+  /** Embers from the first watchfire quest, earned by this fight (0 when none) */
+  questEmbers: number;
   /** Loot kept after a death (half of it), or null when the expedition goes on */
   lootKept: Loot | null;
   lootLost: Loot | null;
@@ -88,7 +88,7 @@ export function finishFight(
         rested: false,
         litWatchfire: false,
         deeds: [],
-        questGold: 0,
+        questEmbers: 0,
         lootKept: kept,
         lootLost: lost,
       },
@@ -103,14 +103,14 @@ export function finishFight(
   if (litWatchfire) progress = lightWatchfire(progress, key, WORLD.watchfireRevealRadius);
   // Reaching a new ring, camp or watchfire can earn deeds; they are saved with this fight.
   const { save: earnedSave, earned } = earnDeeds({ ...save, world: progress }, world);
-  // The first watchfire you light completes the elder's quest and pays gold straight into the stash.
+  // The first watchfire you light completes the elder's quest and pays embers straight into the stash.
   const fire = completeFireQuest(earnedSave.quests, litWatchfire);
   const next: SaveData =
-    fire.gold > 0
+    fire.embers > 0
       ? {
           ...earnedSave,
           quests: fire.quests,
-          stash: addLoot(earnedSave.stash, { [GOLD_KEY]: fire.gold }),
+          stash: addLoot(earnedSave.stash, { [EMBER_KEY]: fire.embers }),
         }
       : earnedSave;
   // Camps heal fully, including health from deeds earned right here.
@@ -136,7 +136,7 @@ export function finishFight(
       rested: isCamp,
       litWatchfire,
       deeds: earned,
-      questGold: fire.gold,
+      questEmbers: fire.embers,
       lootKept: null,
       lootLost: null,
     },

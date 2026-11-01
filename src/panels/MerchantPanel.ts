@@ -4,7 +4,7 @@ import { HERB_PRICES, LANTERN_TIERS, RECIPE_PRICES, type LanternTier } from '../
 import { POTION_IDS, POTIONS } from '../config/potions';
 import type { HerbId, PotionId } from '../config/types';
 import type { Loot } from '../logic/expedition';
-import { goldOf, nextLantern } from '../logic/merchant';
+import { embersOf, embersText, nextLantern } from '../logic/merchant';
 import { COLORS, css, FONT } from '../ui/theme';
 import type { PanelFrame } from './CauldronPanel';
 
@@ -18,10 +18,10 @@ export interface MerchantPanelOptions {
   onClose(): void;
 }
 
-const GOLD_COLOR = '#fde047';
+const EMBER_COLOR = '#fdba74';
 
 /**
- * The merchant: lantern upgrades, potion recipes, and buying your herbs for gold.
+ * The merchant: lantern upgrades, potion recipes, and buying your herbs for embers.
  * A panel on top of any scene (rule 12); rebuild it whenever the save changes.
  */
 export class MerchantPanel {
@@ -50,9 +50,9 @@ export class MerchantPanel {
     const right = W - sa.right - 16 * u;
     const top = sa.top + 18 * u;
     this.text(left, top, 'Merchant', 24, { fontStyle: 'bold', color: css(COLORS.accent) });
-    this.text(left, top + 32 * u, `You have ${goldOf(this.opts.stash)} gold.`, 13, {
+    this.text(left, top + 32 * u, `You have ${embersText(embersOf(this.opts.stash))}.`, 13, {
       fontStyle: 'bold',
-      color: GOLD_COLOR,
+      color: EMBER_COLOR,
     });
     this.closeButton(right - 20 * u, top + 16 * u);
 
@@ -107,7 +107,7 @@ export class MerchantPanel {
       color: '#a1a1aa',
       wordWrap: { width: w - 24 * u },
     });
-    const affordable = goldOf(this.opts.stash) >= next.price;
+    const affordable = embersOf(this.opts.stash) >= next.price;
     this.smallButton(
       x + w - 12 * u - 60 * u,
       y + h - 12 * u - 18 * u,
@@ -148,7 +148,7 @@ export class MerchantPanel {
           100 * u,
           32 * u,
           `Buy · ${price}`,
-          goldOf(this.opts.stash) >= price,
+          embersOf(this.opts.stash) >= price,
           () => this.opts.onBuyRecipe(id),
         );
       }
@@ -184,7 +184,7 @@ export class MerchantPanel {
         ry + 14 * u,
         100 * u,
         32 * u,
-        `+${HERB_PRICES[id]} gold`,
+        `+${embersText(HERB_PRICES[id])}`,
         true,
         () => this.opts.onSellHerb(id),
       );

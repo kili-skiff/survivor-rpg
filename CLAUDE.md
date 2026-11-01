@@ -20,7 +20,7 @@ The world, story and in-game terms (Embers, the Nest, watchfires) are in [docs/l
 - `npm run check` – typecheck, lint, tests and build. **Run before every commit.**
 - `npm run build:single` – everything in one HTML file (dist-single/) for quick sharing
 - Dev mode: on in `npm run dev`, and in any build with `?dev` in the URL (e.g. a PR preview).
-  Test helpers: "+herbs +gold" and "arena" in the village (the test arena: a fight outside the map that
+  Test helpers: "+herbs +embers" and "arena" in the village (the test arena: a fight outside the map that
   saves nothing, the whole screen lit, no goal; falling only counts and refills health; switch between a
   horde of a chosen ring and standing dummies; the readout adds damage per second, total damage, kills per
   minute and the share of each weapon and modifier effect in a box on the right (tap to fold it); "reset", "leave"; "log"
@@ -59,7 +59,7 @@ src/
              deeds, segments, world, map tiles, map fog, footsteps, character sprites, ground tiles, balancing (NO Phaser)
   logic/     Pure game logic (NO Phaser, tested): stats, XP, upgrades, spawning, segments, save data,
              hex math, seeded RNG, world generation, world progress, expeditions and journeys, footsteps,
-             potions (brewing, belt, buffs), lantern pendulum physics, merchant (gold, lanterns, recipes), ring difficulty, horde steering and enemy behaviours (swarm, behaviors), the spawn director (waves, breathers, rings and walls), chests,
+             potions (brewing, belt, buffs), lantern pendulum physics, merchant (embers, lanterns, recipes), ring difficulty, horde steering and enemy behaviours (swarm, behaviors), the spawn director (waves, breathers, rings and walls), chests,
              quests, deeds, device settings, fog noise
   entities/  Pooled Phaser objects (Enemy, Projectile, Pickup)
   input/     InputState: one input layer for touch, keyboard, later gamepads
@@ -172,7 +172,7 @@ Phase 1, main weapons (the main weapon is the backbone of the build and its upgr
 
 Phase 2, lasting progress:
 
-- [ ] Gold becomes Embers, kept on death (chests, elites, quests, hex rewards and the merchant pay embers)
+- [x] Gold becomes Embers, kept on death: embers caught in a fight go straight into the stash, whatever the outcome (`bankEmbers`); enemies, elites, chests, quests, hex rewards and the merchant pay embers; old gold became embers (save version 17)
 - [ ] The ember shop in the village: permanent upgrades (a flat list) and unlocks of extra weapons and cards
 - [ ] Scaling pass once upgrades exist: rings 1–2 easy, from ring 3 on harder, a target per ring
 

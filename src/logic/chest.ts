@@ -1,13 +1,13 @@
 // Treasure chests: when enemies drop one and what it holds. Pure and tested.
 
 import { CHEST } from '../config/balance';
-import { goldPerDrop } from './merchant';
+import { embersPerDrop } from './merchant';
 import type { Rng } from './spawning';
 import type { Loadout } from './stats';
 import { applyUpgrade, rollUpgradeOptions, type UpgradeOption } from './upgrades';
 
 export interface ChestReward {
-  gold: number;
+  embers: number;
   /** Applied one after another, in this order */
   upgrades: UpgradeOption[];
 }
@@ -27,7 +27,7 @@ export function chestUpgradeCount(rng: Rng): 1 | 3 | 5 {
 
 /**
  * Rolls a chest for the current build. Upgrades are picked one at a time on the build as it
- * grows, so a chest can raise the same item twice. When everything is maxed, gold makes up for it.
+ * grows, so a chest can raise the same item twice. When everything is maxed, embers make up for it.
  */
 export function rollChest(loadout: Loadout, ring: number, rng: Rng): ChestReward {
   const count = chestUpgradeCount(rng);
@@ -40,8 +40,8 @@ export function rollChest(loadout: Loadout, ring: number, rng: Rng): ChestReward
     upgrades.push(option);
     build = applyUpgrade(build, option);
   }
-  const drop = goldPerDrop(ring);
-  const drops = CHEST.goldMin + Math.floor(rng() * (CHEST.goldMax - CHEST.goldMin + 1));
+  const drop = embersPerDrop(ring);
+  const drops = CHEST.embersMin + Math.floor(rng() * (CHEST.embersMax - CHEST.embersMin + 1));
   const makeUp = (count - upgrades.length) * 2;
-  return { gold: drop * (drops + makeUp), upgrades };
+  return { embers: drop * (drops + makeUp), upgrades };
 }
