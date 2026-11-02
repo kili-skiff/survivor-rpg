@@ -1,4 +1,5 @@
 import * as Phaser from 'phaser';
+import { REBIRTH } from '../config/rebirth';
 import { beltSize } from '../logic/hearth';
 import { HERBS } from '../config/herbs';
 import { POTION_IDS, POTIONS } from '../config/potions';
@@ -71,6 +72,8 @@ export class VillageMenuScene extends Phaser.Scene {
     this.openPanel = null;
     this.panel = null;
     this.cameras.main.setBackgroundColor(0x17131f);
+    // Waking up in the Nest: out of the dark (the walkable village plays the whole rebirth).
+    if (this.data0.arrival?.reason === 'fallen') this.cameras.main.fadeIn(REBIRTH.fadeInMs, 0, 0, 0);
     this.build();
     this.scale.on('resize', this.build, this);
     this.events.once('shutdown', () => {
@@ -166,7 +169,7 @@ export class VillageMenuScene extends Phaser.Scene {
       const news =
         this.save.quests.tower === 'offered' ? ` ${VILLAGERS.elder.name} wants to speak with you.` : '';
       const t = this.text(left, y, describeArrival(arrival) + news, 14, {
-        color: arrival.reason === 'fallen' ? '#fda4af' : '#bbf7d0',
+        color: arrival.reason === 'fallen' ? '#fde68a' : '#bbf7d0',
         wordWrap: { width: right - left },
       });
       y += t.height + 16 * u;

@@ -1,4 +1,5 @@
 import * as Phaser from 'phaser';
+import { REBIRTH } from '../config/rebirth';
 import { SHEET, type Facing } from '../config/sprites';
 import {
   STATIONS,
@@ -27,6 +28,7 @@ import {
 import type { Arrival } from '../panels/villagePanels';
 import { LanternSystem } from '../systems/LanternSystem';
 import { PlayerController } from '../systems/PlayerController';
+import { RebirthFx } from '../systems/RebirthFx';
 import { VillageAmbience, type AmbienceSpots } from '../systems/VillageAmbience';
 import { viewportSize } from '../ui/display';
 import { COLORS, css, FONT } from '../ui/theme';
@@ -121,6 +123,10 @@ export class VillageScene extends Phaser.Scene {
   private villagers: Villager[] = [];
   /** Sparks, smoke, bats and fog, and where they happen (filled while the map is built) */
   private ambience: VillageAmbience | null = null;
+  /** Waking up in the Nest after a fall: the fire burst and when it began (scene clock); null otherwise */
+  private rebirth: RebirthFx | null = null;
+  /** -1 until the first frame: the scene clock is not running yet in create() */
+  private rebirthStart = -1;
   private lifeSpots: AmbienceSpots = { fires: [], chimneys: [], width: 0, height: 0 };
   /** Standing in the gate when the scene starts must not send you off at once */
   private inGate = true;
@@ -158,6 +164,7 @@ export class VillageScene extends Phaser.Scene {
     this.signs = [];
     this.villagers = [];
     this.ambience = null;
+    this.rebirth = null;
     this.lifeSpots = { fires: [], chimneys: [], width: 0, height: 0 };
     this.inGate = true;
     this.frozen = false;
@@ -197,13 +204,76 @@ export class VillageScene extends Phaser.Scene {
     cam.startFollow(this.player.sprite, true, 0.18, 0.18);
     this.onResize();
     this.scale.on('resize', this.onResize, this);
+    // After a fall the watchman rises from the Nest's fire first; the HUD comes when that is over.
+    if (this.data0.arrival?.reason === 'fallen') this.beginRebirth(start);
     this.events.once('shutdown', () => {
       this.scale.off('resize', this.onResize, this);
+      this.input.off('pointerdown', this.skipRebirth, this);
+      this.input.keyboard?.off('keydown', this.skipRebirth, this);
+      this.rebirth?.destroy();
+      this.rebirth = null;
       this.controls.reset();
       // The HUD belongs to this scene; it never stays behind on its own.
       this.scene.stop('VillageHud');
     });
+    if (!this.rebirth) this.launchHud();
+  }
+
+  private launchHud(): void {
     this.scene.launch('VillageHud', { arrival: this.data0.arrival });
+  }
+
+  // ---------------------------------------------------------------- waking up in the Nest
+
+  /** Black screen, a burst of fire at the Nest, the watchman rises from it, the lantern lights again. */
+  private beginRebirth(feet: Point): void {
+    this.frozen = true;
+    this.rebirthStart = -1;
+    // Above the night layer (5) and the sparks (5.2), so the fire shines in the dark.
+    this.rebirth = new RebirthFx(this, feet.x, feet.y, 5.3);
+    this.lantern.extinguish();
+    this.lantern.setAlpha(0);
+    this.cameras.main.fadeIn(REBIRTH.fadeInMs, 0, 0, 0);
+    this.input.on('pointerdown', this.skipRebirth, this);
+    this.input.keyboard?.on('keydown', this.skipRebirth, this);
+  }
+
+  /** A tap or key skips the rest (not at once, so a tap that was still on its way does not). */
+  private skipRebirth(): void {
+    if (!this.rebirth || this.rebirthStart < 0 || this.time.now - this.rebirthStart < REBIRTH.skipAfterMs)
+      return;
+    this.rebirthStart = this.time.now - REBIRTH.totalMs;
+  }
+
+  /** One frame of the rebirth: shows the watchman as the timeline says; at the end the village is his. */
+  private updateRebirth(dt: number): void {
+    const fx = this.rebirth;
+    if (!fx) return;
+    if (this.rebirthStart < 0) this.rebirthStart = this.time.now;
+    const f = fx.update(this.time.now - this.rebirthStart, dt);
+    const sprite = this.player.sprite;
+    if (f.body < 1) sprite.setAlpha(f.body);
+    // A glowing shape of fire first, cooling to his own colours.
+    if (f.glow > 0.4) sprite.setTint(0xffb050).setTintMode(Phaser.TintModes.FILL);
+    else if (f.glow > 0) {
+      const c = Phaser.Display.Color.Interpolate.ColorWithColor(
+        Phaser.Display.Color.ValueToColor(0xffffff),
+        Phaser.Display.Color.ValueToColor(0xffb070),
+        100,
+        (f.glow / 0.4) * 100,
+      );
+      sprite.setTint(Phaser.Display.Color.GetColor(c.r, c.g, c.b)).setTintMode(Phaser.TintModes.MULTIPLY);
+    }
+    this.lantern.dim(f.lantern);
+    this.lantern.setAlpha(f.body);
+    if (!f.done) return;
+    fx.destroy();
+    this.rebirth = null;
+    this.frozen = false;
+    this.lantern.setAlpha(1);
+    this.input.off('pointerdown', this.skipRebirth, this);
+    this.input.keyboard?.off('keydown', this.skipRebirth, this);
+    this.launchHud();
   }
 
   // ---------------------------------------------------------------- the map
@@ -530,6 +600,12 @@ export class VillageScene extends Phaser.Scene {
       );
       cut(l.x, l.y, r * 0.35, r * 0.35, VILLAGE.lightStrength * 0.7);
     }
+    // The burst of fire when the watchman wakes up lights the Nest and its surroundings.
+    const rl = this.rebirth?.light();
+    if (rl) {
+      cut(rl.x, rl.y + 6, rl.radius, rl.radius * VILLAGE.groundSquash, VILLAGE.lightStrength * rl.strength);
+      cut(rl.x, rl.y - 12, rl.radius * 0.45, rl.radius * 0.45, VILLAGE.lightStrength * rl.strength);
+    }
     night.render();
   }
 
@@ -631,6 +707,7 @@ export class VillageScene extends Phaser.Scene {
     const depth = depthAt(feet.y);
     this.player.sprite.setDepth(depth);
     this.lantern.depth = depth;
+    this.updateRebirth(dt);
     this.lantern.update(dt);
     this.updateLight(time);
     this.updateSigns(time, feet);

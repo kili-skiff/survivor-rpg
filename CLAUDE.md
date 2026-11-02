@@ -61,7 +61,7 @@ src/
              deeds, segments, world, map tiles, map fog, footsteps, character sprites, ground tiles, balancing (NO Phaser)
   logic/     Pure game logic (NO Phaser, tested): stats, XP, upgrades, spawning, segments, save data,
              hex math, seeded RNG, world generation, world progress, expeditions and journeys, footsteps,
-             potions (brewing, belt, buffs), lantern pendulum physics, merchant (embers, lanterns, recipes), the Hearth (ember upgrades), ring difficulty, horde steering and enemy behaviours (swarm, behaviors), the spawn director (waves, breathers, rings and walls), chests,
+             potions (brewing, belt, buffs), lantern pendulum physics, the death and rebirth timelines (`deathSequence`, `rebirth`) and the greeting when you wake up, merchant (embers, lanterns, recipes), the Hearth (ember upgrades), ring difficulty, horde steering and enemy behaviours (swarm, behaviors), the spawn director (waves, breathers, rings and walls), chests,
              quests, deeds, device settings, fog noise, the walkable village (station zones, finding a way
              around houses), the touch stick
   entities/  Pooled Phaser objects (Enemy, Projectile, Pickup)
@@ -69,7 +69,7 @@ src/
   systems/   Gameplay behaviour, one job per file:
     weapons/   one class per weapon + factory in index.ts
     skills/    active skills (e.g. Frost Nova)
-    PlayerController, PlayerHealthBar (small bar under the player's feet), LanternSystem (the carried lantern), EnemySystem, PickupSystem, HerbSystem, PotionSystem, LightingSystem,
+    PlayerController, PlayerHealthBar (small bar under the player's feet), LanternSystem (the carried lantern, also its going out and lighting again), RebirthFx (the burst of fire in the Nest when the watchman wakes up), EnemySystem, PickupSystem, HerbSystem, PotionSystem, LightingSystem,
     DamageNumbers, VillageAmbience (sparks, smoke, bats and fog in the walkable village)
   panels/    Village panels (CauldronPanel, MerchantPanel, DeedsPanel, ArmoryPanel, HearthPanel, DialoguePanel): drawn on top of any scene,
              logic lives in logic/

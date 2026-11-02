@@ -23,6 +23,7 @@ import type { Enemy } from '../entities/Enemy';
 import type { Pickup } from '../entities/Pickup';
 import { InputState } from '../input/InputState';
 import { deathFrame } from '../logic/deathSequence';
+import { pickGreeting } from '../logic/greeting';
 import { addXp } from '../logic/progression';
 import { lootGained } from '../logic/expedition';
 import { hearthBonus } from '../logic/hearth';
@@ -856,7 +857,12 @@ export class GameScene extends Phaser.Scene {
     if (report && report.outcome === 'fallen') {
       // Falling ends the expedition: you wake up in the village.
       const data: VillageSceneData = {
-        arrival: { reason: 'fallen', kept: report.lootKept ?? {}, lost: report.lootLost ?? {} },
+        arrival: {
+          reason: 'fallen',
+          kept: report.lootKept ?? {},
+          lost: report.lootLost ?? {},
+          greeting: pickGreeting(),
+        },
       };
       this.scene.start('Village', data);
       return;
