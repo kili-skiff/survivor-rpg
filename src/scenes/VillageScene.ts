@@ -118,7 +118,7 @@ export class VillageScene extends Phaser.Scene {
   /** Signs floating above the places */
   private signs: Sign[] = [];
   private villagers: Villager[] = [];
-  /** Sparks, smoke, moths, bats and fog, and where they happen (filled while the map is built) */
+  /** Sparks, smoke, fireflies, bats and fog, and where they happen (filled while the map is built) */
   private ambience: VillageAmbience | null = null;
   private lifeSpots: AmbienceSpots = { fires: [], chimneys: [], lamps: [], width: 0, height: 0 };
   /** Standing in the gate when the scene starts must not send you off at once */
@@ -252,7 +252,7 @@ export class VillageScene extends Phaser.Scene {
           ? this.add.sprite(bx, by, VILLAGE_ASSETS.props.key, `${key}-0`).play(this.propAnim(key, m))
           : this.add.image(bx, by, VILLAGE_ASSETS.props.key, key);
       thing.setOrigin(0.5, 1).setDepth(depthAt(by));
-      // Known props get small signs of life: sparks over open fires, smoke from the forge, moths at lanterns.
+      // Known props get small signs of life: sparks over open fires, smoke from the forge, fireflies at lanterns.
       const h = o.height ?? 0;
       if (key === 'nest') this.lifeSpots.fires.push({ x: bx, y: by - 26 });
       if (key === 'forge') {

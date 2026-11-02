@@ -141,8 +141,13 @@ export const VILLAGE_LIFE = {
   smokeDrift: 7,
   smokeAlpha: 0.16,
   smokeColor: 0x8a8494,
-  /** Moths circling each lantern */
-  mothsPerLamp: 2,
+  /** Fireflies drifting around each lantern: they wander on their own and blink slowly */
+  firefliesPerLamp: 3,
+  /** How far they may stray from the lantern (px), their speed (px/s), and how long one blink takes (ms) */
+  fireflyLeash: 42,
+  fireflySpeed: { min: 7, max: 17 },
+  fireflyBlinkMs: { min: 2400, max: 5200 },
+  fireflyColor: 0xd8f070,
   /** Now and then a bat crosses the sky */
   batFirstMs: 6000,
   batEveryMs: 18000,
