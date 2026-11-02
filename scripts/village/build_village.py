@@ -24,7 +24,9 @@ The game reads only this from the map (any other village art works if it keeps i
   object layer props       rectangles named after a frame of the props atlas, standing on their bottom edge
   object layer stations    one zone per place (house, elder, cauldron, armory, merchant, hearth, deeds); standing
                            in it offers its panel; properties signX, signY: where its sign floats (map pixels)
-  object layer marks       "gate" (a zone: walking into it sets out), "spawn" (a point: where you wake up)
+  object layer marks       "gate" (a zone: walking into it sets out), "spawn" (a point: where you wake up),
+                           "villager-<name>" (a point: where a villager stands, at the feet; property facing:
+                           up, left, down or right, the way they look while you are far away)
   object layer colliders   boxes that block the way, besides the props' own
   props atlas meta.props   per frame name: frames and fps (animations are <name>-0, <name>-1 ...), foot (its
                            collision box) and light (where it glows), see Prop
@@ -621,7 +623,7 @@ GRAVE_FENCE = line(1, 20, 10, 20) | line(10, 20, 10, 25) - {(10, 22), (10, 23)}
 # The last pair is where its sign floats (x, y in tiles): above the door, the stall or the fire.
 STATIONS = [
     ("house", 8.0, 9.6, 1.6, 1.2, (8.0, 6.3)),
-    ("elder", 22.2, 10.2, 1.6, 1.2, (22.2, 6.7)),
+    ("elder", 22.6, 10.2, 2.2, 1.2, (23.4, 8.1)),
     ("cauldron", 7.4, 17.6, 1.6, 1.2, (7.4, 15.6)),
     ("armory", 23.2, 18.9, 1.8, 1.2, (22.9, 15.3)),
     ("merchant", 20.2, 23.0, 2.2, 1.2, (20.2, 18.3)),
@@ -629,6 +631,12 @@ STATIONS = [
     ("deeds", 18.6, 11.5, 1.4, 1.0, (18.6, 9.5)),
 ]
 SPAWN = (15.0, 15.0)  # where you wake up: just in front of the Nest
+# Villagers standing at their places: (name, x, y of the feet in tiles, the way they look when you are far)
+VILLAGERS = [
+    ("elder", 23.4, 10.05, "down"),  # beside his door
+    ("trader", 20.2, 21.7, "down"),  # behind the counter of her stall
+    ("smith", 24.3, 18.35, "left"),  # at the anvil
+]
 GATE_ZONE = (15.0, 25.6, 2.0, 0.8)
 
 
@@ -773,6 +781,10 @@ def build(src: Sources, preview: Path | None) -> None:
         obj("gate", "gate", (gx - gw / 2) * T, (gy - gh / 2) * T, gw * T, gh * T),
         obj("spawn", "spawn", SPAWN[0] * T, SPAWN[1] * T, 0, 0, point=True),
     ]
+    for name, x, y, facing in VILLAGERS:
+        o = obj(f"villager-{name}", "villager", x * T, y * T, 0, 0, point=True)
+        o["properties"] = [{"name": "facing", "type": "string", "value": facing}]
+        marks.append(o)
     # Fences block the way: one box per fence tile, along its lower half
     collider_objects = [obj("fence", "collider", x * T, y * T + 12, T, 20) for (x, y) in sorted(fences)]
 

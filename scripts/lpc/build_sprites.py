@@ -1,11 +1,15 @@
-"""Builds the fight sprites from LPC (Liberated Pixel Cup) layers.
+"""Builds the character sprites from LPC (Liberated Pixel Cup) layers: the fighters and the villagers.
 
-Usage: python3 scripts/lpc/build_sprites.py <path to Universal-LPC-Spritesheet-Character-Generator>
+Usage: python3 scripts/lpc/build_sprites.py <path to Universal-LPC-Spritesheet-Character-Generator> [villagers]
+(with "villagers" only the villager sheets are built; the credits always cover everyone)
 
 Each character is a stack of LPC layers (body, head, clothes), recoloured to fit the dark mood.
 Output: public/assets/sprites/<name>.png, frames of 64x64 px:
   rows 0-3: walk cycle facing up, left, down, right (9 frames each)
   row 4:    falling down (6 frames), used when the character dies
+and for the villagers public/assets/sprites/villager-<name>.png:
+  rows 0-3: walk cycle facing up, left, down, right (9 frames each; frame 0 is the standing pose)
+  (not every clothing layer has LPC's idle animation, so the game lets them breathe with a small tween)
 plus public/assets/sprites/LPC-CREDITS.csv: authors, licences and sources of every layer used,
 taken from the generator's CREDITS.csv. Sources and licences: see CREDITS.md. Needs Pillow.
 """
@@ -134,9 +138,106 @@ CHARACTERS = {
 }
 
 
+# ---------------------------------------------------------------- villagers
+
+class VLayer:
+    """A villager layer: its walk sheet, <path>/walk.png or, for layers that come in colours,
+    <path>/walk/<variant>.png."""
+
+    def __init__(
+        self, path: str, color=None, strength: float = 1.0, variant: str | None = None, white: float | None = None
+    ):
+        self.walk = f"{path}/walk/{variant}.png" if variant else f"{path}/walk.png"
+        self.color = color
+        self.strength = strength
+        # Grey hair: tinting can only darken, so this takes the colour out and lifts it to this brightness.
+        self.white = white
+
+
+def whiten(img: Image.Image, level: float) -> Image.Image:
+    """Greyscale with its shading kept, stretched up so the brightest pixel reaches `level` (0..1)."""
+    a = img.getchannel("A")
+    grey = img.convert("L")
+    lo, hi = grey.getextrema()
+    span = max(1, hi - lo)
+    lifted = grey.point(lambda v: int(255 * level * (0.55 + 0.45 * (v - lo) / span)))
+    out = Image.merge("RGBA", (lifted, lifted, lifted, a))
+    return out
+
+
+def build_villager(root: Path, name: str, layers: list[VLayer], saturation: float, brightness: float) -> None:
+    sheet = Image.new("RGBA", (FRAME * WALK_COLS, FRAME * 4), (0, 0, 0, 0))
+    for layer in layers:
+        walk = load(root, layer.walk, layer.color, layer.strength).crop((0, 0, FRAME * WALK_COLS, FRAME * 4))
+        if layer.white is not None:
+            walk = whiten(walk, layer.white)
+        sheet.alpha_composite(walk, (0, 0))
+    OUT.mkdir(parents=True, exist_ok=True)
+    out = grade(sheet, saturation, brightness)
+    out.save(OUT / f"villager-{name}.png", optimize=True)
+    print("wrote", OUT / f"villager-{name}.png")
+
+
+# Villagers who stand at their places in the village. Muted colours, a little brighter than the fighters:
+# they live in the light of the village.
+VILLAGERS = {
+    # The elder: white hair and beard, a worn dark cloak over a plum shirt.
+    "elder": (
+        [
+            VLayer("cape/tattered/bg", (78, 72, 92)),
+            VLayer("body/bodies/male"),
+            VLayer("legs/pants/male", (75, 65, 80)),
+            VLayer("feet/shoes/basic/male", (90, 75, 65)),
+            VLayer("torso/clothes/longsleeve/longsleeve2/male", (120, 90, 130)),
+            VLayer("cape/tattered/fg", (78, 72, 92)),
+            VLayer("head/heads/human/male_elderly"),
+            VLayer("head/wrinkles"),
+            VLayer("hair/balding/adult", white=0.92),
+            VLayer("beards/beard/winter/male", white=0.95),
+        ],
+        0.75,
+        1.0,
+    ),
+    # The trader: hair tied back under a red kerchief, a pale blouse, a brown apron over a long skirt.
+    "trader": (
+        [
+            VLayer("hair/long_tied/adult/bg", (115, 70, 45)),
+            VLayer("body/bodies/female"),
+            VLayer("legs/skirts/plain/thin", (95, 65, 60)),
+            VLayer("feet/shoes/basic/thin", (85, 70, 60)),
+            VLayer("torso/clothes/blouse_longsleeve/female", variant="white"),
+            VLayer("torso/aprons/apron/female", variant="brown"),
+            VLayer("head/heads/human/female"),
+            VLayer("hair/long_tied/adult/fg", (115, 70, 45)),
+            VLayer("hat/pirate/kerchief/adult", (170, 60, 55)),
+        ],
+        0.75,
+        1.0,
+    ),
+    # The smith: short dark hair and beard, a leather apron over a grey shirt.
+    "smith": (
+        [
+            VLayer("body/bodies/male"),
+            VLayer("legs/pants/male", (70, 60, 55)),
+            VLayer("feet/boots/basic/male", (90, 75, 65)),
+            VLayer("torso/clothes/longsleeve/longsleeve2/male", (125, 120, 115)),
+            VLayer("torso/aprons/apron/male", variant="leather"),
+            VLayer("head/heads/human/male"),
+            VLayer("hair/messy1/adult", (60, 45, 38)),
+            VLayer("beards/beard/basic", (60, 45, 38)),
+        ],
+        0.75,
+        1.0,
+    ),
+}
+
+
 def write_credits(root: Path) -> None:
     """Copies the generator's credit rows for every layer file used."""
-    used = sorted({f for layers, _, _ in CHARACTERS.values() for l in layers for f in (l.walk, l.hurt)})
+    used = sorted(
+        {f for layers, _, _ in CHARACTERS.values() for l in layers for f in (l.walk, l.hurt)}
+        | {l.walk for layers, _, _ in VILLAGERS.values() for l in layers}
+    )
     with open(root / "CREDITS.csv", newline="", encoding="utf-8") as f:
         rows = {r["filename"].strip(): r for r in csv.DictReader(f)}
 
@@ -157,12 +258,15 @@ def write_credits(root: Path) -> None:
 
 
 def main() -> None:
-    if len(sys.argv) != 2:
+    if len(sys.argv) not in (2, 3) or (len(sys.argv) == 3 and sys.argv[2] != "villagers"):
         print(__doc__)
         sys.exit(1)
     root = Path(sys.argv[1])
-    for name, (layers, sat, bright) in CHARACTERS.items():
-        build(root, name, layers, sat, bright)
+    if len(sys.argv) == 2:
+        for name, (layers, sat, bright) in CHARACTERS.items():
+            build(root, name, layers, sat, bright)
+    for name, (layers, sat, bright) in VILLAGERS.items():
+        build_villager(root, name, layers, sat, bright)
     write_credits(root)
 
 
