@@ -1,5 +1,6 @@
 import * as Phaser from 'phaser';
 import { BALANCE, BOONS, ELITE, LIGHT } from '../config/balance';
+import { DEATH } from '../config/death';
 import { DIRECTOR } from '../config/director';
 import { GOALS } from '../config/goals';
 import { ENEMIES } from '../config/enemies';
@@ -21,6 +22,7 @@ import { START_WEAPON, WEAPONS } from '../config/weapons';
 import type { Enemy } from '../entities/Enemy';
 import type { Pickup } from '../entities/Pickup';
 import { InputState } from '../input/InputState';
+import { deathFrame } from '../logic/deathSequence';
 import { addXp } from '../logic/progression';
 import { lootGained } from '../logic/expedition';
 import { hearthBonus } from '../logic/hearth';
@@ -149,7 +151,20 @@ export interface RunEndInfo {
   save: SaveData;
   /** Expedition consequences; null for fights outside the world map */
   report: FightReport | null;
+  /** After a fall on an expedition: the build and progress that are gone; null otherwise */
+  lostBuild: LostBuild | null;
   newBestTime: boolean;
+}
+
+/** What a fall takes from the expedition (embers and everything permanent stay). */
+export interface LostBuild {
+  level: number;
+  /** Names of the weapons carried */
+  weapons: string[];
+  /** Passive items and modifiers taken, counted by rank */
+  upgrades: number;
+  /** Areas cleared on this expedition */
+  areas: number;
 }
 
 /** HP restored by the fallback upgrade when everything is maxed */
@@ -202,6 +217,8 @@ export class GameScene extends Phaser.Scene {
   private viewH = 600;
   private hexKey: string | null = null;
   private endInfo: RunEndInfo | null = null;
+  /** When the watchman fell (scene clock), while the lantern goes out; the result screen waits for it */
+  private dyingSince: number | null = null;
   /** The cold watchfire of a "find the light" fight, or null */
   private watchfire: WatchfireSystem | null = null;
   /** Seconds the player has moved through the dark looking for the watchfire */
@@ -248,6 +265,7 @@ export class GameScene extends Phaser.Scene {
     this.secondWinds = 0;
     this.surgeUntil = 0;
     this.endInfo = null;
+    this.dyingSince = null;
     this.devCleared = false;
     this.devAutopilotHome = null;
     this.rewardGiven = false;
@@ -852,6 +870,7 @@ export class GameScene extends Phaser.Scene {
     if (!this.run.started || !this.run.alive) {
       this.player.stop();
       this.updateGround();
+      this.updateDeath();
       this.lantern.update(Math.min(deltaMs, 50) / 1000);
       this.lighting.update(this.time.now);
       return;
@@ -1118,7 +1137,6 @@ export class GameScene extends Phaser.Scene {
     if (this.run.hp <= 0) {
       this.run.hp = 0;
       this.player.showDefeated();
-      this.lantern.snuff();
       this.endRun('fallen');
     }
   }
@@ -1317,10 +1335,45 @@ export class GameScene extends Phaser.Scene {
       herbsTotal: this.herbs.totalCount,
       save: finalSave,
       report,
+      lostBuild:
+        report?.outcome === 'fallen'
+          ? {
+              level: this.run.level,
+              weapons: Object.keys(this.run.loadout.weapons).map((id) => WEAPONS[id as WeaponId].name),
+              upgrades:
+                Object.values(this.run.loadout.passives).reduce((a, b) => a + (b ?? 0), 0) +
+                (this.run.loadout.modifiers?.length ?? 0),
+              areas: before.world.expedition?.areasCleared ?? 0,
+            }
+          : null,
       newBestTime: time > before.bestTime,
     };
     this.endInfo = info;
     this.controls.reset();
+    if (outcome === 'fallen') {
+      // The result is saved already; the lantern goes out first, then the result screen opens.
+      this.dyingSince = this.time.now;
+      this.events.emit('dying', DEATH.hudFadeMs);
+      return;
+    }
     this.events.emit('runend', info);
+  }
+
+  /** The lantern burns down after a fall; when it is dark, the result screen opens. */
+  private updateDeath(): void {
+    if (this.dyingSince === null) return;
+    const elapsed = this.time.now - this.dyingSince;
+    const f = deathFrame(elapsed / DEATH.fadeMs, this.time.now);
+    this.lantern.dim(f.light);
+    this.lighting.setFade(f.light, f.black);
+    if (elapsed < DEATH.fadeMs + DEATH.holdMs || !this.endInfo) return;
+    this.dyingSince = null;
+    this.events.emit('runend', this.endInfo);
+  }
+
+  /** A tap skips the fade (not at once, so a button pressed in panic does not). */
+  skipDeathFade(): void {
+    if (this.dyingSince === null || this.time.now - this.dyingSince < DEATH.skipAfterMs) return;
+    this.dyingSince = this.time.now - DEATH.fadeMs - DEATH.holdMs;
   }
 }
