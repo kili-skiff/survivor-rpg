@@ -82,7 +82,7 @@ src/
   dev/       Dev-only test helpers behind one switch (DEV_TOOLS); calls are marked `// DEV:`
 public/assets/  Art files served as they are (tiles/ for the world map, sprites/ for fight characters,
                 ground/ for the fight ground, one seamless tile per biome, village/ for the walkable village)
-scripts/lpc/    Builds the character sheets from LPC layers (Python + Pillow; see the script's header)
+scripts/lpc/    Builds the character sheets (fighters and villagers) from LPC layers (Python + Pillow; see the script's header)
 scripts/ground/ Generates the ground tiles (Python + Pillow + numpy; our own art, replaceable)
 scripts/village/ Builds the walkable village from LPC packs: map (Tiled JSON), ground tiles, props atlas
                 (Python + Pillow; see the script's header); the art is a first sketch, to be replaced
@@ -215,8 +215,9 @@ weapon, ores and the blacksmith.
       stick, houses and fences in the way, night light, a menu of places (top right) that walks you to one and opens its
       panel there, the gate to the map; the menu village opens in your house; signs above the places (their name
       shows up close), the menu with a line on what each place is for, an arrow at the screen edge to the elder
-      when he has news, a one-time hint on the menu. Next: villagers standing in the village (elder, trader,
-      smith), small signs of life (sparks, smoke, moths, bats), a house panel for stash and belt.
+      when he has news, a one-time hint on the menu; the elder, the trader and the smith standing at their places
+      (LPC sheets from `scripts/lpc`, `VILLAGER_SPRITES`), turning to you as you come close and breathing.
+      Next: small signs of life (sparks, smoke, moths, bats), a house panel for stash and belt.
       What the game reads from the village map is listed in the header of `scripts/village/build_village.py`;
       other village art works if it keeps to that
 - [ ] Sound effects and music

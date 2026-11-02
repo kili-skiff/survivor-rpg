@@ -7,7 +7,7 @@ import type { VillagerId } from './quests';
  * Bump when the village art is rebuilt: the version goes into the file URLs, so browsers load the new files
  * instead of old ones from their cache (GitHub Pages keeps them cached for a while).
  */
-const ART_VERSION = 4;
+const ART_VERSION = 5;
 
 export const VILLAGE_ASSETS = {
   map: { key: 'village-map', path: `assets/village/village.json?v=${ART_VERSION}` },
@@ -20,6 +20,16 @@ export const VILLAGE_ASSETS = {
   /** Name of the tileset inside the map */
   tilesetName: 'village-tiles',
 } as const;
+
+/** Villagers standing in the village (LPC sheets built by scripts/lpc/build_sprites.py). Where they stand comes
+ * from the map (marks "villager-<name>"). */
+export type VillagerSpriteId = 'elder' | 'trader' | 'smith';
+
+export const VILLAGER_SPRITES: Record<VillagerSpriteId, { key: string; path: string }> = {
+  elder: { key: 'villager-elder', path: `assets/sprites/villager-elder.png?v=${ART_VERSION}` },
+  trader: { key: 'villager-trader', path: `assets/sprites/villager-trader.png?v=${ART_VERSION}` },
+  smith: { key: 'villager-smith', path: `assets/sprites/villager-smith.png?v=${ART_VERSION}` },
+};
 
 /** Places you can walk to; each opens a panel. The ids match the station zones in the map. */
 export type StationId = 'hearth' | 'cauldron' | 'merchant' | 'armory' | 'deeds' | 'house' | VillagerId;
@@ -106,6 +116,13 @@ export const VILLAGE = {
   signSize: 26,
   signBob: 2.5,
   signNameNear: 150,
+  /** Villagers turn to you when you come this close (px) */
+  villagerTurnNear: 130,
+  /** Their feet in the 64 px frame, from the top (px) */
+  villagerFeetY: 54,
+  /** They breathe: how much taller at the top of a breath, and how long one breath takes (ms) */
+  villagerBreath: 0.018,
+  villagerBreathMs: 1900,
   /** Seconds the note about what you brought home stays on screen */
   arrivalNoteSec: 7,
 } as const;

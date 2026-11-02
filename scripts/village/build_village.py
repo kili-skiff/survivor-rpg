@@ -401,7 +401,8 @@ def deco_props(src: Sources) -> list[Prop]:
     add("anvil", crop(s, 8, 13, 9, 14), foot=(-12, 0, 24, 10))
     add("firewood", crop(d, 12, 20, 14, 22), foot=(-26, 0, 52, 22))
     # Market stall
-    add("stall", crop(d, 5, 25, 8, 30), foot=(-46, 0, 92, 28))
+    # A lamp under the awning lights the trader behind her counter.
+    add("stall", crop(d, 5, 25, 8, 30), foot=(-46, 0, 92, 28), light=(0, 56, 80))
     # Well, notice board (deeds), signs
     add("well", crop(d, 14, 13, 16, 16), foot=(-26, 0, 52, 30))
     add("board", crop(d, 7, 5, 8, 6), foot=(-14, 0, 28, 8))

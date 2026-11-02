@@ -2,7 +2,7 @@ import * as Phaser from 'phaser';
 import { GROUND_TEXTURES } from '../config/ground';
 import { LANTERN_LOOKS } from '../config/merchant';
 import { CHARACTER_SPRITES, dieAnim, SHEET, walkAnim, type Facing } from '../config/sprites';
-import { VILLAGE_ASSETS } from '../config/village';
+import { VILLAGE_ASSETS, VILLAGER_SPRITES } from '../config/village';
 import { TILESET } from '../config/tiles';
 import { COLORS } from '../ui/theme';
 
@@ -40,6 +40,9 @@ export class BootScene extends Phaser.Scene {
       frameHeight: 32,
     });
     this.load.atlas(VILLAGE_ASSETS.props.key, VILLAGE_ASSETS.props.image, VILLAGE_ASSETS.props.atlas);
+    for (const v of Object.values(VILLAGER_SPRITES)) {
+      this.load.spritesheet(v.key, v.path, { frameWidth: SHEET.frameSize, frameHeight: SHEET.frameSize });
+    }
     this.load.on(Phaser.Loader.Events.FILE_LOAD_ERROR, () => undefined);
   }
 

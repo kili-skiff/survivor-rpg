@@ -1,5 +1,14 @@
 import * as Phaser from 'phaser';
-import { STATIONS, VILLAGE, VILLAGE_ASSETS, type StationId } from '../config/village';
+import { SHEET, type Facing } from '../config/sprites';
+import {
+  STATIONS,
+  VILLAGE,
+  VILLAGE_ASSETS,
+  VILLAGER_SPRITES,
+  type StationId,
+  type VillagerSpriteId,
+} from '../config/village';
+import { facingFor } from '../logic/facing';
 import { InputState } from '../input/InputState';
 import { loadSave, safeStorage } from '../logic/save';
 import { loadSettings } from '../logic/settings';
@@ -56,6 +65,17 @@ const NIGHT_SCALE = 4;
 
 export type WalkTarget = StationId | 'gate';
 
+/** A villager standing at their place */
+interface Villager {
+  sprite: Phaser.GameObjects.Sprite;
+  /** Where the feet are */
+  x: number;
+  y: number;
+  /** The way they look while you are far away */
+  rest: Facing;
+  facing: Facing;
+}
+
 interface Sign {
   id: StationId;
   x: number;
@@ -96,6 +116,7 @@ export class VillageScene extends Phaser.Scene {
   private here: StationId | null = null;
   /** Signs floating above the places */
   private signs: Sign[] = [];
+  private villagers: Villager[] = [];
   /** Standing in the gate when the scene starts must not send you off at once */
   private inGate = true;
   private frozen = false;
@@ -130,6 +151,7 @@ export class VillageScene extends Phaser.Scene {
     this.target = null;
     this.here = null;
     this.signs = [];
+    this.villagers = [];
     this.inGate = true;
     this.frozen = false;
     this.leaving = false;
@@ -243,9 +265,58 @@ export class VillageScene extends Phaser.Scene {
     for (const o of map.getObjectLayer('marks')?.objects ?? []) {
       if (o.name === 'gate') this.gate = { x: o.x ?? 0, y: o.y ?? 0, w: o.width ?? 0, h: o.height ?? 0 };
       if (o.name === 'spawn') this.registry.set('villageSpawn', { x: o.x ?? 0, y: o.y ?? 0 });
+      if (o.name?.startsWith('villager-')) {
+        const facing = (o.properties as { name: string; value: unknown }[] | undefined)?.find(
+          (p) => p.name === 'facing',
+        )?.value;
+        const v = this.addVillager(
+          o.name.slice('villager-'.length) as VillagerSpriteId,
+          o.x ?? 0,
+          o.y ?? 0,
+          facing === 'up' || facing === 'left' || facing === 'right' ? facing : 'down',
+        );
+        // They are in the way like anything else: a small box at their feet.
+        if (v) block({ x: v.x - 9, y: v.y - 8, w: 18, h: 10 });
+      }
     }
     this.blockers = blockers;
     return walls;
+  }
+
+  /** A villager standing at their place, breathing gently. Missing art: nobody stands there. */
+  private addVillager(id: VillagerSpriteId, x: number, y: number, rest: Facing): Villager | null {
+    const look = VILLAGER_SPRITES[id];
+    if (!look || !this.textures.exists(look.key)) return null;
+    const sprite = this.add
+      .sprite(x, y, look.key, SHEET.rows[rest] * SHEET.columns)
+      .setOrigin(0.5, VILLAGE.villagerFeetY / SHEET.frameSize)
+      .setDepth(depthAt(y));
+    // A breath: a little taller and back, each at their own pace.
+    this.tweens.add({
+      targets: sprite,
+      scaleY: 1 + VILLAGE.villagerBreath,
+      duration: VILLAGE.villagerBreathMs * (0.9 + this.villagers.length * 0.08),
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut',
+      delay: this.villagers.length * 400,
+    });
+    const v = { sprite, x, y, rest, facing: rest };
+    this.villagers.push(v);
+    return v;
+  }
+
+  /** Villagers turn to the watchman when he comes close, and back when he leaves. */
+  private updateVillagers(feet: Point): void {
+    for (const v of this.villagers) {
+      const dx = feet.x - v.x;
+      const dy = feet.y - v.y;
+      const facing = Math.hypot(dx, dy) < VILLAGE.villagerTurnNear ? facingFor(dx, dy) : v.rest;
+      if (facing !== v.facing) {
+        v.facing = facing;
+        v.sprite.setFrame(SHEET.rows[facing] * SHEET.columns);
+      }
+    }
   }
 
   /** A sign above a place: its symbol, its name below (shown up close) and a "!" when there is news. */
@@ -535,6 +606,7 @@ export class VillageScene extends Phaser.Scene {
     this.lantern.update(dt);
     this.updateLight(time);
     this.updateSigns(time, feet);
+    this.updateVillagers(feet);
 
     const here = zoneAt(this.zones, feet.x, feet.y);
     if (here !== this.here) {
