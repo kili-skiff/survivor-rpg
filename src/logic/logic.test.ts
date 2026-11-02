@@ -30,7 +30,7 @@ function seeded(seed = 42) {
 
 describe('progression', () => {
   it('xp curve grows', () => {
-    expect(xpToNext(1)).toBe(5);
+    expect(xpToNext(1)).toBe(8);
     for (let l = 1; l < 50; l++) expect(xpToNext(l + 1)).toBeGreaterThan(xpToNext(l));
   });
 

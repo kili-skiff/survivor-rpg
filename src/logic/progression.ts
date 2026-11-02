@@ -1,7 +1,7 @@
 /** XP required to go from `level` to `level + 1`. */
 export function xpToNext(level: number): number {
   const l = Math.max(1, level) - 1;
-  return Math.round(5 + l * 6 + Math.pow(l, 1.55));
+  return Math.round(8 + l * 9 + Math.pow(l, 1.8));
 }
 
 export interface XpState {
