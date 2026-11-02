@@ -55,6 +55,19 @@ describe('rebirth', () => {
     }
   });
 
+  it('stays at the fire while he rises and drifts to the landing spot while he sinks', () => {
+    expect(rebirthFrame(0).move).toBe(0);
+    expect(rebirthFrame(REBIRTH.lowerFrom).move).toBe(0);
+    expect(rebirthFrame(REBIRTH.liftFrom + REBIRTH.liftMs).move).toBe(0);
+    expect(rebirthFrame(REBIRTH.totalMs).move).toBe(1);
+    let last = 0;
+    for (let t = 0; t <= REBIRTH.totalMs; t += 20) {
+      const m = rebirthFrame(t).move;
+      expect(m).toBeGreaterThanOrEqual(last);
+      last = m;
+    }
+  });
+
   it('bobs and sways only in the air, within the set range', () => {
     for (let t = 0; t <= REBIRTH.totalMs; t += 13) {
       const f = rebirthFrame(t);

@@ -28,6 +28,7 @@ import {
 import type { Arrival } from '../panels/villagePanels';
 import { LanternSystem } from '../systems/LanternSystem';
 import { PlayerController } from '../systems/PlayerController';
+import { rebirthFrame } from '../logic/rebirth';
 import { RebirthFx } from '../systems/RebirthFx';
 import { VillageAmbience, type AmbienceSpots } from '../systems/VillageAmbience';
 import { viewportSize } from '../ui/display';
@@ -129,6 +130,10 @@ export class VillageScene extends Phaser.Scene {
   private rebirthStart = -1;
   /** Where he stands on the ground while he floats (the sprite's own position) */
   private rebirthBase: Point = { x: 0, y: 0 };
+  /** The sprite's position over the Nest's flame, where he rises from */
+  private rebirthNest: Point = { x: 0, y: 0 };
+  /** The feet of whoever stands in the Nest's bowl (null when the village has no Nest) */
+  private nestFeet: Point | null = null;
   private lifeSpots: AmbienceSpots = { fires: [], chimneys: [], width: 0, height: 0 };
   /** Standing in the gate when the scene starts must not send you off at once */
   private inGate = true;
@@ -167,6 +172,7 @@ export class VillageScene extends Phaser.Scene {
     this.villagers = [];
     this.ambience = null;
     this.rebirth = null;
+    this.nestFeet = null;
     this.lifeSpots = { fires: [], chimneys: [], width: 0, height: 0 };
     this.inGate = true;
     this.frozen = false;
@@ -236,9 +242,12 @@ export class VillageScene extends Phaser.Scene {
     this.rebirthBase = { x: sprite.x, y: sprite.y };
     (sprite.body as Phaser.Physics.Arcade.Body).enable = false;
     this.cameras.main.stopFollow();
-    this.cameras.main.centerOn(sprite.x, sprite.y);
+    // He rises from the Nest's flame (or where he stands, when the village has no Nest).
+    const nest = this.nestFeet ?? feet;
+    this.rebirthNest = { x: nest.x, y: nest.y - FEET_Y };
+    this.cameras.main.centerOn((nest.x + feet.x) / 2, (nest.y + feet.y) / 2 - FEET_Y);
     // Above the night layer (5) and the sparks (5.2), so the fire shines in the dark.
-    this.rebirth = new RebirthFx(this, feet.x, feet.y, 5.3);
+    this.rebirth = new RebirthFx(this, nest.x, nest.y - 4, 5.3);
     this.lantern.extinguish();
     this.lantern.setAlpha(0);
     this.cameras.main.fadeIn(REBIRTH.fadeInMs, 0, 0, 0);
@@ -258,13 +267,16 @@ export class VillageScene extends Phaser.Scene {
     const fx = this.rebirth;
     if (!fx) return;
     if (this.rebirthStart < 0) this.rebirthStart = this.time.now;
-    const f = fx.update(this.time.now - this.rebirthStart, dt);
+    // The spot on the ground below him: the Nest's bowl first, then drifting forward to where he lands.
+    const elapsed = this.time.now - this.rebirthStart;
+    const f = rebirthFrame(elapsed);
+    const gx = Phaser.Math.Linear(this.rebirthNest.x, this.rebirthBase.x, f.move);
+    const gy = Phaser.Math.Linear(this.rebirthNest.y, this.rebirthBase.y, f.move);
+    fx.update(elapsed, dt, { x: gx, y: gy + FEET_Y });
     const sprite = this.player.sprite;
     if (f.body < 1) sprite.setAlpha(f.body);
     // Floating above the fire: up, a gentle bob and sway.
-    sprite
-      .setPosition(this.rebirthBase.x, this.rebirthBase.y - f.lift * REBIRTH.liftPx - f.bob)
-      .setRotation(f.sway);
+    sprite.setPosition(gx, gy - f.lift * REBIRTH.liftPx - f.bob).setRotation(f.sway);
     // A glowing shape of fire first, cooling to his own colours.
     if (f.glow > 0.55) sprite.setTint(0xffcf8a).setTintMode(Phaser.TintModes.FILL);
     else if (f.glow > 0) {
@@ -342,7 +354,10 @@ export class VillageScene extends Phaser.Scene {
       thing.setOrigin(0.5, 1).setDepth(depthAt(by));
       // Known props get small signs of life: sparks over open fires, smoke from the forge.
       const h = o.height ?? 0;
-      if (key === 'nest') this.lifeSpots.fires.push({ x: bx, y: by - 26 });
+      if (key === 'nest') {
+        this.lifeSpots.fires.push({ x: bx, y: by - 26 });
+        this.nestFeet = { x: bx, y: by - 8 };
+      }
       if (key === 'forge') {
         this.lifeSpots.fires.push({ x: bx, y: by - 42 });
         this.lifeSpots.chimneys.push({ x: bx - 2, y: by - h + 6 });
@@ -493,11 +508,13 @@ export class VillageScene extends Phaser.Scene {
       // The name fades in as you come close; the place you stand at grows a little.
       const show = Phaser.Math.Clamp((VILLAGE.signNameNear - near) / 40, 0, 1);
       const size = VILLAGE.signSize * (this.here === s.id ? 1.2 : 1);
+      // While he rises from the Nest the signs stay away, so they do not cover him.
+      const hide = this.rebirth !== null;
       s.icon
         .setPosition(s.x, s.y + bob)
         .setDisplaySize(size, size)
-        .setAlpha(0.75 + show * 0.25);
-      s.name.setPosition(s.x, s.y + bob + size / 2 + 2).setAlpha(show);
+        .setAlpha(hide ? 0 : 0.75 + show * 0.25);
+      s.name.setPosition(s.x, s.y + bob + size / 2 + 2).setAlpha(hide ? 0 : show);
       s.badge.setPosition(s.x + size / 2 - 1, s.y + bob - size / 2 + 1);
     }
   }

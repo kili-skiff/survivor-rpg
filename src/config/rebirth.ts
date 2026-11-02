@@ -1,6 +1,6 @@
-// How the watchman wakes up in the Nest after a fall: a burst of fire, he floats up out of it, hovers over the
-// flames while the lantern lights again, then sinks gently to the ground. All times in ms from the moment the
-// village appears.
+// How the watchman wakes up in the Nest after a fall: a burst of fire, he floats up out of the flames, hovers over
+// them while the lantern lights again, then drifts forward and sinks gently to the ground. All times in ms from
+// the moment the village appears.
 
 export const REBIRTH = {
   /** The village fades in from black in this time */
@@ -14,7 +14,7 @@ export const REBIRTH = {
   riseMs: 900,
   glowFrom: 1100,
   glowMs: 1800,
-  /** He floats up above the fire, hovers (a slow bob and sway), then sinks to the ground */
+  /** He floats up out of the fire, hovers (a slow bob and sway), then drifts forward and sinks to the ground */
   liftFrom: 1200,
   liftMs: 1000,
   lowerFrom: 3100,

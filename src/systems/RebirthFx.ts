@@ -24,7 +24,7 @@ export class RebirthFx {
 
   constructor(
     scene: Phaser.Scene,
-    /** The watchman's feet */
+    /** Where the fire burst stands (the Nest's flame) */
     private readonly x: number,
     private readonly y: number,
     depth: number,
@@ -69,7 +69,8 @@ export class RebirthFx {
   }
 
   /** `elapsedMs` since the village appeared; returns the frame of the timeline. */
-  update(elapsedMs: number, dtSec: number): RebirthFrame {
+  /** `ground` is the spot on the ground below him now (shadow, and where he lands). */
+  update(elapsedMs: number, dtSec: number, ground: { x: number; y: number }): RebirthFrame {
     const f = rebirthFrame(elapsedMs);
     this.frame = f;
     if (f.fire > 0.05 && !this.burst) {
@@ -85,7 +86,10 @@ export class RebirthFx {
     const size = 44 + 80 * f.fire;
     this.glow.setDisplaySize(size, size).setAlpha(0.12 * f.fire);
     // The shadow grows fainter and wider the higher he floats.
-    this.shadow.setAlpha(0.4 * f.body * (1 - 0.55 * f.lift)).setDisplaySize(26 + 8 * f.lift, 11 + 3 * f.lift);
+    this.shadow
+      .setPosition(ground.x, ground.y - 1)
+      .setAlpha(0.4 * f.body * (1 - 0.55 * f.lift))
+      .setDisplaySize(26 + 8 * f.lift, 11 + 3 * f.lift);
     // He touches down: a small ring of sparks along the ground.
     if (f.lift > 0.5) this.wasUp = true;
     if (this.wasUp && !this.landed && f.lift < 0.04) {
@@ -93,7 +97,7 @@ export class RebirthFx {
       // A ring along the ground, not one heap.
       for (let i = 0; i < SPARKS_ON_LANDING; i++) {
         const a = (i / SPARKS_ON_LANDING) * Math.PI * 2;
-        this.sparks.emitParticleAt(this.x + Math.cos(a) * 8, this.y - 2 + Math.sin(a) * 3, 1);
+        this.sparks.emitParticleAt(ground.x + Math.cos(a) * 8, ground.y - 2 + Math.sin(a) * 3, 1);
       }
     }
     return f;
