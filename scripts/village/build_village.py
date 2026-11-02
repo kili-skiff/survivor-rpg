@@ -24,7 +24,7 @@ The game reads only this from the map (any other village art works if it keeps i
   object layer props       rectangles named after a frame of the props atlas, standing on their bottom edge
   object layer stations    one zone per place (house, elder, cauldron, armory, merchant, hearth, deeds); standing
                            in it offers its panel; properties signX, signY: where its sign floats (map pixels)
-  object layer marks       "gate" (a zone: walking into it sets out), "spawn" (a point: where you wake up),
+  object layer marks       "gate" (a zone: walking into it sets out; properties signX, signY: where its sign floats), "spawn" (a point: where you wake up),
                            "villager-<name>" (a point: where a villager stands, at the feet; property facing:
                            up, left, down or right, the way they look while you are far away)
   object layer colliders   boxes that block the way, besides the props' own
@@ -378,7 +378,7 @@ def deco_props(src: Sources) -> list[Prop]:
     anim("nest", nest_frames, 10, foot=(-ring.width // 2 + 4, 0, ring.width - 8, ring.height - 10),
          light=(0, 30, 230))
     # Wall torches (3 frames) and hanging lanterns
-    anim("torch", [crop(d, 13 + i, 5, 14 + i, 6, cut=False) for i in range(3)], 10, light=(0, 22, 90))
+    anim("torch", [crop(d, 13 + i, 5, 14 + i, 6, cut=False) for i in range(3)], 10, light=(0, 26, 130))
     anim("lantern", [crop(d, 13 + i, 2, 14 + i, 3, cut=False) for i in range(3)], 5, light=(0, 16, 110))
     pole = crop(d, 11, 0, 12, 2).transpose(Image.FLIP_LEFT_RIGHT)
     lamp_frames = []
@@ -586,6 +586,9 @@ PROPS: list[tuple[str, float, float]] = [
     ("barrel", 22.2, 22.6),
     ("cart", 25.4, 22.6),
     ("signpost", 13.0, 23.2),
+    # Torches in front of the palisade, beside the opening, so the way out shows up in the dark
+    ("torch", 13.6, 26.1),
+    ("torch", 16.4, 26.1),
     # The graveyard
     ("grave-big", 5.0, 23.0),
     ("grave-cross", 2.8, 22.0),
@@ -639,6 +642,7 @@ VILLAGERS = [
     ("smith", 24.3, 18.35, "left"),  # at the anvil
 ]
 GATE_ZONE = (15.0, 25.6, 2.0, 0.8)
+GATE_SIGN = (15.0, 24.1)  # where the sign of the gate floats (x, y in tiles)
 
 
 # --------------------------------------------------------------------------------------- export
@@ -781,6 +785,10 @@ def build(src: Sources, preview: Path | None) -> None:
     marks = [
         obj("gate", "gate", (gx - gw / 2) * T, (gy - gh / 2) * T, gw * T, gh * T),
         obj("spawn", "spawn", SPAWN[0] * T, SPAWN[1] * T, 0, 0, point=True),
+    ]
+    marks[0]["properties"] = [
+        {"name": "signX", "type": "float", "value": round(GATE_SIGN[0] * T, 1)},
+        {"name": "signY", "type": "float", "value": round(GATE_SIGN[1] * T, 1)},
     ]
     for name, x, y, facing in VILLAGERS:
         o = obj(f"villager-{name}", "villager", x * T, y * T, 0, 0, point=True)

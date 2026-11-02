@@ -217,7 +217,7 @@ weapon, ores and the blacksmith.
       shows up close), the menu with a line on what each place is for, an arrow at the screen edge to the elder
       when he has news, a one-time hint on the menu; the elder, the trader and the smith standing at their places
       (LPC sheets from `scripts/lpc`, `VILLAGER_SPRITES`), turning to you as you come close and breathing; small
-      signs of life (`systems/VillageAmbience.ts`, `VILLAGE_LIFE`): sparks over the Nest and the forge, smoke from
+      a sign and two torches at the gate; signs of life (`systems/VillageAmbience.ts`, `VILLAGE_LIFE`): sparks over the Nest and the forge, smoke from
       its chimney, now and then a bat, fog along the palisade. Next: a house panel for
       stash and belt.
       What the game reads from the village map is listed in the header of `scripts/village/build_village.py`;

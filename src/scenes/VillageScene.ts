@@ -3,6 +3,7 @@ import { SHEET, type Facing } from '../config/sprites';
 import {
   STATIONS,
   VILLAGE,
+  GATE_ENTRY,
   VILLAGE_ASSETS,
   VILLAGER_SPRITES,
   type StationId,
@@ -78,7 +79,7 @@ interface Villager {
 }
 
 interface Sign {
-  id: StationId;
+  id: WalkTarget;
   x: number;
   y: number;
   icon: Phaser.GameObjects.Image;
@@ -281,7 +282,16 @@ export class VillageScene extends Phaser.Scene {
       this.addSign(zone.id, sx, sy);
     }
     for (const o of map.getObjectLayer('marks')?.objects ?? []) {
-      if (o.name === 'gate') this.gate = { x: o.x ?? 0, y: o.y ?? 0, w: o.width ?? 0, h: o.height ?? 0 };
+      if (o.name === 'gate') {
+        this.gate = { x: o.x ?? 0, y: o.y ?? 0, w: o.width ?? 0, h: o.height ?? 0 };
+        const prop = (name: string) =>
+          (o.properties as { name: string; value: unknown }[] | undefined)?.find((p) => p.name === name)
+            ?.value;
+        const sx =
+          typeof prop('signX') === 'number' ? (prop('signX') as number) : this.gate.x + this.gate.w / 2;
+        const sy = typeof prop('signY') === 'number' ? (prop('signY') as number) : this.gate.y - 60;
+        this.addSign('gate', sx, sy);
+      }
       if (o.name === 'spawn') this.registry.set('villageSpawn', { x: o.x ?? 0, y: o.y ?? 0 });
       if (o.name?.startsWith('villager-')) {
         const facing = (o.properties as { name: string; value: unknown }[] | undefined)?.find(
@@ -338,8 +348,8 @@ export class VillageScene extends Phaser.Scene {
   }
 
   /** A sign above a place: its symbol, its name below (shown up close) and a "!" when there is news. */
-  private addSign(id: StationId, x: number, y: number): void {
-    const def = STATIONS.find((s) => s.id === id);
+  private addSign(id: WalkTarget, x: number, y: number): void {
+    const def = id === 'gate' ? GATE_ENTRY : STATIONS.find((s) => s.id === id);
     if (!def) return;
     const depth = 6.5;
     const icon = this.add
@@ -389,7 +399,7 @@ export class VillageScene extends Phaser.Scene {
   private updateSigns(time: number, feet: Point): void {
     for (const s of this.signs) {
       const bob = Math.sin(time * 0.0022 + s.phase) * VILLAGE.signBob;
-      const zone = this.zones.find((z) => z.id === s.id);
+      const zone = s.id === 'gate' ? this.gate : this.zones.find((z) => z.id === s.id);
       const near = zone
         ? Math.hypot(feet.x - (zone.x + zone.w / 2), feet.y - (zone.y + zone.h / 2))
         : Infinity;

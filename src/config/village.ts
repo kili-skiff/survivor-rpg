@@ -7,7 +7,7 @@ import type { VillagerId } from './quests';
  * Bump when the village art is rebuilt: the version goes into the file URLs, so browsers load the new files
  * instead of old ones from their cache (GitHub Pages keeps them cached for a while).
  */
-const ART_VERSION = 5;
+const ART_VERSION = 6;
 
 export const VILLAGE_ASSETS = {
   map: { key: 'village-map', path: `assets/village/village.json?v=${ART_VERSION}` },
