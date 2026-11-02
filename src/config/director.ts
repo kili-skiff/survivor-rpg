@@ -75,7 +75,7 @@ export const DIRECTOR: DirectorParams = {
   finaleLeadSec: 22,
   finaleText: 'The night throws everything at you!',
   /** Spawned enemies that are not yet in play are never banked beyond this (e.g. while at the enemy cap) */
-  maxBank: 36,
+  maxBank: 30,
   /** At most this many enemies are placed in one frame by the stream */
   maxPerFrame: 6,
   /** A swarm surge comes from one side: enemies spread over this angle (radians, total) */

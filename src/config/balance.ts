@@ -22,7 +22,7 @@ export const BALANCE = {
    * All enemies walk this share of the speed in their config (config/enemies.ts); one knob for the pace of
    * the whole horde. Leaps of pouncers are timed and not affected.
    */
-  enemySpeed: 0.72,
+  enemySpeed: 0.7,
 } as const;
 
 /** Further rings are harder: enemies get more health and damage and come in denser waves. */
@@ -35,8 +35,8 @@ export const RINGS = {
   table: [
     { hp: 1.0, damage: 1.0, spawnRate: 1.0 },
     { hp: 1.2, damage: 1.15, spawnRate: 1.1 },
-    { hp: 1.6, damage: 1.4, spawnRate: 1.4 },
-    { hp: 2.1, damage: 1.6, spawnRate: 1.6 },
+    { hp: 1.6, damage: 1.35, spawnRate: 1.4 },
+    { hp: 2.1, damage: 1.55, spawnRate: 1.6 },
     { hp: 2.7, damage: 1.8, spawnRate: 1.8 },
     { hp: 3.5, damage: 2.0, spawnRate: 2.0 },
     { hp: 4.6, damage: 2.25, spawnRate: 2.25 },
@@ -52,11 +52,11 @@ export const RINGS = {
  * ring's difficulty offset (that only decides which enemy types come).
  */
 export const SPAWN = {
-  baseRate: 1.25,
-  growthSec: 100,
-  capBase: 40,
-  capPerRing: 14,
-  capPerSec: 1.0,
+  baseRate: 1.1,
+  growthSec: 110,
+  capBase: 36,
+  capPerRing: 10,
+  capPerSec: 0.85,
 } as const;
 
 /** Elite enemies: rare, big and tough, with a golden shimmer; they always leave a treasure chest. */
