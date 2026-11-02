@@ -54,9 +54,9 @@ export const RINGS = {
 export const SPAWN = {
   baseRate: 1.1,
   growthSec: 110,
-  capBase: 36,
-  capPerRing: 10,
-  capPerSec: 0.85,
+  capBase: 34,
+  capPerRing: 8,
+  capPerSec: 0.35,
 } as const;
 
 /** Elite enemies: rare, big and tough, with a golden shimmer; they always leave a treasure chest. */
