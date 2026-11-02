@@ -18,6 +18,18 @@ Output in public/assets/village/:
   village.json        the map in Tiled's JSON format: ground layers, and object layers for props,
                       stations (doors and people that open a panel), the gate and the spawn point
   CREDITS-village.txt authors and licences of every pack used
+After a rebuild, bump ART_VERSION in src/config/village.ts so browsers do not keep the old files.
+The game reads only this from the map (any other village art works if it keeps it):
+  tile layers        drawn in order; a layer named "fences" is drawn piece by piece, sorted with the props
+  object layer props       rectangles named after a frame of the props atlas, standing on their bottom edge
+  object layer stations    one zone per place (house, elder, cauldron, armory, merchant, hearth, deeds); standing
+                           in it offers its panel; properties signX, signY: where its sign floats (map pixels)
+  object layer marks       "gate" (a zone: walking into it sets out; properties signX, signY: where its sign floats), "spawn" (a point: where you wake up),
+                           "villager-<name>" (a point: where a villager stands, at the feet; property facing:
+                           up, left, down or right, the way they look while you are far away)
+  object layer colliders   boxes that block the way, besides the props' own
+  props atlas meta.props   per frame name: frames and fps (animations are <name>-0, <name>-1 ...), foot (its
+                           collision box) and light (where it glows), see Prop
 With --preview, also writes village-preview.png (the map as drawn) and village-night.png (a rough night look).
 
 Night grading as for the fight sprites: less colour, a little darker. Things that glow (fires, lanterns,
@@ -366,7 +378,7 @@ def deco_props(src: Sources) -> list[Prop]:
     anim("nest", nest_frames, 10, foot=(-ring.width // 2 + 4, 0, ring.width - 8, ring.height - 10),
          light=(0, 30, 230))
     # Wall torches (3 frames) and hanging lanterns
-    anim("torch", [crop(d, 13 + i, 5, 14 + i, 6, cut=False) for i in range(3)], 10, light=(0, 22, 90))
+    anim("torch", [crop(d, 13 + i, 5, 14 + i, 6, cut=False) for i in range(3)], 10, light=(0, 26, 130))
     anim("lantern", [crop(d, 13 + i, 2, 14 + i, 3, cut=False) for i in range(3)], 5, light=(0, 16, 110))
     pole = crop(d, 11, 0, 12, 2).transpose(Image.FLIP_LEFT_RIGHT)
     lamp_frames = []
@@ -383,12 +395,14 @@ def deco_props(src: Sources) -> list[Prop]:
     add("cauldron", trim(cauldron), foot=(-12, 0, 24, 14), light=(0, 10, 90), glows=True)
     # Smithy: open barn, a forge (4 frames), anvil, firewood
     add("barn", crop(d, 9, 20, 12, 24), foot=(-46, 0, 92, 70))
-    anim("forge", [crop(s, 2 * i, 0, 2 * i + 2, 4) for i in range(4)], 6, foot=(-26, 0, 52, 30),
+    # The sheet's first forge is cold; the other three are the burning ones. All cut the same, so they do not jump.
+    anim("forge", [crop(s, 2 * i, 0, 2 * i + 2, 4, cut=False) for i in (1, 2, 3)], 6, foot=(-26, 0, 52, 30),
          light=(0, 30, 120))
     add("anvil", crop(s, 8, 13, 9, 14), foot=(-12, 0, 24, 10))
     add("firewood", crop(d, 12, 20, 14, 22), foot=(-26, 0, 52, 22))
     # Market stall
-    add("stall", crop(d, 5, 25, 8, 30), foot=(-46, 0, 92, 28))
+    # A lamp under the awning lights the trader behind her counter.
+    add("stall", crop(d, 5, 25, 8, 30), foot=(-46, 0, 92, 28), light=(0, 56, 80))
     # Well, notice board (deeds), signs
     add("well", crop(d, 14, 13, 16, 16), foot=(-26, 0, 52, 30))
     add("board", crop(d, 7, 5, 8, 6), foot=(-14, 0, 28, 8))
@@ -572,6 +586,9 @@ PROPS: list[tuple[str, float, float]] = [
     ("barrel", 22.2, 22.6),
     ("cart", 25.4, 22.6),
     ("signpost", 13.0, 23.2),
+    # Torches in front of the palisade, beside the opening, so the way out shows up in the dark
+    ("torch", 13.6, 26.1),
+    ("torch", 16.4, 26.1),
     # The graveyard
     ("grave-big", 5.0, 23.0),
     ("grave-cross", 2.8, 22.0),
@@ -607,17 +624,25 @@ PALISADE = (
 GRAVE_FENCE = line(1, 20, 10, 20) | line(10, 20, 10, 25) - {(10, 22), (10, 23)}
 
 # Stations: (id, x, y, w, h) in tiles, a zone in front of the door or person. Walking into it offers the panel.
+# The last pair is where its sign floats (x, y in tiles): above the door, the stall or the fire.
 STATIONS = [
-    ("house", 8.0, 9.6, 1.6, 1.2),
-    ("elder", 22.2, 10.2, 1.6, 1.2),
-    ("cauldron", 7.4, 17.6, 1.6, 1.2),
-    ("armory", 23.2, 18.9, 1.8, 1.2),
-    ("merchant", 20.2, 23.0, 2.2, 1.2),
-    ("hearth", NEST[0], NEST[1] + 0.7, 2.0, 1.2),
-    ("deeds", 18.6, 11.5, 1.4, 1.0),
+    ("house", 8.0, 9.6, 1.6, 1.2, (8.0, 6.3)),
+    ("elder", 22.6, 10.2, 2.2, 1.2, (23.4, 8.1)),
+    ("cauldron", 7.4, 17.6, 1.6, 1.2, (7.4, 15.6)),
+    ("armory", 23.2, 18.9, 1.8, 1.2, (22.9, 15.3)),
+    ("merchant", 20.2, 23.0, 2.2, 1.2, (20.2, 18.3)),
+    ("hearth", NEST[0], NEST[1] + 0.7, 2.0, 1.2, (NEST[0], 10.7)),
+    ("deeds", 18.6, 11.5, 1.4, 1.0, (18.6, 9.5)),
 ]
 SPAWN = (15.0, 15.0)  # where you wake up: just in front of the Nest
+# Villagers standing at their places: (name, x, y of the feet in tiles, the way they look when you are far)
+VILLAGERS = [
+    ("elder", 23.4, 10.05, "down"),  # beside his door
+    ("trader", 20.2, 21.7, "down"),  # behind the counter of her stall
+    ("smith", 24.3, 18.35, "left"),  # at the anvil
+]
 GATE_ZONE = (15.0, 25.6, 2.0, 0.8)
+GATE_SIGN = (15.0, 24.1)  # where the sign of the gate floats (x, y in tiles)
 
 
 # --------------------------------------------------------------------------------------- export
@@ -747,14 +772,28 @@ def build(src: Sources, preview: Path | None) -> None:
     for key, x, y in PROPS:
         f = props[key].frames[0]
         prop_objects.append(obj(key, "prop", x * T - f.width / 2, y * T - f.height, f.width, f.height))
-    station_objects = [
-        obj(sid, "station", (x - w / 2) * T, (y - h / 2) * T, w * T, h * T) for sid, x, y, w, h in STATIONS
-    ]
+    station_objects = []
+    for sid, x, y, w, h, (sx, sy) in STATIONS:
+        o = obj(sid, "station", (x - w / 2) * T, (y - h / 2) * T, w * T, h * T)
+        # Where its sign floats, in map pixels
+        o["properties"] = [
+            {"name": "signX", "type": "float", "value": round(sx * T, 1)},
+            {"name": "signY", "type": "float", "value": round(sy * T, 1)},
+        ]
+        station_objects.append(o)
     gx, gy, gw, gh = GATE_ZONE
     marks = [
         obj("gate", "gate", (gx - gw / 2) * T, (gy - gh / 2) * T, gw * T, gh * T),
         obj("spawn", "spawn", SPAWN[0] * T, SPAWN[1] * T, 0, 0, point=True),
     ]
+    marks[0]["properties"] = [
+        {"name": "signX", "type": "float", "value": round(GATE_SIGN[0] * T, 1)},
+        {"name": "signY", "type": "float", "value": round(GATE_SIGN[1] * T, 1)},
+    ]
+    for name, x, y, facing in VILLAGERS:
+        o = obj(f"villager-{name}", "villager", x * T, y * T, 0, 0, point=True)
+        o["properties"] = [{"name": "facing", "type": "string", "value": facing}]
+        marks.append(o)
     # Fences block the way: one box per fence tile, along its lower half
     collider_objects = [obj("fence", "collider", x * T, y * T + 12, T, 20) for (x, y) in sorted(fences)]
 

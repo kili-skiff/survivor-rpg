@@ -28,6 +28,7 @@ import { safeArea, viewportSize, type SafeArea } from '../ui/display';
 import { COLORS, css, FONT } from '../ui/theme';
 import type { GameScene, RunEndInfo } from './GameScene';
 import type { ChestReward } from '../logic/chest';
+import { readStick } from '../logic/stick';
 
 interface PotionButton {
   id: PotionId;
@@ -291,19 +292,15 @@ export class UIScene extends Phaser.Scene {
       return;
     }
     if (this.stickPointerId !== null) {
-      const r = this.stickRadius();
-      const dx = this.stickPos.x - this.stickOrigin.x;
-      const dy = this.stickPos.y - this.stickOrigin.y;
-      const len = Math.hypot(dx, dy);
-      // The base follows when the thumb pulls far out (feels better on phones).
-      if (len > r * 1.4) {
-        this.stickOrigin.x = this.stickPos.x - (dx / len) * r * 1.4;
-        this.stickOrigin.y = this.stickPos.y - (dy / len) * r * 1.4;
-      }
-      const dead = 0.12;
-      const mag = Math.min(len / r, 1);
-      if (mag < dead) this.controls.setMove(0, 0);
-      else this.controls.setMove((dx / len) * mag, (dy / len) * mag);
+      const s = readStick(
+        this.stickOrigin.x,
+        this.stickOrigin.y,
+        this.stickPos.x,
+        this.stickPos.y,
+        this.stickRadius(),
+      );
+      this.stickOrigin.set(s.originX, s.originY);
+      this.controls.setMove(s.x, s.y);
       return;
     }
     if (!this.keys) {

@@ -101,7 +101,8 @@ export class PlayerController {
     this.dashId += 1;
   }
 
-  update(moveX: number, moveY: number, moveSpeed: number, enemies: EnemySystem): void {
+  /** Moves the character; `enemies` is only needed for a dash that deals damage (not in the village). */
+  update(moveX: number, moveY: number, moveSpeed: number, enemies?: EnemySystem): void {
     const p = this.sprite;
     const now = this.now();
     const dashing = this.isDashing();
@@ -109,7 +110,7 @@ export class PlayerController {
     if (dashing) {
       p.setVelocity(this.dashDir.x * DASH_SPEED, this.dashDir.y * DASH_SPEED);
       this.spawnGhost(now);
-      if (this.dashDamage > 0) this.dashHits(enemies);
+      if (this.dashDamage > 0 && enemies) this.dashHits(enemies);
     } else {
       p.setVelocity(moveX * moveSpeed, moveY * moveSpeed);
       const moving = Math.hypot(moveX, moveY) > DIRECTION_DEADZONE;

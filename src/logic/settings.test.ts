@@ -29,13 +29,18 @@ describe('settings', () => {
 
   it('round-trips through storage', () => {
     const storage = memoryStorage();
-    writeSettings(storage, { skillSide: 'left', lighting: false, healthBar: false });
-    expect(loadSettings(storage)).toEqual({ skillSide: 'left', lighting: false, healthBar: false });
+    writeSettings(storage, { skillSide: 'left', lighting: false, healthBar: false, villageTipSeen: false });
+    expect(loadSettings(storage)).toEqual({
+      skillSide: 'left',
+      lighting: false,
+      healthBar: false,
+      villageTipSeen: false,
+    });
   });
 
   it('does not touch the save data', () => {
     const storage = memoryStorage();
-    writeSettings(storage, { skillSide: 'left', lighting: true, healthBar: true });
+    writeSettings(storage, { skillSide: 'left', lighting: true, healthBar: true, villageTipSeen: false });
     expect(storage.data.has('survivor-rpg.save')).toBe(false);
   });
 
@@ -56,5 +61,11 @@ describe('settings', () => {
   it('flips sides', () => {
     expect(otherSide('left')).toBe('right');
     expect(otherSide('right')).toBe('left');
+  });
+
+  it('remembers that the village hint was seen', () => {
+    expect(defaultSettings().villageTipSeen).toBe(false);
+    expect(parseSettings({ villageTipSeen: true }).villageTipSeen).toBe(true);
+    expect(parseSettings({ villageTipSeen: 'yes' }).villageTipSeen).toBe(false);
   });
 });

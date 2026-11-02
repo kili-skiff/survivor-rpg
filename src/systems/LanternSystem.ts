@@ -22,6 +22,9 @@ export class LanternSystem {
   private prevVx = 0;
   private prevVy = 0;
   private lit = true;
+  /** Drawn around this depth: a little in front of the character, or behind it when walking away */
+  depth = 3;
+  depthSpread = 0.1;
   /** World position of the flame: the centre of the player's light */
   x = 0;
   y = 0;
@@ -90,7 +93,7 @@ export class LanternSystem {
     this.x = lx + Math.sin(angle) * 6;
     this.y = ly + Math.cos(angle) * 6;
 
-    const depth = hand.behind ? 2.9 : 3.1;
+    const depth = this.depth + (hand.behind ? -this.depthSpread : this.depthSpread);
     this.lantern.setDepth(depth);
     this.chain.setDepth(depth).clear().lineStyle(1, 0x4a4038, 1).lineBetween(hx, hy, lx, ly);
   }
