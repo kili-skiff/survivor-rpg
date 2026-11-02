@@ -26,6 +26,7 @@ import {
 import type { Arrival } from '../panels/villagePanels';
 import { LanternSystem } from '../systems/LanternSystem';
 import { PlayerController } from '../systems/PlayerController';
+import { VillageAmbience, type AmbienceSpots } from '../systems/VillageAmbience';
 import { viewportSize } from '../ui/display';
 import { COLORS, css, FONT } from '../ui/theme';
 
@@ -117,6 +118,9 @@ export class VillageScene extends Phaser.Scene {
   /** Signs floating above the places */
   private signs: Sign[] = [];
   private villagers: Villager[] = [];
+  /** Sparks, smoke, moths, bats and fog, and where they happen (filled while the map is built) */
+  private ambience: VillageAmbience | null = null;
+  private lifeSpots: AmbienceSpots = { fires: [], chimneys: [], lamps: [], width: 0, height: 0 };
   /** Standing in the gate when the scene starts must not send you off at once */
   private inGate = true;
   private frozen = false;
@@ -152,6 +156,8 @@ export class VillageScene extends Phaser.Scene {
     this.here = null;
     this.signs = [];
     this.villagers = [];
+    this.ambience = null;
+    this.lifeSpots = { fires: [], chimneys: [], lamps: [], width: 0, height: 0 };
     this.inGate = true;
     this.frozen = false;
     this.leaving = false;
@@ -179,6 +185,11 @@ export class VillageScene extends Phaser.Scene {
     this.lantern.depthSpread = 0.000004;
 
     this.buildLight();
+    this.ambience = new VillageAmbience(
+      this,
+      { ...this.lifeSpots, width: this.mapW, height: this.mapH },
+      5.2,
+    );
     const cam = this.cameras.main;
     cam.setBounds(0, 0, this.mapW, this.mapH);
     cam.setBackgroundColor(0x0b0a10);
@@ -241,6 +252,14 @@ export class VillageScene extends Phaser.Scene {
           ? this.add.sprite(bx, by, VILLAGE_ASSETS.props.key, `${key}-0`).play(this.propAnim(key, m))
           : this.add.image(bx, by, VILLAGE_ASSETS.props.key, key);
       thing.setOrigin(0.5, 1).setDepth(depthAt(by));
+      // Known props get small signs of life: sparks over open fires, smoke from the forge, moths at lanterns.
+      const h = o.height ?? 0;
+      if (key === 'nest') this.lifeSpots.fires.push({ x: bx, y: by - 26 });
+      if (key === 'forge') {
+        this.lifeSpots.fires.push({ x: bx, y: by - 42 });
+        this.lifeSpots.chimneys.push({ x: bx - 2, y: by - h + 6 });
+      }
+      if (key === 'lamp' && m.light) this.lifeSpots.lamps.push({ x: bx + m.light[0], y: by - m.light[1] });
       if (m.foot) {
         const [fx, fy, fw, fh] = m.foot;
         block({ x: bx + fx, y: by - fy - fh, w: fw, h: fh });
@@ -607,6 +626,7 @@ export class VillageScene extends Phaser.Scene {
     this.updateLight(time);
     this.updateSigns(time, feet);
     this.updateVillagers(feet);
+    this.ambience?.update(time, dt);
 
     const here = zoneAt(this.zones, feet.x, feet.y);
     if (here !== this.here) {

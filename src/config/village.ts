@@ -126,3 +126,31 @@ export const VILLAGE = {
   /** Seconds the note about what you brought home stays on screen */
   arrivalNoteSec: 7,
 } as const;
+
+/** Small signs of life in the village (systems/VillageAmbience.ts): times in ms, speeds in px/s */
+export const VILLAGE_LIFE = {
+  /** Sparks rising from the Nest and the forge */
+  sparkEvery: 170,
+  sparkLife: 1500,
+  sparkRise: 32,
+  sparkSpread: 9,
+  /** Smoke from the forge's chimney, drifting with a light wind */
+  smokeEvery: 420,
+  smokeLife: 3600,
+  smokeRise: 14,
+  smokeDrift: 7,
+  smokeAlpha: 0.16,
+  smokeColor: 0x8a8494,
+  /** Moths circling each lantern */
+  mothsPerLamp: 2,
+  /** Now and then a bat crosses the sky */
+  batFirstMs: 6000,
+  batEveryMs: 18000,
+  batSpeed: 120,
+  batScale: 0.75,
+  /** Thin fog creeping along the palisade */
+  fogPuffs: 16,
+  fogSize: 220,
+  fogAlpha: 0.07,
+  fogColor: 0x9aa3b8,
+} as const;
