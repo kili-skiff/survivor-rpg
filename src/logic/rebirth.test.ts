@@ -35,6 +35,34 @@ describe('rebirth', () => {
     }
   });
 
+  it('floats up above the fire, hovers, and is back on the ground at the end', () => {
+    expect(rebirthFrame(0).lift).toBe(0);
+    expect(rebirthFrame(REBIRTH.liftFrom + REBIRTH.liftMs).lift).toBeCloseTo(1, 5);
+    expect(rebirthFrame((REBIRTH.liftFrom + REBIRTH.liftMs + REBIRTH.lowerFrom) / 2).lift).toBeCloseTo(1, 5);
+    const end = rebirthFrame(REBIRTH.totalMs);
+    expect(end.lift).toBe(0);
+    expect(end.bob).toBeCloseTo(0, 10);
+    expect(end.sway).toBeCloseTo(0, 10);
+  });
+
+  it('sinks steadily while landing and never goes below the ground', () => {
+    let last = 1;
+    for (let t = REBIRTH.lowerFrom; t <= REBIRTH.totalMs; t += 20) {
+      const l = rebirthFrame(t).lift;
+      expect(l).toBeLessThanOrEqual(last + 1e-9);
+      expect(l).toBeGreaterThanOrEqual(0);
+      last = l;
+    }
+  });
+
+  it('bobs and sways only in the air, within the set range', () => {
+    for (let t = 0; t <= REBIRTH.totalMs; t += 13) {
+      const f = rebirthFrame(t);
+      expect(Math.abs(f.bob)).toBeLessThanOrEqual(REBIRTH.bobPx * f.lift + 1e-9);
+      expect(Math.abs(f.sway)).toBeLessThanOrEqual(REBIRTH.swayRad * f.lift + 1e-9);
+    }
+  });
+
   it('lights the lantern with a flare above normal, ending at normal', () => {
     let peak = 0;
     for (let t = REBIRTH.lanternFrom; t <= REBIRTH.totalMs; t += 10)
@@ -55,5 +83,7 @@ describe('rebirth', () => {
     expect(REBIRTH.fireOutAt).toBeLessThanOrEqual(REBIRTH.totalMs);
     expect(REBIRTH.lanternFrom + REBIRTH.lanternMs).toBeLessThanOrEqual(REBIRTH.totalMs);
     expect(REBIRTH.riseFrom + REBIRTH.riseMs).toBeLessThanOrEqual(REBIRTH.totalMs);
+    expect(REBIRTH.lowerFrom + REBIRTH.lowerMs).toBeLessThanOrEqual(REBIRTH.totalMs);
+    expect(REBIRTH.liftFrom + REBIRTH.liftMs).toBeLessThanOrEqual(REBIRTH.lowerFrom);
   });
 });

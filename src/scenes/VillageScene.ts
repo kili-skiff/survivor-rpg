@@ -127,6 +127,8 @@ export class VillageScene extends Phaser.Scene {
   private rebirth: RebirthFx | null = null;
   /** -1 until the first frame: the scene clock is not running yet in create() */
   private rebirthStart = -1;
+  /** Where he stands on the ground while he floats (the sprite's own position) */
+  private rebirthBase: Point = { x: 0, y: 0 };
   private lifeSpots: AmbienceSpots = { fires: [], chimneys: [], width: 0, height: 0 };
   /** Standing in the gate when the scene starts must not send you off at once */
   private inGate = true;
@@ -229,6 +231,12 @@ export class VillageScene extends Phaser.Scene {
   private beginRebirth(feet: Point): void {
     this.frozen = true;
     this.rebirthStart = -1;
+    // He floats over the fire, so he must not collide with the Nest, and the camera stays calm.
+    const sprite = this.player.sprite;
+    this.rebirthBase = { x: sprite.x, y: sprite.y };
+    (sprite.body as Phaser.Physics.Arcade.Body).enable = false;
+    this.cameras.main.stopFollow();
+    this.cameras.main.centerOn(sprite.x, sprite.y);
     // Above the night layer (5) and the sparks (5.2), so the fire shines in the dark.
     this.rebirth = new RebirthFx(this, feet.x, feet.y, 5.3);
     this.lantern.extinguish();
@@ -253,14 +261,18 @@ export class VillageScene extends Phaser.Scene {
     const f = fx.update(this.time.now - this.rebirthStart, dt);
     const sprite = this.player.sprite;
     if (f.body < 1) sprite.setAlpha(f.body);
+    // Floating above the fire: up, a gentle bob and sway.
+    sprite
+      .setPosition(this.rebirthBase.x, this.rebirthBase.y - f.lift * REBIRTH.liftPx - f.bob)
+      .setRotation(f.sway);
     // A glowing shape of fire first, cooling to his own colours.
-    if (f.glow > 0.4) sprite.setTint(0xffb050).setTintMode(Phaser.TintModes.FILL);
+    if (f.glow > 0.55) sprite.setTint(0xffcf8a).setTintMode(Phaser.TintModes.FILL);
     else if (f.glow > 0) {
       const c = Phaser.Display.Color.Interpolate.ColorWithColor(
         Phaser.Display.Color.ValueToColor(0xffffff),
         Phaser.Display.Color.ValueToColor(0xffb070),
         100,
-        (f.glow / 0.4) * 100,
+        (f.glow / 0.55) * 100,
       );
       sprite.setTint(Phaser.Display.Color.GetColor(c.r, c.g, c.b)).setTintMode(Phaser.TintModes.MULTIPLY);
     }
@@ -270,6 +282,11 @@ export class VillageScene extends Phaser.Scene {
     fx.destroy();
     this.rebirth = null;
     this.frozen = false;
+    // Back on the ground: the body takes over again and the camera follows him.
+    sprite.setRotation(0).setPosition(this.rebirthBase.x, this.rebirthBase.y);
+    (sprite.body as Phaser.Physics.Arcade.Body).enable = true;
+    (sprite.body as Phaser.Physics.Arcade.Body).reset(this.rebirthBase.x, this.rebirthBase.y);
+    this.cameras.main.startFollow(sprite, true, 0.18, 0.18);
     this.lantern.setAlpha(1);
     this.input.off('pointerdown', this.skipRebirth, this);
     this.input.keyboard?.off('keydown', this.skipRebirth, this);
@@ -704,7 +721,8 @@ export class VillageScene extends Phaser.Scene {
     this.player.update(mx, my, VILLAGE.walkSpeed);
 
     const feet = this.feet();
-    const depth = depthAt(feet.y);
+    // While he floats over the fire he is drawn above it, so the flames do not swallow him.
+    const depth = this.rebirth ? 5.35 : depthAt(feet.y);
     this.player.sprite.setDepth(depth);
     this.lantern.depth = depth;
     this.updateRebirth(dt);
