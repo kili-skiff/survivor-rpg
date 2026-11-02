@@ -4,22 +4,25 @@ import { rebirthFrame, type RebirthFrame } from '../logic/rebirth';
 /** Flames shot up per second at the peak of the fire */
 const FLAMES_PER_SEC = 30;
 const SPARKS_IN_BURST = 28;
-const SPARKS_ON_LANDING = 16;
+/** Wisps of smoke and falling embers per second while he smoulders */
+const SMOKE_PER_SEC = 7;
+const EMBERS_PER_SEC = 4;
 
 /**
- * The burst of fire in the Nest when the watchman wakes up: a column of flames and sparks with a warm glow.
- * It only draws; the timeline is logic/rebirth.ts, and the scene shows the watchman and lights the night.
+ * The fire in the Nest when the watchman wakes up: a soft burst of flames and sparks with a warm glow, and the
+ * smoke and embers that still come off him while he staggers out. It only draws; the timeline is
+ * logic/rebirth.ts, and the scene shows the watchman and lights the night.
  */
 export class RebirthFx {
   private readonly flames: Phaser.GameObjects.Particles.ParticleEmitter;
   private readonly sparks: Phaser.GameObjects.Particles.ParticleEmitter;
+  private readonly smoke: Phaser.GameObjects.Particles.ParticleEmitter;
+  private readonly embers: Phaser.GameObjects.Particles.ParticleEmitter;
   private readonly glow: Phaser.GameObjects.Image;
-  /** A soft shadow on the ground: it shows that he floats */
-  private readonly shadow: Phaser.GameObjects.Image;
-  private carry = 0;
+  private carryFlames = 0;
+  private carrySmoke = 0;
+  private carryEmbers = 0;
   private burst = false;
-  private wasUp = false;
-  private landed = false;
   private frame: RebirthFrame = rebirthFrame(0);
 
   constructor(
@@ -54,52 +57,68 @@ export class RebirthFx {
         blendMode: Phaser.BlendModes.ADD,
       })
       .setDepth(depth + 0.01);
+    // He smoulders: grey wisps rise from him, and now and then a glowing ember drops off.
+    this.smoke = scene.add
+      .particles(0, 0, 'light', {
+        emitting: false,
+        speedY: { min: -26, max: -12 },
+        speedX: { min: -6, max: 6 },
+        lifespan: { min: 900, max: 1500 },
+        scale: { start: 0.05, end: 0.2 },
+        alpha: { start: 0.22, end: 0 },
+        tint: 0x8a8494,
+      })
+      .setDepth(depth + 0.02);
+    this.embers = scene.add
+      .particles(0, 0, 'light', {
+        emitting: false,
+        speedY: { min: 4, max: 22 },
+        speedX: { min: -10, max: 10 },
+        lifespan: { min: 600, max: 1100 },
+        scale: { start: 0.05, end: 0 },
+        alpha: { start: 0.9, end: 0 },
+        tint: [0xffc060, 0xff8a30],
+        blendMode: Phaser.BlendModes.ADD,
+      })
+      .setDepth(depth + 0.02);
     this.glow = scene.add
       .image(x, y - 14, 'light')
       .setTint(0xffa860)
       .setBlendMode(Phaser.BlendModes.ADD)
       .setDepth(depth - 0.01)
       .setAlpha(0);
-    this.shadow = scene.add
-      .image(x, y - 1, 'light')
-      .setTint(0x000000)
-      .setDisplaySize(26, 11)
-      .setDepth(depth - 0.02)
-      .setAlpha(0);
   }
 
-  /** `elapsedMs` since the village appeared; returns the frame of the timeline. */
-  /** `ground` is the spot on the ground below him now (shadow, and where he lands). */
-  update(elapsedMs: number, dtSec: number, ground: { x: number; y: number }): RebirthFrame {
+  /** `elapsedMs` since the village appeared; `at` is where the watchman is now (smoke and embers come off him). */
+  update(elapsedMs: number, dtSec: number, at: { x: number; y: number }): RebirthFrame {
     const f = rebirthFrame(elapsedMs);
     this.frame = f;
     if (f.fire > 0.05 && !this.burst) {
       this.burst = true;
       this.sparks.emitParticleAt(this.x, this.y - 8, SPARKS_IN_BURST);
     }
-    this.carry += f.fire * FLAMES_PER_SEC * dtSec;
-    const n = Math.floor(this.carry);
-    this.carry -= n;
+    this.carryFlames += f.fire * FLAMES_PER_SEC * dtSec;
+    const n = Math.floor(this.carryFlames);
+    this.carryFlames -= n;
     for (let i = 0; i < n; i++) {
       this.flames.emitParticleAt(this.x + (Math.random() - 0.5) * 14, this.y - 4 - Math.random() * 6, 1);
     }
+    // Smouldering while he is there, less and less once he has left the flames and cooled.
+    const smoulder = f.body * (1 - 0.6 * f.walk);
+    this.carrySmoke += smoulder * SMOKE_PER_SEC * dtSec;
+    const s = Math.floor(this.carrySmoke);
+    this.carrySmoke -= s;
+    for (let i = 0; i < s; i++) {
+      this.smoke.emitParticleAt(at.x + (Math.random() - 0.5) * 10, at.y - 8 - Math.random() * 10, 1);
+    }
+    this.carryEmbers += smoulder * EMBERS_PER_SEC * dtSec;
+    const e = Math.floor(this.carryEmbers);
+    this.carryEmbers -= e;
+    for (let i = 0; i < e; i++) {
+      this.embers.emitParticleAt(at.x + (Math.random() - 0.5) * 12, at.y + Math.random() * 10, 1);
+    }
     const size = 44 + 80 * f.fire;
     this.glow.setDisplaySize(size, size).setAlpha(0.12 * f.fire);
-    // The shadow grows fainter and wider the higher he floats.
-    this.shadow
-      .setPosition(ground.x, ground.y - 1)
-      .setAlpha(0.4 * f.body * (1 - 0.55 * f.lift))
-      .setDisplaySize(26 + 8 * f.lift, 11 + 3 * f.lift);
-    // He touches down: a small ring of sparks along the ground.
-    if (f.lift > 0.5) this.wasUp = true;
-    if (this.wasUp && !this.landed && f.lift < 0.04) {
-      this.landed = true;
-      // A ring along the ground, not one heap.
-      for (let i = 0; i < SPARKS_ON_LANDING; i++) {
-        const a = (i / SPARKS_ON_LANDING) * Math.PI * 2;
-        this.sparks.emitParticleAt(ground.x + Math.cos(a) * 8, ground.y - 2 + Math.sin(a) * 3, 1);
-      }
-    }
     return f;
   }
 
@@ -113,7 +132,8 @@ export class RebirthFx {
   destroy(): void {
     this.flames.destroy();
     this.sparks.destroy();
+    this.smoke.destroy();
+    this.embers.destroy();
     this.glow.destroy();
-    this.shadow.destroy();
   }
 }

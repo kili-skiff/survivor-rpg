@@ -56,6 +56,8 @@ export class VillageMenuScene extends Phaser.Scene {
 
   init(data: VillageSceneData): void {
     this.data0 = data ?? {};
+    // Phaser hands the data of the last start to a start without data. Why you came is only true once.
+    this.sys.settings.data = {};
   }
 
   create(): void {

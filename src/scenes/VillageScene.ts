@@ -1,5 +1,5 @@
 import * as Phaser from 'phaser';
-import { REBIRTH } from '../config/rebirth';
+import { REBIRTH, REBIRTH_TOTAL_MS } from '../config/rebirth';
 import { SHEET, type Facing } from '../config/sprites';
 import {
   STATIONS,
@@ -93,6 +93,17 @@ interface Sign {
 
 /** The watchman's feet, below the centre of his sprite (px) */
 const FEET_Y = 22;
+
+/** A colour between two colours (0..1). */
+function lerpColor(a: number, b: number, t: number): number {
+  const c = Phaser.Display.Color.Interpolate.ColorWithColor(
+    Phaser.Display.Color.ValueToColor(a),
+    Phaser.Display.Color.ValueToColor(b),
+    100,
+    Math.min(1, Math.max(0, t)) * 100,
+  );
+  return Phaser.Display.Color.GetColor(c.r, c.g, c.b);
+}
 /** Things further down the screen are drawn in front */
 const depthAt = (y: number) => 1 + y / 100000;
 /** Seconds without getting closer to the next way point before a walk gives up */
@@ -130,6 +141,12 @@ export class VillageScene extends Phaser.Scene {
   private rebirthStart = -1;
   /** Where he stands on the ground while he floats (the sprite's own position) */
   private rebirthBase: Point = { x: 0, y: 0 };
+  /** His own scale and height, which the hunch squashes */
+  private rebirthScale = { x: 1, y: 1, height: 1 };
+  /** The way out of the fire (unit vector), whether he is in the middle of a lunge, and whether he is still drawn above the fire */
+  private rebirthDir = new Phaser.Math.Vector2(0, 1);
+  private rebirthStepping = false;
+  private rebirthAbove = true;
   /** The sprite's position over the Nest's flame, where he rises from */
   private rebirthNest: Point = { x: 0, y: 0 };
   /** The feet of whoever stands in the Nest's bowl (null when the village has no Nest) */
@@ -153,6 +170,8 @@ export class VillageScene extends Phaser.Scene {
 
   init(data: VillageSceneData): void {
     this.data0 = data ?? {};
+    // Phaser hands the data of the last start to a start without data. Why you came is only true once.
+    this.sys.settings.data = {};
   }
 
   create(): void {
@@ -233,18 +252,26 @@ export class VillageScene extends Phaser.Scene {
 
   // ---------------------------------------------------------------- waking up in the Nest
 
-  /** Black screen, a burst of fire at the Nest, the watchman rises from it, the lantern lights again. */
+  /**
+   * Black screen, a burst of fire in the Nest, and the watchman wakes up in it: hunched, trembling and in pain,
+   * he gets up in the flames and staggers out of them, step by step (timeline: logic/rebirth.ts).
+   */
   private beginRebirth(feet: Point): void {
     this.frozen = true;
     this.rebirthStart = -1;
-    // He floats over the fire, so he must not collide with the Nest, and the camera stays calm.
+    // He stands in the fire, so he must not collide with the Nest, and the camera stays calm.
     const sprite = this.player.sprite;
     this.rebirthBase = { x: sprite.x, y: sprite.y };
+    this.rebirthScale = { x: sprite.scaleX, y: sprite.scaleY, height: sprite.displayHeight };
     (sprite.body as Phaser.Physics.Arcade.Body).enable = false;
     this.cameras.main.stopFollow();
-    // He rises from the Nest's flame (or where he stands, when the village has no Nest).
+    // The fire stands in the Nest's bowl (or where he wakes up, when the village has no Nest).
     const nest = this.nestFeet ?? feet;
     this.rebirthNest = { x: nest.x, y: nest.y - FEET_Y };
+    const away = new Phaser.Math.Vector2(feet.x - nest.x, feet.y - nest.y);
+    this.rebirthDir = away.length() > 1 ? away.normalize() : new Phaser.Math.Vector2(0, 1);
+    this.rebirthStepping = false;
+    this.rebirthAbove = true;
     this.cameras.main.centerOn((nest.x + feet.x) / 2, (nest.y + feet.y) / 2 - FEET_Y);
     // Above the night layer (5) and the sparks (5.2), so the fire shines in the dark.
     this.rebirth = new RebirthFx(this, nest.x, nest.y - 4, 5.3);
@@ -259,7 +286,7 @@ export class VillageScene extends Phaser.Scene {
   private skipRebirth(): void {
     if (!this.rebirth || this.rebirthStart < 0 || this.time.now - this.rebirthStart < REBIRTH.skipAfterMs)
       return;
-    this.rebirthStart = this.time.now - REBIRTH.totalMs;
+    this.rebirthStart = this.time.now - REBIRTH_TOTAL_MS;
   }
 
   /** One frame of the rebirth: shows the watchman as the timeline says; at the end the village is his. */
@@ -267,35 +294,48 @@ export class VillageScene extends Phaser.Scene {
     const fx = this.rebirth;
     if (!fx) return;
     if (this.rebirthStart < 0) this.rebirthStart = this.time.now;
-    // The spot on the ground below him: the Nest's bowl first, then drifting forward to where he lands.
     const elapsed = this.time.now - this.rebirthStart;
     const f = rebirthFrame(elapsed);
-    const gx = Phaser.Math.Linear(this.rebirthNest.x, this.rebirthBase.x, f.move);
-    const gy = Phaser.Math.Linear(this.rebirthNest.y, this.rebirthBase.y, f.move);
-    fx.update(elapsed, dt, { x: gx, y: gy + FEET_Y });
     const sprite = this.player.sprite;
+    const R = REBIRTH;
+
+    // Where he is: in the Nest's bowl first, then staggering out to where he used to wake up.
+    const gx = Phaser.Math.Linear(this.rebirthNest.x, this.rebirthBase.x, f.walk);
+    const gy = Phaser.Math.Linear(this.rebirthNest.y, this.rebirthBase.y, f.walk);
+    fx.update(elapsed, dt, { x: gx, y: gy + FEET_Y });
+    this.rebirthStepping = f.stepping;
+    this.rebirthAbove = f.walk < 0.4;
+
+    // Hunched over (squashed, feet stay on the ground), shaking, leaning from step to step, jolted by pain.
+    const shake = R.trembleBase * f.tremble;
+    const jx = ((Math.sin(elapsed * 0.09) + Math.sin(elapsed * 0.047 + 2)) / 2) * shake;
+    const jy = Math.sin(elapsed * 0.11 + 1) * 0.4 * shake;
+    sprite.setScale(this.rebirthScale.x, this.rebirthScale.y * (1 - R.hunchSquash * f.hunch));
+    const dropped = this.rebirthScale.height - sprite.displayHeight;
+    sprite
+      .setPosition(gx + jx, gy + jy - f.lurch * 2 - f.flinch * 2 + (1 - sprite.originY) * dropped)
+      .setRotation(f.lean * f.lurch * 0.1 + Math.sin(elapsed * 0.004) * 0.03 * f.hunch + f.flinch * 0.12);
     if (f.body < 1) sprite.setAlpha(f.body);
-    // Floating above the fire: up, a gentle bob and sway.
-    sprite.setPosition(gx, gy - f.lift * REBIRTH.liftPx - f.bob).setRotation(f.sway);
-    // A glowing shape of fire first, cooling to his own colours.
+
+    // A glowing shape of fire first, cooling to ashen, pale colours; red-faced for a moment when pain hits.
     if (f.glow > 0.55) sprite.setTint(0xffcf8a).setTintMode(Phaser.TintModes.FILL);
-    else if (f.glow > 0) {
-      const c = Phaser.Display.Color.Interpolate.ColorWithColor(
-        Phaser.Display.Color.ValueToColor(0xffffff),
-        Phaser.Display.Color.ValueToColor(0xffb070),
-        100,
-        (f.glow / 0.55) * 100,
-      );
-      sprite.setTint(Phaser.Display.Color.GetColor(c.r, c.g, c.b)).setTintMode(Phaser.TintModes.MULTIPLY);
+    else {
+      const ashen = lerpColor(0xffffff, 0xd6cdc4, 0.7 * f.hunch);
+      const warm = lerpColor(ashen, 0xffb070, f.glow / 0.55);
+      sprite
+        .setTint(lerpColor(warm, 0xff8a8a, Math.min(1, f.flinch) * 0.8))
+        .setTintMode(Phaser.TintModes.MULTIPLY);
     }
     this.lantern.dim(f.lantern);
     this.lantern.setAlpha(f.body);
     if (!f.done) return;
+
     fx.destroy();
     this.rebirth = null;
     this.frozen = false;
-    // Back on the ground: the body takes over again and the camera follows him.
-    sprite.setRotation(0).setPosition(this.rebirthBase.x, this.rebirthBase.y);
+    // Out of the fire: the body takes over again, he stands straight and the camera follows him.
+    sprite.setScale(this.rebirthScale.x, this.rebirthScale.y).setRotation(0);
+    sprite.setPosition(this.rebirthBase.x, this.rebirthBase.y);
     (sprite.body as Phaser.Physics.Arcade.Body).enable = true;
     (sprite.body as Phaser.Physics.Arcade.Body).reset(this.rebirthBase.x, this.rebirthBase.y);
     this.cameras.main.startFollow(sprite, true, 0.18, 0.18);
@@ -735,11 +775,16 @@ export class VillageScene extends Phaser.Scene {
       if (Math.hypot(mx, my) > 0.1) this.cancelWalk();
       else if (this.path) [mx, my] = this.followPath(dt);
     }
+    // Staggering out of the fire: he takes his walking steps (the body is off, so this only plays the animation).
+    if (this.rebirth && this.rebirthStepping) {
+      mx = this.rebirthDir.x * 0.4;
+      my = this.rebirthDir.y * 0.4;
+    }
     this.player.update(mx, my, VILLAGE.walkSpeed);
 
     const feet = this.feet();
-    // While he floats over the fire he is drawn above it, so the flames do not swallow him.
-    const depth = this.rebirth ? 5.35 : depthAt(feet.y);
+    // While he is in the fire he is drawn above it, so the flames do not swallow him.
+    const depth = this.rebirth && this.rebirthAbove ? 5.35 : depthAt(feet.y);
     this.player.sprite.setDepth(depth);
     this.lantern.depth = depth;
     this.updateRebirth(dt);
