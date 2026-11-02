@@ -70,7 +70,7 @@ src/
     weapons/   one class per weapon + factory in index.ts
     skills/    active skills (e.g. Frost Nova)
     PlayerController, PlayerHealthBar (small bar under the player's feet), LanternSystem (the carried lantern), EnemySystem, PickupSystem, HerbSystem, PotionSystem, LightingSystem,
-    DamageNumbers, VillageAmbience (sparks, smoke, fireflies, bats and fog in the walkable village)
+    DamageNumbers, VillageAmbience (sparks, smoke, bats and fog in the walkable village)
   panels/    Village panels (CauldronPanel, MerchantPanel, DeedsPanel, ArmoryPanel, HearthPanel, DialoguePanel): drawn on top of any scene,
              logic lives in logic/
   scenes/    Boot (placeholder graphics), WorldMap (hex map, travel), Village (the walkable village: map,
@@ -218,7 +218,7 @@ weapon, ores and the blacksmith.
       when he has news, a one-time hint on the menu; the elder, the trader and the smith standing at their places
       (LPC sheets from `scripts/lpc`, `VILLAGER_SPRITES`), turning to you as you come close and breathing; small
       signs of life (`systems/VillageAmbience.ts`, `VILLAGE_LIFE`): sparks over the Nest and the forge, smoke from
-      its chimney, fireflies at the lanterns, now and then a bat, fog along the palisade. Next: a house panel for
+      its chimney, now and then a bat, fog along the palisade. Next: a house panel for
       stash and belt.
       What the game reads from the village map is listed in the header of `scripts/village/build_village.py`;
       other village art works if it keeps to that

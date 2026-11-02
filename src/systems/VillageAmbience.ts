@@ -12,32 +12,12 @@ export interface AmbienceSpots {
   fires: Spot[];
   /** Chimneys that smoke */
   chimneys: Spot[];
-  /** Lanterns that draw fireflies */
-  lamps: Spot[];
   /** Size of the map (px) */
   width: number;
   height: number;
 }
 
 const MOTE = 'village-mote';
-
-interface Firefly {
-  dot: Phaser.GameObjects.Image;
-  glow: Phaser.GameObjects.Image;
-  home: Spot;
-  x: number;
-  y: number;
-  heading: number;
-  /** Current and wanted turning rate (rad/s); the wish changes every second or so */
-  turn: number;
-  turnWish: number;
-  wishLeft: number;
-  speed: number;
-  phase: number;
-  blinkMs: number;
-}
-
-const rand = (min: number, max: number): number => min + Math.random() * (max - min);
 
 interface Bat {
   sprite: Phaser.GameObjects.Image;
@@ -54,11 +34,10 @@ interface FogPuff {
 
 /**
  * Small signs of life in the walkable village, all cheap enough for phones: sparks rising from the
- * fires, smoke from the forge's chimney, fireflies around the lanterns, now and then a bat crossing the sky,
+ * fires, smoke from the forge's chimney, now and then a bat crossing the sky,
  * and a thin fog creeping along the palisade. Purely visual; numbers in VILLAGE_LIFE.
  */
 export class VillageAmbience {
-  private readonly fireflies: Firefly[] = [];
   private readonly bats: Bat[] = [];
   private readonly fog: FogPuff[] = [];
   private nextBatAt: number;
@@ -109,39 +88,6 @@ export class VillageAmbience {
         .setDepth(depth);
     }
 
-    for (const lamp of spots.lamps) {
-      for (let i = 0; i < L.firefliesPerLamp; i++) {
-        const a = Math.random() * Math.PI * 2;
-        const r = Math.random() * L.fireflyLeash;
-        const x = lamp.x + Math.cos(a) * r;
-        const y = lamp.y + Math.sin(a) * r * 0.7;
-        this.fireflies.push({
-          glow: scene.add
-            .image(x, y, 'light')
-            .setScale(0.12)
-            .setTint(L.fireflyColor)
-            .setBlendMode(Phaser.BlendModes.ADD)
-            .setDepth(depth),
-          dot: scene.add
-            .image(x, y, MOTE)
-            .setScale(0.2)
-            .setTint(0xfffbd0)
-            .setBlendMode(Phaser.BlendModes.ADD)
-            .setDepth(depth),
-          home: lamp,
-          x,
-          y,
-          heading: Math.random() * Math.PI * 2,
-          turn: 0,
-          turnWish: 0,
-          wishLeft: 0,
-          speed: rand(L.fireflySpeed.min, L.fireflySpeed.max),
-          phase: Math.random() * Math.PI * 2,
-          blinkMs: rand(L.fireflyBlinkMs.min, L.fireflyBlinkMs.max),
-        });
-      }
-    }
-
     // Fog along the palisade: soft pale puffs drifting slowly, only near the edges of the village.
     for (let i = 0; i < L.fogPuffs; i++) {
       const edge = i % 4;
@@ -166,36 +112,6 @@ export class VillageAmbience {
 
   update(time: number, dt: number): void {
     const L = VILLAGE_LIFE;
-    for (const f of this.fireflies) {
-      // Wander: every second or so a new wish to turn, followed smoothly, so the path curves and loops
-      f.wishLeft -= dt;
-      if (f.wishLeft <= 0) {
-        f.turnWish = rand(-1.8, 1.8);
-        f.wishLeft = rand(0.5, 1.6);
-      }
-      f.turn += (f.turnWish - f.turn) * Math.min(1, dt * 2.5);
-      // A gentle pull back when it strays too far from the lantern
-      const dx = f.home.x - f.x;
-      const dy = f.home.y - f.y;
-      const away = Math.hypot(dx, dy) / L.fireflyLeash;
-      if (away > 0.7) {
-        let diff = Math.atan2(dy, dx) - f.heading;
-        diff = Math.atan2(Math.sin(diff), Math.cos(diff));
-        f.heading += diff * Math.min(1, dt * (away - 0.6) * 3);
-      }
-      f.heading += f.turn * dt;
-      // Slow down and speed up a little, as if hovering
-      const pace = f.speed * (0.6 + 0.4 * Math.sin(time * 0.0017 + f.phase * 2));
-      f.x += Math.cos(f.heading) * pace * dt;
-      f.y += Math.sin(f.heading) * pace * dt * 0.8;
-      // Blink: mostly dim, then a soft glow that swells and fades
-      const wave = (Math.sin((time / f.blinkMs) * Math.PI * 2 + f.phase) + 1) / 2;
-      const glow = wave * wave * wave;
-      const bob = Math.sin(time * 0.004 + f.phase) * 1.2;
-      f.dot.setPosition(f.x, f.y + bob).setAlpha(0.1 + glow * 0.9);
-      f.glow.setPosition(f.x, f.y + bob).setAlpha(glow * 0.55).setScale(0.07 + glow * 0.07);
-    }
-
     for (const f of this.fog) {
       let x = f.image.x + f.speed * dt;
       if (x < -100) x = this.spots.width + 100;
