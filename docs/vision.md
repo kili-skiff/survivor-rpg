@@ -18,9 +18,10 @@ the story is sprinkled in lightly and never forced.
 Decisions from the lore and design session (October 2026) that the current code does not follow yet.
 The sections below already describe the target; this list is the to-do for the code.
 
-- **Death:** you always wake up in the village (the Nest). Kept: embers, permanent upgrades, weapons,
-  lanterns, rescued villagers, potions in the belt. Lost: level-ups, ores, herbs, seeds and weapon
-  fragments of the current expedition.
+- **Death:** you always wake up in the village (the Nest). Kept: embers already at home, permanent
+  upgrades, weapons, lanterns, rescued villagers, potions in the belt, and a share of the embers in your
+  pouch (the better your lantern, the bigger the share; built). Lost: level-ups, ores, herbs, seeds and
+  weapon fragments of the current expedition, and the rest of the pouch.
 - **One character, no class and no skill tree.** Build identity comes from the **main weapon**,
   chosen before an expedition, each with its own special skill (see Weapons). Permanent bonuses are a
   flat list bought with embers.
@@ -35,8 +36,8 @@ The sections below already describe the target; this list is the to-do for the c
 2. **Set out on an expedition** across the hex map, from the village or a lit watchfire.
 3. **Fight through hexes:** each hex is a short survivor segment (about 3–5 minutes).
 4. **Rest at lit watchfires** between hexes, or decide whether to push further or turn back.
-5. **Return or die:** bring your finds home, or lose them and wake up in the village. Embers and
-   everything permanent stay.
+5. **Return or die:** bring your finds home, or lose them and wake up in the village. Everything
+   permanent stays, and so does your lantern's share of the embers you carried.
 6. **Grow stronger** and reach further next time.
 
 ## The world
@@ -112,9 +113,11 @@ playable in the fight area (e.g. walking up to a shrine), or a mix.
   back, so turning back in time matters.
 - **Health carries over** between hexes; lit watchfires heal you fully.
 - **Death or giving up:** the expedition ends and you wake up in the village (the Nest). You keep
-  embers and everything permanent, and potions in the belt. You lose level-ups, ores, herbs, seeds and
-  weapon fragments of this expedition. Like Vampire Survivors, death is a setback, never a loss of
-  progress.
+  everything permanent, potions in the belt and a share of the embers you carried (the _ember pouch_:
+  embers caught in fights wait in it until you are home; the lantern you own sets the share, from 25% with
+  the old lantern up to all of it with the best one). You lose level-ups, ores, herbs, seeds and
+  weapon fragments of this expedition, and the embers your lantern does not save. Like Vampire Survivors,
+  death is a setback, never a loss of progress: embers from earlier trips, deeds and quests are always safe.
 
 ## Combat
 
@@ -146,8 +149,9 @@ One character for everyone; weapons are the build, in the spirit of Hades (decid
 - **Permanent:** ores upgrade your main weapons at the blacksmith.
 - **New weapons:** weapon fragments dropped by elites, bosses and special places. Brought home, the
   blacksmith forges them into new weapons or variants (like weapon aspects in Hades).
-- **Lanterns carry no skills.** A lantern only gives light and sight; a better lantern must always be
-  the better choice.
+- **Lanterns carry no skills.** A lantern gives light and sight, and it decides how many of the embers in
+  your pouch survive a fall (a protection, not a combat skill); a better lantern must always be the better
+  choice.
 - **Tools against a crowd that piles up** (built, `logic/hitEffects.ts`, as level steps of the weapons):
   enemies get tougher over time while the player's damage is capped, so a horde stacks up late in a
   fight. These tools help; they come as level steps of the weapons, in a random order:
@@ -405,9 +409,11 @@ up one by one.
 - **Embers** (built, replaced gold): the currency. Monsters release the light they ate and you
   catch it in your lantern; traders accept embers because only they keep forges, lamps and potions
   going. Rare from normal enemies, more from elites, chests and hex rewards; herbs can be sold for them.
-  They count at once: whatever you catch in a fight goes straight into the stash, also when you fall.
+  Embers caught in fights are carried in the expedition's pouch and only count once you are home; when
+  you fall, your lantern decides what share you keep. Deeds and quests pay straight into the stash.
   Spent on lanterns, ember upgrades, recipes and Phoenix Feathers.
-- **Merchant** (built, village): four lantern tiers (light +30%, +70%, +130%, for good; the
+- **Merchant** (built, village): four lantern tiers (light +30%, +70%, +130%, for good, and a bigger share of
+  the pouch's embers kept when you fall: 25% with the old lantern, then 40%, 60%, 80% and 100%; the
   Sunstone Lantern lights up the whole screen and could later come from a special place instead), potion recipes
   (start with the healing potion, buy the others), buys herbs. Later maybe seeds or maps; merchant
   points of interest on the map could sell rarer goods.

@@ -1,6 +1,7 @@
 import * as Phaser from 'phaser';
 import { embersText } from '../logic/merchant';
 import { LIGHT } from '../config/balance';
+import { EMBER_KEY } from '../config/merchant';
 import { lootCount } from '../logic/expedition';
 import { PASSIVES } from '../config/passives';
 import { HERBS } from '../config/herbs';
@@ -1614,8 +1615,13 @@ export class UIScene extends Phaser.Scene {
     const r = info.report;
     if (!r) return '';
     if (r.outcome === 'fallen') {
-      const lost = r.lootLost ? Object.values(r.lootLost).reduce((a, b) => a + b, 0) : 0;
-      return `Expedition lost. You wake up in the village${lost > 0 ? ` and lost ${lost} ${lost === 1 ? 'item' : 'items'}` : ''}.`;
+      const lostEmbers = r.lootLost?.[EMBER_KEY] ?? 0;
+      const lostItems = (r.lootLost ? Object.values(r.lootLost).reduce((a, b) => a + b, 0) : 0) - lostEmbers;
+      const parts = [
+        ...(lostEmbers > 0 ? [embersText(lostEmbers)] : []),
+        ...(lostItems > 0 ? [`${lostItems} ${lostItems === 1 ? 'item' : 'items'}`] : []),
+      ];
+      return `Expedition lost. You wake up in the village${parts.length > 0 ? ` and lost ${parts.join(' and ')}` : ''}.`;
     }
     if (r.litWatchfire)
       return 'Watchfire lit: the land around it is revealed, you are healed and can travel here.';
@@ -1670,7 +1676,6 @@ export class UIScene extends Phaser.Scene {
     y = this.fallenBlock(y, 'LOST', '#fb7185', lost.length > 0 ? lost : ['Nothing: you carried little']);
 
     const kept: string[] = [];
-    if (info.embers > 0) kept.push(`${embersText(info.embers)} caught`);
     const savedLoot = info.report?.lootKept ?? {};
     if (lootCount(savedLoot) > 0) kept.push(describeLoot(savedLoot));
     kept.push('Hearth upgrades, weapons and deeds');
@@ -1753,6 +1758,16 @@ export class UIScene extends Phaser.Scene {
           wordWrap: { width: W - 48 * u },
         },
       ).setOrigin(0.5, 0);
+      y += t.height + 8 * u;
+    }
+    // Embers caught on this road wait in the pouch until you are home.
+    const pouch = info.save.world.expedition?.loot[EMBER_KEY] ?? 0;
+    if (cleared && pouch > 0) {
+      const t = this.text(W / 2, y - 6 * u, `Pouch: ${embersText(pouch)}, safe once you are home.`, 13, {
+        color: '#fdba74',
+        align: 'center',
+        wordWrap: { width: W - 48 * u },
+      }).setOrigin(0.5, 0);
       y += t.height + 8 * u;
     }
     const stats = [
