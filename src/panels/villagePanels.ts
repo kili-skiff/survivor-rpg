@@ -43,13 +43,17 @@ export interface Arrival {
   lost: Loot;
 }
 
+/** "5 embers, 2 Moonleaf": a heap of loot in words. */
+export function describeLoot(loot: Loot): string {
+  return Object.entries(loot)
+    .map(([id, n]) =>
+      id === EMBER_KEY ? embersText(n) : `${n} ${HERBS[id as keyof typeof HERBS]?.name ?? id}`,
+    )
+    .join(', ');
+}
+
 export function describeArrival(a: Arrival): string {
-  const list = (loot: Loot) =>
-    Object.entries(loot)
-      .map(([id, n]) =>
-        id === EMBER_KEY ? embersText(n) : `${n} ${HERBS[id as keyof typeof HERBS]?.name ?? id}`,
-      )
-      .join(', ');
+  const list = describeLoot;
   if (a.reason === 'fallen') {
     const kept = lootCount(a.kept) > 0 ? ` You saved ${list(a.kept)}.` : '';
     const lost = lootCount(a.lost) > 0 ? ` Lost: ${list(a.lost)}.` : '';
