@@ -7,6 +7,13 @@ Runs in the browser on phones, tablets and desktop.
 
 Every pull request also gets its own playable preview, linked in a comment on the PR.
 
+> **Disclaimer:** This game is fully vibe coded. Crafted with Claude, fun and a lot of vibe. 🎧
+> If something looks like a bug, it is probably a feature we have not understood yet.
+>
+> The point is **rapid development for the web**: [Phaser](https://phaser.io/) in the browser means an idea
+> is playable within minutes, and every change (or every PR preview) gives instant feedback on a real phone.
+> No big upfront design, just vibe, try it, feel it, adjust, repeat.
+
 ## Controls
 
 |              | Phone                      | Desktop       |
