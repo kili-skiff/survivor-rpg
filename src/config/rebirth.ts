@@ -13,7 +13,7 @@ export const REBIRTH = {
   /** He stands this many pixels higher in the flames of the Nest (world pixels) */
   bowlLiftPx: 32,
   /** The fire stands this many pixels higher than the Nest's bowl (world pixels) */
-  flameLiftPx: 18,
+  flameLiftPx: 6,
   riseFrom: 900,
   riseMs: 700,
   glowFrom: 1000,

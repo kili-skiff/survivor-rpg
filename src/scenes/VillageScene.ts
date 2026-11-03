@@ -395,7 +395,7 @@ export class VillageScene extends Phaser.Scene {
       // Known props get small signs of life: sparks over open fires, smoke from the forge.
       const h = o.height ?? 0;
       if (key === 'nest') {
-        this.lifeSpots.fires.push({ x: bx, y: by - 26 });
+        this.lifeSpots.fires.push({ x: bx, y: by - 32 });
         this.nestFeet = { x: bx, y: by - 8 };
       }
       if (key === 'forge') {
