@@ -8,7 +8,7 @@ import { parseBelt, type Belt } from './potions';
 import { parseDeeds } from './deeds';
 import type { DeedId } from '../config/deeds';
 import { freshQuests, parseQuests, type QuestProgress } from './quests';
-import { LANTERN_TIERS, STARTING_RECIPES, PHOENIX_FEATHER } from '../config/merchant';
+import { EMBER_KEY, LANTERN_TIERS, STARTING_RECIPES, PHOENIX_FEATHER } from '../config/merchant';
 import { POTION_IDS } from '../config/potions';
 import type { PotionId, WeaponId } from '../config/types';
 import { MAIN_WEAPONS, START_WEAPON } from '../config/weapons';
@@ -93,6 +93,17 @@ function worldForCurrentSeason(raw: unknown): WorldProgress {
   return world;
 }
 
+/**
+ * Embers in the pouch of an expedition on a map that is being reset: they go into the stash instead of
+ * vanishing with the map. Zero when the map stays.
+ */
+function resetPouchEmbers(raw: unknown): number {
+  const world = parseWorldProgress(raw);
+  if (!world) return 0;
+  if (world.seasonId === SEASON.id && world.generatorVersion === SEASON.generatorVersion) return 0;
+  return world.expedition?.loot[EMBER_KEY] ?? 0;
+}
+
 /** Upgrades older save data to the current version. */
 export function migrate(raw: unknown): SaveData {
   if (!raw || typeof raw !== 'object') return emptySave();
@@ -115,7 +126,7 @@ export function migrate(raw: unknown): SaveData {
     hearth?: unknown;
     feathers?: unknown;
   };
-  return goldToEmbers({
+  const migrated = goldToEmbers({
     version: SAVE_VERSION,
     bestTime: Number(data.bestTime) || base.bestTime,
     bestKills: Number(data.bestKills) || base.bestKills,
@@ -133,6 +144,7 @@ export function migrate(raw: unknown): SaveData {
     hearth: parseHearth(data2.hearth),
     feathers: parseFeathers(data2.feathers),
   });
+  return bankEmbers(migrated, resetPouchEmbers(data2.world));
 }
 
 /** Loot key of gold before version 17 */
@@ -140,7 +152,8 @@ const OLD_GOLD_KEY = 'gold';
 
 /**
  * Version 17: gold became embers. Gold in the stash and gold the expedition was carrying both become
- * embers in the stash (embers are never part of the expedition's loot).
+ * embers in the stash (at that time embers were never part of the expedition's loot; since the ember pouch
+ * they are, see `finishFight`).
  */
 function goldToEmbers(save: SaveData): SaveData {
   const expedition = save.world.expedition;

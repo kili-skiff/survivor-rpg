@@ -180,7 +180,8 @@ Phase 1, main weapons (the main weapon is the backbone of the build and its upgr
 
 Phase 2, lasting progress:
 
-- [x] Gold becomes Embers, kept on death: embers caught in a fight go straight into the stash, whatever the outcome (`bankEmbers`); enemies, elites, chests, quests, hex rewards and the merchant pay embers; old gold became embers (save version 17)
+- [x] Gold becomes Embers: enemies, elites, chests, quests, hex rewards and the merchant pay embers; old gold became embers (save version 17). Embers from deeds and quests go straight into the stash (`bankEmbers`); see the next item for embers caught in fights
+- [x] The ember pouch and the lantern's share: embers caught in fights are carried in the expedition's pouch (`expedition.loot[EMBER_KEY]`) until you are home; when you fall, the lantern decides how many of them you keep (`LANTERN_EMBER_KEEP` in `config/merchant.ts`: old lantern 25%, then 40/60/80/100%; `lanternEmberKeep`, `embersKeptOnFall`; applied in `finishFight`). A map reset moves the pouch into the stash (`migrate`). No save version bump: the pouch is a plain loot entry. Shares and the prices that were tuned for always-safe embers are to be tuned by playing
 - [x] The Hearth (ember shop) in the village: 10 permanent upgrades with ranks bought with embers (`config/emberUpgrades.ts`, `logic/hearth.ts`, `panels/HearthPanel.ts`); deeds pay embers and six of them unlock an upgrade; save version 18. Prices to be tuned by playing
 - [x] Watchfires as waypoints, camps gone, the Phoenix Feather: one watchfire on the road and two in every direction (`WORLD.watchfireBands`); lit ones heal you, are waypoints and let you go home for free; anywhere else (but next to the village) going home burns a Phoenix Feather (merchant, 30 embers, carry 3; `goHome`, `homeWay` in `logic/journey.ts`); the scout is gone; save version 19, map reset (generator version 7)
 - [ ] Unlocks of extra weapons and cards at the Hearth (later: what you can find on runs grows with what you unlock)
@@ -192,7 +193,7 @@ Phase 3, reasons for every direction:
 - [ ] A boss per biome that drops weapon fragments; fragments unlock further main weapons (e.g. sword, spear)
 
 The goal at the end: the old tower (Milestone 4). Also part of the new loop, after the phases above: the
-new death rules (keep embers and everything permanent, lose level-ups and finds), a special skill per main
+rest of the new death rules (keep everything permanent, lose level-ups and finds; embers are done, see the ember pouch), a special skill per main
 weapon, ores and the blacksmith.
 
 ### Milestone 3: depth

@@ -10,7 +10,7 @@ import {
   startExpedition,
   type ExpeditionBuild,
 } from './expedition';
-import { EMBER_KEY } from '../config/merchant';
+import { EMBER_KEY, LANTERN_TIERS } from '../config/merchant';
 import { hearthBonus } from './hearth';
 import { acceptFireQuest, freshQuests } from './quests';
 import { finishFight, returnHome, teleport, walkHome, walkThrough } from './journey';
@@ -94,6 +94,46 @@ describe('expeditions', () => {
     expect(report.lootLost).toEqual({ herb: 5 });
   });
 
+  it('carries caught embers in the pouch, not in the stash, until you are home', () => {
+    const { save } = finishFight(emptySave(), world, { q: 1, r: 0 }, 'cleared', build(), {
+      herb: 2,
+      [EMBER_KEY]: 10,
+    });
+    expect(save.world.expedition?.loot).toEqual({ herb: 2, [EMBER_KEY]: 10 });
+    expect(save.stash).toEqual({});
+  });
+
+  it('keeps the lantern’s share of the pouch when you fall, and loses the rest', () => {
+    // Silver Lantern (level 2) keeps 60%.
+    const start: SaveData = { ...emptySave(), lanternLevel: 2 };
+    const out = finishFight(start, world, { q: 1, r: 0 }, 'cleared', build(), {
+      herb: 3,
+      [EMBER_KEY]: 6,
+    }).save;
+    const { save, report } = finishFight(out, world, { q: 2, r: 0 }, 'fallen', build(), { [EMBER_KEY]: 4 });
+    expect(save.world.expedition).toBeNull();
+    // 10 embers in the pouch: 6 kept, 4 lost. Herbs follow the old rule and are all lost.
+    expect(save.stash).toEqual({ [EMBER_KEY]: 6 });
+    expect(report.lootKept).toEqual({ [EMBER_KEY]: 6 });
+    expect(report.lootLost).toEqual({ herb: 3, [EMBER_KEY]: 4 });
+  });
+
+  it('loses a small pouch completely with the old lantern, and keeps all with the best one', () => {
+    const old = finishFight(emptySave(), world, { q: 1, r: 0 }, 'fallen', build(), { [EMBER_KEY]: 3 });
+    expect(old.save.stash).toEqual({});
+    expect(old.report.lootLost).toEqual({ [EMBER_KEY]: 3 });
+    const best: SaveData = { ...emptySave(), lanternLevel: LANTERN_TIERS.length };
+    const kept = finishFight(best, world, { q: 1, r: 0 }, 'fallen', build(), { [EMBER_KEY]: 3 });
+    expect(kept.save.stash).toEqual({ [EMBER_KEY]: 3 });
+    expect(kept.report.lootLost).toEqual({});
+  });
+
+  it('brings the whole pouch home', () => {
+    const out = finishFight(emptySave(), world, { q: 1, r: 0 }, 'cleared', build(), { [EMBER_KEY]: 8 }).save;
+    expect(returnHome(out).stash).toEqual({ [EMBER_KEY]: 8 });
+    expect(walkHome(out, ORIGIN).stash).toEqual({ [EMBER_KEY]: 8 });
+  });
+
   it('banks all loot when walking home', () => {
     const out = finishFight(emptySave(), world, { q: 1, r: 0 }, 'cleared', build(), { herb: 3 }).save;
     expect(travelKind(world, out.world, ORIGIN)).toBe('walk');
@@ -155,6 +195,20 @@ describe('expeditions', () => {
     expect(save.world.litWatchfires).toEqual([fire.key]);
     const again = finishFight(save, world, fire.hex, 'cleared', build(), {});
     expect(again.report.litWatchfire).toBe(false);
+  });
+
+  it('moves the pouch embers into the stash when the map is reset', () => {
+    const out = finishFight(emptySave(), world, { q: 1, r: 0 }, 'cleared', build(), {
+      herb: 1,
+      [EMBER_KEY]: 7,
+    }).save;
+    const old = JSON.parse(JSON.stringify(out));
+    old.world.generatorVersion = -1;
+    const loaded = migrate(old);
+    expect(loaded.world.expedition).toBeNull();
+    expect(loaded.stash).toEqual({ [EMBER_KEY]: 7 });
+    // A map that stays keeps its pouch.
+    expect(migrate(JSON.parse(JSON.stringify(out))).stash).toEqual({});
   });
 
   it('survives a save round trip and rejects broken data', () => {

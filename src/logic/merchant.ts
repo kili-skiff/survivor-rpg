@@ -5,6 +5,7 @@ import {
   EMBER_KEY,
   PHOENIX_FEATHER,
   HERB_PRICES,
+  LANTERN_EMBER_KEEP,
   LANTERN_TIERS,
   RECIPE_PRICES,
   type LanternTier,
@@ -48,6 +49,23 @@ export function currentLantern(level: number): LanternTier | null {
 /** Light radius multiplier from the lantern you own. */
 export function lanternMultiplier(level: number): number {
   return currentLantern(level)?.light ?? 1;
+}
+
+/** Share of the pouch's embers kept when you fall with this lantern (0..1). */
+export function lanternEmberKeep(level: number): number {
+  const i = Math.max(0, Math.min(Math.floor(level), LANTERN_EMBER_KEEP.length - 1));
+  return LANTERN_EMBER_KEEP[i];
+}
+
+/** Embers kept out of a pouch of `embers` when you fall (rounded down). */
+export function embersKeptOnFall(embers: number, level: number): number {
+  return Math.max(0, Math.floor(embers * lanternEmberKeep(level)));
+}
+
+/** "keeps 60% of embers when you fall", or "never loses embers" for the best lantern. */
+export function emberKeepText(level: number): string {
+  const keep = lanternEmberKeep(level);
+  return keep >= 1 ? 'never loses embers' : `keeps ${Math.round(keep * 100)}% of embers when you fall`;
 }
 
 /** Whether your lantern lights up the whole screen (no darkness in fights). */

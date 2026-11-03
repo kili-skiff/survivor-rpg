@@ -10,7 +10,7 @@ import {
 import { POTION_IDS, POTIONS } from '../config/potions';
 import type { HerbId, PotionId } from '../config/types';
 import type { Loot } from '../logic/expedition';
-import { embersOf, embersText, nextLantern } from '../logic/merchant';
+import { emberKeepText, embersOf, embersText, nextLantern } from '../logic/merchant';
 import { COLORS, css, FONT } from '../ui/theme';
 import type { PanelFrame } from './CauldronPanel';
 
@@ -76,7 +76,7 @@ export class MerchantPanel {
       this.recipeCard(left + colW + gap, y0, colW, bottom - y0);
       this.sellCard(left + (colW + gap) * 2, y0, colW, bottom - y0);
     } else {
-      const lanternH = 132 * u;
+      const lanternH = 160 * u;
       const featherH = 86 * u;
       const recipeH = 46 * u + (POTION_IDS.length - 1) * 44 * u;
       this.lanternCard(left, y0, right - left, lanternH);
@@ -110,15 +110,22 @@ export class MerchantPanel {
         color: '#d4d4d8',
       },
     );
+    // What the lantern does for the pouch when you fall (see `embersKeptOnFall`).
+    this.text(x + 12 * u, y + 50 * u, `It ${emberKeepText(level)}`, 12, { color: EMBER_COLOR });
     const next = nextLantern(level);
     if (!next) {
-      this.text(x + 12 * u, y + 58 * u, 'The best lantern there is.', 12, { color: '#a1a1aa' });
+      this.text(x + 12 * u, y + 76 * u, 'The best lantern there is.', 12, { color: '#a1a1aa' });
       return;
     }
-    this.text(x + 12 * u, y + 58 * u, `Next: ${next.name}`, 13, { fontStyle: 'bold' });
-    this.text(x + 12 * u, y + 76 * u, `${lanternEffect(LANTERN_TIERS[level])}, for good`, 12, {
+    this.text(x + 12 * u, y + 76 * u, `Next: ${next.name}`, 13, { fontStyle: 'bold' });
+    this.text(x + 12 * u, y + 92 * u, `${lanternEffect(LANTERN_TIERS[level])}, for good`, 12, {
       color: '#a1a1aa',
       wordWrap: { width: w - 24 * u },
+    });
+    // Kept to the left of the buy button so a long line wraps instead of running under it.
+    this.text(x + 12 * u, y + 108 * u, `It ${emberKeepText(level + 1)}`, 12, {
+      color: EMBER_COLOR,
+      wordWrap: { width: w - 24 * u - 132 * u },
     });
     const affordable = embersOf(this.opts.stash) >= next.price;
     this.smallButton(

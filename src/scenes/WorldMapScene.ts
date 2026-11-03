@@ -1,7 +1,8 @@
 import * as Phaser from 'phaser';
 import { LANTERN } from '../config/balance';
 import { FOOTSTEPS } from '../config/footsteps';
-import { LANTERN_LOOKS, lanternLook, type LanternLook } from '../config/merchant';
+import { EMBER_KEY, LANTERN_LOOKS, lanternLook, type LanternLook } from '../config/merchant';
+import { embersText } from '../logic/merchant';
 import { MAP_FOG } from '../config/mapFog';
 import { BIOMES, POIS } from '../config/world';
 import { CHARACTER_SPRITES, SHEET } from '../config/sprites';
@@ -999,8 +1000,9 @@ export class WorldMapScene extends Phaser.Scene {
       const hp = b
         ? `HP ${Math.ceil(b.hp)}/${computePlayerStats(b.loadout, hearthBonus(this.save.hearth)).maxHp} · Level ${b.level}`
         : 'Fresh start';
-      const loot = lootCount(exp.loot);
-      return `Expedition · ${hp} · ${exp.areasCleared} areas${loot > 0 ? ` · ${loot} loot` : ''}`;
+      const pouch = exp.loot[EMBER_KEY] ?? 0;
+      const loot = lootCount(exp.loot) - pouch;
+      return `Expedition · ${hp} · ${exp.areasCleared} areas${loot > 0 ? ` · ${loot} loot` : ''}${pouch > 0 ? ` · ${embersText(pouch)} in the pouch` : ''}`;
     }
     const feathers = this.save.feathers > 0 ? ` · ${plural(this.save.feathers, 'Phoenix Feather')}` : '';
     return `${plural(this.save.segmentsCleared, 'area')} cleared · ${plural(this.save.world.litWatchfires.length, 'watchfire')} lit${feathers}`;
