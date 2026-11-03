@@ -1370,8 +1370,9 @@ export class GameScene extends Phaser.Scene {
     if (this.dyingSince === null) return;
     const elapsed = this.time.now - this.dyingSince;
     const f = deathFrame(elapsed / DEATH.fadeMs, this.time.now);
+    // The flame flickers; the light circle around him follows the smooth envelope, so it never jumps.
     this.lantern.dim(f.light);
-    this.lighting.setFade(f.light, f.black);
+    this.lighting.setFade(f.envelope, f.black);
     if (elapsed < DEATH.fadeMs + DEATH.holdMs || !this.endInfo) return;
     this.dyingSince = null;
     this.events.emit('runend', this.endInfo);
