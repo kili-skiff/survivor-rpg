@@ -53,12 +53,12 @@ export interface DirectorParams {
 
 export const DIRECTOR: DirectorParams = {
   /** The first build-up of a fight is longer and gentler, so the player can find their feet */
-  openingSec: 24,
+  openingSec: 8,
   /** Later build-ups last a random time between these */
   buildMinSec: 14,
   buildMaxSec: 20,
   /** Spawn rate multiple at the start and at the end of a build-up (it rises in a straight line) */
-  buildFrom: 0.6,
+  buildFrom: 0.9,
   buildTo: 1,
   /** Spawn rate multiple while a surge is announced: the calm before the storm */
   warningMult: 0.5,
@@ -75,7 +75,7 @@ export const DIRECTOR: DirectorParams = {
   finaleLeadSec: 22,
   finaleText: 'The night throws everything at you!',
   /** Spawned enemies that are not yet in play are never banked beyond this (e.g. while at the enemy cap) */
-  maxBank: 24,
+  maxBank: 30,
   /** At most this many enemies are placed in one frame by the stream */
   maxPerFrame: 6,
   /** A swarm surge comes from one side: enemies spread over this angle (radians, total) */

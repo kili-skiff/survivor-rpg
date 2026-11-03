@@ -27,7 +27,7 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
     speed: 62,
     damage: 9,
     xp: 2,
-    unlockAt: 30,
+    unlockAt: 18,
     // The plain, relentless chaser: slow and straight, so the others stand out next to it.
     behavior: { kind: 'chase' },
     weight: 6,
@@ -42,7 +42,7 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
     speed: 125,
     damage: 8,
     xp: 3,
-    unlockAt: 90,
+    unlockAt: 60,
     // Fast pouncer: runs up, crouches (circle follows you, then freezes), leaps there in an arc, lands stunned.
     behavior: {
       kind: 'charge',

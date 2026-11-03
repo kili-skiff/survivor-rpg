@@ -236,7 +236,7 @@ steering): one place that decides when and how enemies come, instead of a consta
 in cycles: a **build-up** where the stream rises, an **announced surge** (a hint in red a few seconds
 before it hits) and a **breather** with almost no spawns. The first build-up is longer and gentler.
 The strength of the stream is a smooth curve (`spawnRate` in `logic/spawning.ts`, values in `SPAWN`):
-0.9 enemies per second, +20% per ring, growing by half again every minute of the fight, without the
+1.1 enemies per second (times the ring's factor in `RINGS.table`), growing by its own amount again every 110 seconds of the fight, without the
 jumps the first curve had. It counts only the time of this fight, so a long fight (finding the light)
 does not run away, and ring 4 is no longer a wall. The director multiplies it per phase, so a cycle
 brings about as many enemies as the stream, only in a shape. Surge kinds:
@@ -417,7 +417,7 @@ up one by one.
   Sunstone Lantern lights up the whole screen and could later come from a special place instead), potion recipes
   (start with the healing potion, buy the others), buys herbs. Later maybe seeds or maps; merchant
   points of interest on the map could sell rarer goods.
-- **Treasure chest** (built): any enemy may leave a chest by chance, elites far more often. Tapping
+- **Treasure chest** (built): any enemy may leave a chest by chance, elites far more often. Chests stay rare on purpose: about one in 550 kills, at most one every 25 seconds from ordinary enemies, and the Fortune card can at most double the chance. Tapping
   it pops the lid, then its reels spin like a slot machine before stopping on the rewards: embers and usually one upgrade, sometimes
   three, rarely five. Later also equipment you keep (e.g. armour).
 - **Lantern and light radius:** a better lantern means a bigger light radius in fights. For now

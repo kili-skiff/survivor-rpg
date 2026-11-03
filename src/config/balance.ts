@@ -7,7 +7,7 @@ export const BALANCE = {
   /** Bolt lifetime (ms) */
   boltLifetimeMs: 1600,
   /** Chance that a defeated enemy drops a heal */
-  healDropChance: 0.012,
+  healDropChance: 0.009,
   healAmount: 25,
   /** Maximum number of XP gems at once */
   maxGems: 450,
@@ -22,25 +22,25 @@ export const BALANCE = {
    * All enemies walk this share of the speed in their config (config/enemies.ts); one knob for the pace of
    * the whole horde. Leaps of pouncers are timed and not affected.
    */
-  enemySpeed: 0.65,
+  enemySpeed: 0.74,
 } as const;
 
 /** Further rings are harder: enemies get more health and damage and come in denser waves. */
 export const RINGS = {
   /**
    * Per ring (index 0 = ring 1): enemy health, enemy damage and how many enemies come (see SPAWN), each a
-   * multiplier. Rings 1–2 stay easy; from ring 3 on enemies get tougher and hit harder, while the crowd
+   * multiplier. Rings 1–2 are the gentlest; from ring 3 on enemies get tougher and hit harder, while the crowd
    * grows evenly. Beyond the last ring the last step repeats.
    */
   table: [
-    { hp: 1.0, damage: 1.0, spawnRate: 1.0 },
-    { hp: 1.2, damage: 1.05, spawnRate: 1.1 },
-    { hp: 1.6, damage: 1.3, spawnRate: 1.4 },
-    { hp: 2.1, damage: 1.5, spawnRate: 1.6 },
-    { hp: 2.7, damage: 1.65, spawnRate: 1.8 },
-    { hp: 3.5, damage: 1.85, spawnRate: 2.0 },
-    { hp: 4.6, damage: 2.1, spawnRate: 2.25 },
-    { hp: 6.0, damage: 2.4, spawnRate: 2.5 },
+    { hp: 1.8, damage: 1.38, spawnRate: 1.0 },
+    { hp: 2.3, damage: 1.54, spawnRate: 1.1 },
+    { hp: 2.8, damage: 1.64, spawnRate: 1.4 },
+    { hp: 3.7, damage: 1.88, spawnRate: 1.6 },
+    { hp: 4.7, damage: 2.18, spawnRate: 1.8 },
+    { hp: 6.1, damage: 2.42, spawnRate: 2.0 },
+    { hp: 7.9, damage: 2.73, spawnRate: 2.25 },
+    { hp: 10.3, damage: 3.09, spawnRate: 2.5 },
   ],
 } as const;
 
@@ -52,11 +52,11 @@ export const RINGS = {
  * ring's difficulty offset (that only decides which enemy types come).
  */
 export const SPAWN = {
-  baseRate: 0.9,
-  growthSec: 120,
-  capBase: 30,
-  capPerRing: 12,
-  capPerSec: 0.8,
+  baseRate: 1.1,
+  growthSec: 110,
+  capBase: 34,
+  capPerRing: 8,
+  capPerSec: 0.35,
 } as const;
 
 /** Elite enemies: rare, big and tough, with a golden shimmer; they always leave a treasure chest. */
@@ -187,8 +187,12 @@ export const SWARM = {
 /** Treasure chests from elites: rewards are rolled like a slot machine. */
 export const CHEST = {
   /** Chance that a killed enemy leaves a chest: rare for anyone, likely for elites */
-  dropChance: 0.003,
-  eliteDropChance: 0.5,
+  dropChance: 0.0018,
+  eliteDropChance: 0.35,
+  /** Fortune can never raise the chance of a chest by more than this factor (2 = at most twice as often) */
+  maxFortuneMul: 2,
+  /** After a chest drops, no ordinary enemy leaves another within this many seconds of the fight (elites may) */
+  minGapSec: 25,
   /** Chance for 5 upgrades at once, else for 3, else 1 */
   fiveChance: 0.05,
   threeChance: 0.25,
