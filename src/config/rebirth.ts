@@ -12,6 +12,8 @@ export const REBIRTH = {
   /** He appears in the flames, first as a glowing shape that cools to his own (ashen) colours */
   /** He stands this many pixels higher in the flames of the Nest (world pixels) */
   bowlLiftPx: 32,
+  /** The fire stands this many pixels higher than the Nest's bowl (world pixels) */
+  flameLiftPx: 18,
   riseFrom: 900,
   riseMs: 700,
   glowFrom: 1000,

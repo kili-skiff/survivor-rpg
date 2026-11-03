@@ -302,7 +302,7 @@ export class VillageScene extends Phaser.Scene {
     // Where he is: in the Nest's bowl first, then staggering out to where he used to wake up.
     const gx = Phaser.Math.Linear(this.rebirthNest.x, this.rebirthBase.x, f.walk);
     const gy = Phaser.Math.Linear(this.rebirthNest.y, this.rebirthBase.y, f.walk);
-    fx.update(elapsed, dt, { x: gx, y: gy + FEET_Y + R.bowlLiftPx * (1 - f.walk) });
+    fx.update(elapsed, dt, { x: gx, y: gy + FEET_Y + (R.bowlLiftPx - R.flameLiftPx) * (1 - f.walk) });
     this.rebirthStepping = f.stepping;
     this.rebirthAbove = f.walk < 0.4;
 
