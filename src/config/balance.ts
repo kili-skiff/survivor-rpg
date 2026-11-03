@@ -33,14 +33,14 @@ export const RINGS = {
    * grows evenly. Beyond the last ring the last step repeats.
    */
   table: [
-    { hp: 1.3, damage: 1.0, spawnRate: 1.0 },
-    { hp: 1.6, damage: 1.15, spawnRate: 1.1 },
-    { hp: 2.2, damage: 1.35, spawnRate: 1.4 },
-    { hp: 2.9, damage: 1.55, spawnRate: 1.6 },
-    { hp: 3.7, damage: 1.8, spawnRate: 1.8 },
-    { hp: 4.8, damage: 2.0, spawnRate: 2.0 },
-    { hp: 6.3, damage: 2.25, spawnRate: 2.25 },
-    { hp: 8.2, damage: 2.55, spawnRate: 2.5 },
+    { hp: 1.4, damage: 1.1, spawnRate: 1.0 },
+    { hp: 1.8, damage: 1.26, spawnRate: 1.1 },
+    { hp: 2.4, damage: 1.49, spawnRate: 1.4 },
+    { hp: 3.2, damage: 1.71, spawnRate: 1.6 },
+    { hp: 4.1, damage: 1.98, spawnRate: 1.8 },
+    { hp: 5.3, damage: 2.2, spawnRate: 2.0 },
+    { hp: 6.9, damage: 2.48, spawnRate: 2.25 },
+    { hp: 9.0, damage: 2.81, spawnRate: 2.5 },
   ],
 } as const;
 
