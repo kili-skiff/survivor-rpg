@@ -1142,7 +1142,6 @@ export class GameScene extends Phaser.Scene {
     }
     if (this.run.hp <= 0) {
       this.run.hp = 0;
-      this.player.showDefeated();
       this.endRun('fallen');
     }
   }
@@ -1357,7 +1356,8 @@ export class GameScene extends Phaser.Scene {
     this.endInfo = info;
     this.controls.reset();
     if (outcome === 'fallen') {
-      // The result is saved already; the lantern goes out first, then the result screen opens.
+      // The result is saved already; he falls, the lantern goes out, then the result screen opens.
+      this.player.showDefeated();
       this.dyingSince = this.time.now;
       this.events.emit('dying', DEATH.hudFadeMs);
       return;

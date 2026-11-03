@@ -1,4 +1,5 @@
 import * as Phaser from 'phaser';
+import { DEATH } from '../config/death';
 import { BALANCE } from '../config/balance';
 import { DASH_SPEED } from '../config/skills';
 import {
@@ -150,8 +151,24 @@ export class PlayerController {
   }
 
   showDefeated(): void {
-    this.sprite.setVelocity(0, 0).setAlpha(1).setTint(0x555555).setTintMode(Phaser.TintModes.MULTIPLY);
-    if (this.look) this.sprite.play(dieAnim(this.look.key));
+    const sprite = this.sprite;
+    sprite.setVelocity(0, 0).setAlpha(1).setTint(0x555555).setTintMode(Phaser.TintModes.MULTIPLY);
+    if (!this.look) return;
+    // He sways on his feet for a moment, then topples over slowly and stays down.
+    const key = this.look.key;
+    sprite.anims.stop();
+    this.scene.tweens.add({
+      targets: sprite,
+      angle: { from: -5, to: 5 },
+      duration: DEATH.swayMs / 4,
+      yoyo: true,
+      repeat: 1,
+      ease: 'Sine.easeInOut',
+      onComplete: () => {
+        sprite.setAngle(0);
+        sprite.play({ key: dieAnim(key), frameRate: DEATH.fallFps });
+      },
+    });
   }
 
   private spawnGhost(now: number): void {
