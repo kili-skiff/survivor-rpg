@@ -1,5 +1,5 @@
 import * as Phaser from 'phaser';
-import { BALANCE, BOONS, ELITE, LIGHT } from '../config/balance';
+import { BALANCE, BOONS, CHEST, ELITE, LIGHT } from '../config/balance';
 import { DIRECTOR } from '../config/director';
 import { GOALS } from '../config/goals';
 import { ENEMIES } from '../config/enemies';
@@ -193,6 +193,8 @@ export class GameScene extends Phaser.Scene {
   private chestOpen = false;
   /** Chests picked up while a menu was open; they open one after another */
   private pendingChests: ChestReward[] = [];
+  /** Fight time of the last chest that dropped (for `CHEST.minGapSec`) */
+  private lastChestDropAt = -Infinity;
   private pendingLevelUps = 0;
   /** Revives left (Second Wind) */
   private secondWinds = 0;
@@ -242,6 +244,7 @@ export class GameScene extends Phaser.Scene {
     this.levelUpOpen = false;
     this.chestOpen = false;
     this.pendingChests = [];
+    this.lastChestDropAt = -Infinity;
     this.pendingLevelUps = 0;
     this.mainMisses = 0;
     this.emberCount = 0;
@@ -1130,7 +1133,10 @@ export class GameScene extends Phaser.Scene {
     else this.pickups.drop(e.x, e.y, 'xp', e.def.xp * (e.elite ? ELITE.xp : 1) * this.run.stats.xpGain);
     if (this.run.stats.bloodthirst > 0) this.heal(this.run.stats.bloodthirst);
     // Any enemy may leave a treasure chest (elites much more often) or a few embers.
-    if (dropsChest(e.elite, Math.random, this.run.stats.fortune)) {
+    // Ordinary enemies leave at most one chest per `CHEST.minGapSec`, however much Fortune you stack.
+    const chestReady = e.elite || this.run.time - this.lastChestDropAt >= CHEST.minGapSec;
+    if (chestReady && dropsChest(e.elite, Math.random, this.run.stats.fortune)) {
+      this.lastChestDropAt = this.run.time;
       this.pickups.drop(e.x, e.y + 10, 'chest', 0);
       this.events.emit('chestdrop');
     }

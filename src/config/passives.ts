@@ -154,7 +154,7 @@ export const PASSIVES: Record<PassiveId, PassiveDef> = {
   fortune: {
     id: 'fortune',
     name: 'Fortune',
-    description: '+50% chance that enemies drop chests',
+    description: '+50% chest chance (twice as often at most)',
     texture: 'icon-fortune',
     rarity: 'magic',
     maxLevel: 5,

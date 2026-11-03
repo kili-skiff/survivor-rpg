@@ -411,7 +411,7 @@ up one by one.
   Sunstone Lantern lights up the whole screen and could later come from a special place instead), potion recipes
   (start with the healing potion, buy the others), buys herbs. Later maybe seeds or maps; merchant
   points of interest on the map could sell rarer goods.
-- **Treasure chest** (built): any enemy may leave a chest by chance, elites far more often. Tapping
+- **Treasure chest** (built): any enemy may leave a chest by chance, elites far more often. Chests stay rare on purpose: about one in 550 kills, at most one every 25 seconds from ordinary enemies, and the Fortune card can at most double the chance. Tapping
   it pops the lid, then its reels spin like a slot machine before stopping on the rewards: embers and usually one upgrade, sometimes
   three, rarely five. Later also equipment you keep (e.g. armour).
 - **Lantern and light radius:** a better lantern means a bigger light radius in fights. For now

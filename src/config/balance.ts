@@ -187,8 +187,12 @@ export const SWARM = {
 /** Treasure chests from elites: rewards are rolled like a slot machine. */
 export const CHEST = {
   /** Chance that a killed enemy leaves a chest: rare for anyone, likely for elites */
-  dropChance: 0.003,
-  eliteDropChance: 0.5,
+  dropChance: 0.0018,
+  eliteDropChance: 0.35,
+  /** Fortune can never raise the chance of a chest by more than this factor (2 = at most twice as often) */
+  maxFortuneMul: 2,
+  /** After a chest drops, no ordinary enemy leaves another within this many seconds of the fight (elites may) */
+  minGapSec: 25,
   /** Chance for 5 upgrades at once, else for 3, else 1 */
   fiveChance: 0.05,
   threeChance: 0.25,
