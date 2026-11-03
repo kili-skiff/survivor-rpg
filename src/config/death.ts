@@ -6,9 +6,11 @@ export const DEATH = {
   fadeMs: 5200,
   /** Pause in the dark before the result screen opens (ms) */
   holdMs: 600,
-  /** He sways on his feet for this long (ms), then falls at this frame rate (the sheet has 6 frames) */
+  /** He sways on his feet for this long (ms), then topples sideways in `fallMs` */
   swayMs: 700,
-  fallFps: 5,
+  fallMs: 900,
+  /** Lying down, his middle sits this share of his height lower */
+  lieDrop: 0.3,
   /** The HUD fades away in this time (ms) */
   hudFadeMs: 1600,
   /** A tap or key skips the fade, but only after this long, so a button mashed in panic does not (ms) */
