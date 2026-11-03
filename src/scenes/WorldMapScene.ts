@@ -271,6 +271,10 @@ export class WorldMapScene extends Phaser.Scene {
       ...this.tiles.map((t) => t.image),
       ...this.poiLabels.map((l) => l.text),
       ...this.herbIcons.map((h) => h.icon),
+      // Without these the HUD camera draws the goal and reward symbols a second time, unscrolled and
+      // unzoomed: a copy of the symbols around the player, offset towards the top left of the screen.
+      ...this.goalIcons.map((g) => g.icon),
+      ...this.rewardIcons.map((r) => r.icon),
       ...this.fog.objects(),
     ]);
     this.cameras.main.setZoom(
