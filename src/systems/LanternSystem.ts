@@ -22,6 +22,8 @@ export class LanternSystem {
   private prevVx = 0;
   private prevVy = 0;
   private lit = true;
+  /** How strongly the flame burns: 1 as usual, sinking to 0 when the watchman falls */
+  private level = 1;
   /** Drawn around this depth: a little in front of the character, or behind it when walking away */
   depth = 3;
   depthSpread = 0.1;
@@ -32,7 +34,7 @@ export class LanternSystem {
   private readonly look: LanternLook;
 
   constructor(
-    scene: Phaser.Scene,
+    private readonly scene: Phaser.Scene,
     private readonly player: PlayerController,
     /** The lantern bought in the village (0 = the old one) */
     level: number,
@@ -46,10 +48,58 @@ export class LanternSystem {
     this.update(0);
   }
 
-  /** The flame goes out (the watchman has fallen). */
+  /** The flame goes out at once, with a wisp of smoke. */
   snuff(): void {
+    if (this.lit) this.smoke();
+    this.extinguish();
+  }
+
+  /** The flame is out, quietly (no smoke): the lantern waits to be lit. */
+  extinguish(): void {
     this.lit = false;
+    this.level = 0;
     this.lantern.setTint(0x6b6b6b);
+  }
+
+  /** Fades the lantern and its chain in or out (the watchman rising from the fire). */
+  setAlpha(alpha: number): void {
+    this.lantern.setAlpha(alpha);
+    this.chain.setAlpha(alpha);
+  }
+
+  /** The flame burns at `level` (1 = as usual, 0 = out): the glow shrinks and the lantern darkens. */
+  dim(level: number): void {
+    if (level <= 0) {
+      this.snuff();
+      return;
+    }
+    this.lit = true;
+    this.level = level;
+    const c = 0x6b + Math.round((0xff - 0x6b) * Math.min(1, level));
+    this.lantern.setTint((c << 16) | (c << 8) | c);
+  }
+
+  /** A few grey puffs rise from the lantern; they remove themselves. */
+  private smoke(): void {
+    for (let i = 0; i < 3; i++) {
+      const puff = this.scene.add
+        .image(this.x + (i - 1) * 3, this.y - 2, 'light')
+        .setTint(0x9ca3af)
+        .setAlpha(0.32)
+        .setDisplaySize(10, 10)
+        .setDepth(3.2);
+      this.scene.tweens.add({
+        targets: puff,
+        y: puff.y - 30 - i * 8,
+        x: puff.x + (i - 1) * 6,
+        alpha: 0,
+        displayWidth: 34,
+        displayHeight: 34,
+        delay: i * 140,
+        duration: 1100,
+        onComplete: () => puff.destroy(),
+      });
+    }
   }
 
   /** The warm glow around the flame, for the lighting system. */
@@ -59,9 +109,9 @@ export class LanternSystem {
     return {
       x: this.x,
       y: this.y,
-      radius: LANTERN.glowRadius * this.look.scale * flicker,
+      radius: LANTERN.glowRadius * this.look.scale * flicker * (0.4 + 0.6 * this.level),
       color: this.look.glow,
-      strength: LANTERN.glowStrength,
+      strength: Math.min(1, LANTERN.glowStrength * this.level),
     };
   }
 

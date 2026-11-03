@@ -1,6 +1,7 @@
 import * as Phaser from 'phaser';
 import { embersText } from '../logic/merchant';
 import { LIGHT } from '../config/balance';
+import { lootCount } from '../logic/expedition';
 import { PASSIVES } from '../config/passives';
 import { HERBS } from '../config/herbs';
 import { POTION_IDS, POTIONS } from '../config/potions';
@@ -18,6 +19,7 @@ import { rewardLabel } from '../logic/rewards';
 import { loadSettings, otherSide, writeSettings, type Settings } from '../logic/settings';
 import { RARITIES } from '../config/rarity';
 import { describeUpgrade, type UpgradeOption } from '../logic/upgrades';
+import { describeLoot } from '../panels/villagePanels';
 import { DevPanel } from '../dev/DevPanel'; // DEV:
 import { DevUpgradePicker } from '../dev/DevUpgradePicker'; // DEV:
 import { DevDamageBox } from '../dev/DevDamageBox'; // DEV:
@@ -110,6 +112,8 @@ export class UIScene extends Phaser.Scene {
   /** Title of the level-up menu when it is not a level-up (e.g. a reward) */
   private levelUpTitle: string | null = null;
   private runEndInfo?: RunEndInfo;
+  /** The lantern is going out after a fall: the HUD fades and a tap skips ahead */
+  private dying = false;
   private chestReward?: ChestReward;
   /** Reels of the open chest that have stopped */
   private chestRevealed = 0;
@@ -201,6 +205,8 @@ export class UIScene extends Phaser.Scene {
       this.createPotionButton(id, this.isTouch ? POTIONS[id].short : `${POTIONS[id].short} · ${i + 1}`),
     );
 
+    this.dying = false;
+    this.cameras.main.setAlpha(1);
     this.setupKeyboard();
     this.setupJoystick();
 
@@ -209,6 +215,7 @@ export class UIScene extends Phaser.Scene {
     this.gs.events.on('levelup', this.onLevelUp, this);
     this.gs.events.on('chest', this.onChest, this);
     this.gs.events.on('runend', this.onRunEnd, this);
+    this.gs.events.on('dying', this.onDying, this);
     this.gs.events.on('herbbloom', this.onHerbBloom, this);
     this.gs.events.on('chestdrop', this.onChestDrop, this);
     this.gs.events.on('surge', this.onSurge, this);
@@ -219,6 +226,7 @@ export class UIScene extends Phaser.Scene {
       this.gs.events.off('levelup', this.onLevelUp, this);
       this.gs.events.off('chest', this.onChest, this);
       this.gs.events.off('runend', this.onRunEnd, this);
+      this.gs.events.off('dying', this.onDying, this);
       this.gs.events.off('herbbloom', this.onHerbBloom, this);
       this.gs.events.off('chestdrop', this.onChestDrop, this);
       this.gs.events.off('surge', this.onSurge, this);
@@ -257,6 +265,10 @@ export class UIScene extends Phaser.Scene {
   }
 
   private onConfirmKey(action: 'dash' | null): void {
+    if (this.dying) {
+      this.gs.skipDeathFade();
+      return;
+    }
     if (this.overlayKind === 'none') {
       if (action) this.controls.press(action);
     } else if (this.overlayKind === 'pause') this.togglePause();
@@ -267,6 +279,10 @@ export class UIScene extends Phaser.Scene {
 
   private setupJoystick(): void {
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer, over: Phaser.GameObjects.GameObject[]) => {
+      if (this.dying) {
+        this.gs.skipDeathFade();
+        return;
+      }
       if (over.length > 0 || this.overlayKind !== 'none' || this.stickPointerId !== null) return;
       this.stickPointerId = pointer.id;
       this.stickOrigin.set(pointer.x, pointer.y);
@@ -1563,7 +1579,16 @@ export class UIScene extends Phaser.Scene {
     this.showPause();
   }
 
+  /** The watchman fell: the HUD fades out while the lantern goes out. */
+  private onDying(fadeMs: number): void {
+    this.dying = true;
+    this.tweens.add({ targets: this.cameras.main, alpha: 0, duration: fadeMs });
+  }
+
   private onRunEnd(info: RunEndInfo): void {
+    this.dying = false;
+    this.tweens.killTweensOf(this.cameras.main);
+    this.cameras.main.setAlpha(1);
     this.runEndInfo = info;
     this.showRunEnd(info);
   }
@@ -1582,7 +1607,78 @@ export class UIScene extends Phaser.Scene {
     return 'Your expedition continues.';
   }
 
+  /** Lines of a block on the fall screen: a small title, then what it holds. Returns the next y. */
+  private fallenBlock(y: number, title: string, color: string, lines: string[]): number {
+    const { width: W } = this.scale;
+    const u = this.u;
+    const head = this.text(W / 2, y, title, 12, { fontStyle: 'bold', color }).setOrigin(0.5, 0);
+    y += head.height + 6 * u;
+    for (const line of lines) {
+      const t = this.text(W / 2, y, line, 16, {
+        color: '#e5e7eb',
+        wordWrap: { width: W - 56 * u },
+      }).setOrigin(0.5, 0);
+      y += t.height + 5 * u;
+    }
+    return y + 14 * u;
+  }
+
+  /** The fall: black screen, what is gone and what stays, then back to the Nest. */
+  private showFallen(info: RunEndInfo): void {
+    this.beginOverlay('runend', 0.96);
+    const { width: W, height: H } = this.scale;
+    const u = this.u;
+    const wide = W > H * 1.3;
+    let y = Math.max(this.sa.top + (wide ? 36 : 70) * u, H * (wide ? 0.06 : 0.14));
+    this.text(W / 2, y, 'The Light Goes Out', wide ? 30 : 36, {
+      fontStyle: 'bold',
+      color: '#fcd9a8',
+      stroke: '#000',
+      strokeThickness: 6,
+    });
+    y += (wide ? 30 : 40) * u;
+    this.text(W / 2, y, 'The Nest takes you back.', 14, { color: '#a1a1aa', fontStyle: 'italic' });
+    y += (wide ? 26 : 38) * u;
+
+    const lost: string[] = [];
+    const build = info.lostBuild;
+    if (build) {
+      const extras =
+        build.upgrades > 0 ? `, ${build.upgrades} ${build.upgrades === 1 ? 'upgrade' : 'upgrades'}` : '';
+      lost.push(`Level ${build.level}: ${build.weapons.join(', ')}${extras}`);
+      if (build.areas > 0)
+        lost.push(`${build.areas} ${build.areas === 1 ? 'area' : 'areas'} cleared on this road`);
+    }
+    const lostLoot = info.report?.lootLost ?? {};
+    if (lootCount(lostLoot) > 0) lost.push(describeLoot(lostLoot));
+    y = this.fallenBlock(y, 'LOST', '#fb7185', lost.length > 0 ? lost : ['Nothing: you carried little']);
+
+    const kept: string[] = [];
+    if (info.embers > 0) kept.push(`${embersText(info.embers)} caught`);
+    const savedLoot = info.report?.lootKept ?? {};
+    if (lootCount(savedLoot) > 0) kept.push(describeLoot(savedLoot));
+    kept.push('Hearth upgrades, weapons and deeds');
+    y = this.fallenBlock(y, 'KEPT', '#86efac', kept);
+
+    const stats = this.text(
+      W / 2,
+      y,
+      `Time ${formatTime(info.time)}  ·  ${info.kills} kills${info.newBestTime ? '  ·  New best time!' : ''}`,
+      13,
+      { color: '#a1a1aa' },
+    ).setOrigin(0.5, 0);
+    y += stats.height;
+    const buttonY = Math.min(Math.max(y + 54 * u, H * 0.74), H - this.sa.bottom - 34 * u);
+    this.button(W / 2, buttonY, this.isTouch ? 'Return to the Nest' : 'To the Nest (Enter)', () =>
+      this.gs.returnToMap(),
+    );
+  }
+
   private showRunEnd(info: RunEndInfo): void {
+    if (info.outcome === 'fallen') {
+      this.showFallen(info);
+      return;
+    }
     this.beginOverlay('runend', 0.7);
     const { width: W, height: H } = this.scale;
     const u = this.u;
@@ -1650,8 +1746,7 @@ export class UIScene extends Phaser.Scene {
       `Level  ${info.level}`,
       `Kills  ${info.kills}`,
       ...(info.herbsTotal > 0 ? [`Herbs  ${info.herbsGathered} / ${info.herbsTotal}`] : []),
-      // Embers count at once, so a fall keeps them too.
-      ...(info.embers > 0 ? [`Embers  ${info.embers}${info.outcome === 'fallen' ? ' (kept)' : ''}`] : []),
+      ...(info.embers > 0 ? [`Embers  ${info.embers}`] : []),
     ];
     const block = this.text(W / 2, y, stats.join(wide ? '   ·   ' : '\n'), wide ? 17 : 20, {
       lineSpacing: 10 * u,

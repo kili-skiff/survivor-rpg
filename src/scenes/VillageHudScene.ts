@@ -313,7 +313,7 @@ export class VillageHudScene extends Phaser.Scene {
     if (this.arrival && this.time.now < this.arrivalUntil) {
       const news = hasNews(this.save, 'elder') ? ` ${VILLAGERS.elder.name} wants to speak with you.` : '';
       const t = this.text(left + 10 * u, noteTop + 10 * u, describeArrival(this.arrival) + news, 13, {
-        color: this.arrival.reason === 'fallen' ? '#fda4af' : '#bbf7d0',
+        color: this.arrival.reason === 'fallen' ? '#fde68a' : '#bbf7d0',
         wordWrap: { width: right - left - 20 * u },
       });
       const g = this.track(this.add.graphics());
