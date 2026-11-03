@@ -25,7 +25,8 @@ import { DevUpgradePicker } from '../dev/DevUpgradePicker'; // DEV:
 import { DevDamageBox } from '../dev/DevDamageBox'; // DEV:
 import type { DevGroup } from '../dev/DevPanel'; // DEV:
 import { devMainWeapon, devUpgradeList } from '../dev/devLogic'; // DEV:
-import { isDevMode } from '../dev/devMode'; // DEV:
+import { devButtonStyle, isDevMode } from '../dev/devMode'; // DEV:
+import { copyExpeditionStats, copyToast } from '../dev/expeditionStatsStore'; // DEV:
 import { safeArea, viewportSize, type SafeArea } from '../ui/display';
 import { COLORS, css, FONT } from '../ui/theme';
 import type { GameScene, RunEndInfo } from './GameScene';
@@ -1048,6 +1049,20 @@ export class UIScene extends Phaser.Scene {
     const { width: W, height: H } = this.scale;
     const shade = this.add.rectangle(0, 0, W, H, 0x000000, dim).setOrigin(0, 0).setDepth(50).setInteractive();
     this.overlay.push(shade);
+    if (isDevMode() && kind === 'runend') this.addDevStatsButton(); // DEV: expedition stats
+  }
+
+  // DEV: copies the expedition stats on the result screen (small, top left).
+  private addDevStatsButton(): void {
+    const u = this.u;
+    const t = this.add
+      .text(this.sa.left + 12 * u, this.sa.top + 10 * u, 'DEV  copy stats', devButtonStyle(u))
+      .setDepth(60)
+      .setInteractive({ useHandCursor: true });
+    t.on('pointerup', () => {
+      void copyExpeditionStats().then((r) => t.setText(`DEV  ${copyToast(r)}`));
+    });
+    this.overlay.push(t);
   }
 
   private text(
@@ -1413,6 +1428,7 @@ export class UIScene extends Phaser.Scene {
           { label: () => 'clear', run: () => gs.devClearArea() },
           { label: () => 'elite', run: () => gs.devSpawnElite() },
           { label: () => 'level up', run: () => gs.devLevelUp() },
+          { label: () => 'copy stats', run: () => gs.devCopyExpeditionStats() },
         ],
       },
       {
