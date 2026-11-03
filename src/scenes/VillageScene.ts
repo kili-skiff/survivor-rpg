@@ -267,7 +267,7 @@ export class VillageScene extends Phaser.Scene {
     this.cameras.main.stopFollow();
     // The fire stands in the Nest's bowl (or where he wakes up, when the village has no Nest).
     const nest = this.nestFeet ?? feet;
-    this.rebirthNest = { x: nest.x, y: nest.y - FEET_Y };
+    this.rebirthNest = { x: nest.x, y: nest.y - FEET_Y - REBIRTH.bowlLiftPx };
     const away = new Phaser.Math.Vector2(feet.x - nest.x, feet.y - nest.y);
     this.rebirthDir = away.length() > 1 ? away.normalize() : new Phaser.Math.Vector2(0, 1);
     this.rebirthStepping = false;
@@ -302,7 +302,7 @@ export class VillageScene extends Phaser.Scene {
     // Where he is: in the Nest's bowl first, then staggering out to where he used to wake up.
     const gx = Phaser.Math.Linear(this.rebirthNest.x, this.rebirthBase.x, f.walk);
     const gy = Phaser.Math.Linear(this.rebirthNest.y, this.rebirthBase.y, f.walk);
-    fx.update(elapsed, dt, { x: gx, y: gy + FEET_Y });
+    fx.update(elapsed, dt, { x: gx, y: gy + FEET_Y + R.bowlLiftPx * (1 - f.walk) });
     this.rebirthStepping = f.stepping;
     this.rebirthAbove = f.walk < 0.4;
 

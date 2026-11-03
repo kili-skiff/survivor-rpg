@@ -35,7 +35,7 @@ export class RebirthFx {
     this.flames = scene.add
       .particles(0, 0, 'light', {
         emitting: false,
-        speedY: { min: -170, max: -90 },
+        speedY: { min: -210, max: -120 },
         speedX: { min: -26, max: 26 },
         lifespan: { min: 520, max: 950 },
         scale: { start: 0.26, end: 0 },
