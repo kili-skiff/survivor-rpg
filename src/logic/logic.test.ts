@@ -30,7 +30,7 @@ function seeded(seed = 42) {
 
 describe('progression', () => {
   it('xp curve grows', () => {
-    expect(xpToNext(1)).toBe(5);
+    expect(xpToNext(1)).toBe(6);
     for (let l = 1; l < 50; l++) expect(xpToNext(l + 1)).toBeGreaterThan(xpToNext(l));
   });
 
@@ -149,9 +149,9 @@ describe('spawning', () => {
     expect(maxEnemies(1, 60, 999)).toBeGreaterThan(maxEnemies(1, 0, 999));
     expect(maxEnemies(9, 999, 100)).toBe(100);
     expect(enemyHpMultiplier(300)).toBeGreaterThan(enemyHpMultiplier(0));
-    // Gentle: a long fight of 150 s makes enemies 75% tougher, not three times as tough.
+    // Gentle: a long fight of 150 s makes enemies twice as tough, not three times as tough.
     expect(enemyHpMultiplier(0)).toBe(1);
-    expect(enemyHpMultiplier(150)).toBeCloseTo(1.75);
+    expect(enemyHpMultiplier(150)).toBeCloseTo(2);
   });
 
   it('only picks unlocked enemies', () => {

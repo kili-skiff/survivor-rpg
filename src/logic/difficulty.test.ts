@@ -3,8 +3,8 @@ import { ELITE } from '../config/balance';
 import { eliteChance, ringModifiers } from './difficulty';
 
 describe('ring difficulty', () => {
-  it('leaves ring 1 as it is and gets harder further out', () => {
-    expect(ringModifiers(1)).toEqual({ hp: 1, damage: 1, spawnRate: 1 });
+  it('starts ring 1 from the table and gets harder further out', () => {
+    expect(ringModifiers(1)).toEqual({ hp: 1.8, damage: 1.38, spawnRate: 1 });
     const far = ringModifiers(6);
     expect(far.hp).toBeGreaterThan(2);
     expect(far.damage).toBeGreaterThan(1.5);

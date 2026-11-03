@@ -24,7 +24,7 @@ export function maxEnemies(ring: number, fightTime: number, hardCap: number): nu
  * Pressure within a fight comes from more enemies (the spawn director), not from tougher ones.
  */
 export function enemyHpMultiplier(t: number): number {
-  return 1 + Math.max(0, t) / 200;
+  return 1 + Math.max(0, t) / 150;
 }
 
 /** Picks a weighted enemy type among those unlocked at time t and allowed in this ring. */

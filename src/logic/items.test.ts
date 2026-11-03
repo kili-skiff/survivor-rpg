@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 // The icons are drawn in code, so the test reads the source of the scene that draws them.
 import boot from '../scenes/BootScene.ts?raw';
-import { ITEMS } from '../config/balance';
+import { CHEST, ITEMS } from '../config/balance';
 import { BOON_DEFS } from '../config/boons';
 import { BASE_PLAYER_STATS, PASSIVES } from '../config/passives';
 import { RARITIES } from '../config/rarity';
@@ -215,8 +215,14 @@ describe('one-time cards', () => {
 
 describe('Fortune', () => {
   it('raises the chance of a chest', () => {
-    expect(dropsChest(false, () => 0.004)).toBe(false);
-    expect(dropsChest(false, () => 0.004, 0.5)).toBe(true);
+    expect(dropsChest(false, () => 0.0025)).toBe(false);
+    expect(dropsChest(false, () => 0.0025, 0.5)).toBe(true);
+  });
+
+  it('is capped, so a stack of Fortune cards does not flood the fight with chests', () => {
+    const cap = CHEST.dropChance * CHEST.maxFortuneMul;
+    expect(dropsChest(false, () => cap - 1e-6, 10)).toBe(true);
+    expect(dropsChest(false, () => cap, 10)).toBe(false);
   });
 });
 

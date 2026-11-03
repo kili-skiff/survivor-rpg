@@ -12,9 +12,13 @@ export interface ChestReward {
   upgrades: UpgradeOption[];
 }
 
-/** Rolls whether a killed enemy leaves a chest; elites are far more likely to. */
+/**
+ * Rolls whether a killed enemy leaves a chest; elites are far more likely to. Fortune raises the chance, but
+ * never beyond `CHEST.maxFortuneMul` times.
+ */
 export function dropsChest(elite: boolean, rng: Rng, fortune = 0): boolean {
-  return rng() < (elite ? CHEST.eliteDropChance : CHEST.dropChance) * (1 + Math.max(0, fortune));
+  const luck = Math.min(CHEST.maxFortuneMul, 1 + Math.max(0, fortune));
+  return rng() < (elite ? CHEST.eliteDropChance : CHEST.dropChance) * luck;
 }
 
 /** Usually one upgrade, sometimes three, rarely five. */
