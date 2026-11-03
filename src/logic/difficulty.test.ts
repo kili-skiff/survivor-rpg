@@ -4,7 +4,7 @@ import { eliteChance, ringModifiers } from './difficulty';
 
 describe('ring difficulty', () => {
   it('starts ring 1 from the table and gets harder further out', () => {
-    expect(ringModifiers(1)).toEqual({ hp: 1.4, damage: 1.1, spawnRate: 1 });
+    expect(ringModifiers(1)).toEqual({ hp: 1.6, damage: 1.25, spawnRate: 1 });
     const far = ringModifiers(6);
     expect(far.hp).toBeGreaterThan(2);
     expect(far.damage).toBeGreaterThan(1.5);

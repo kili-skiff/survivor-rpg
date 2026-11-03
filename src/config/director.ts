@@ -53,12 +53,12 @@ export interface DirectorParams {
 
 export const DIRECTOR: DirectorParams = {
   /** The first build-up of a fight is longer and gentler, so the player can find their feet */
-  openingSec: 14,
+  openingSec: 8,
   /** Later build-ups last a random time between these */
   buildMinSec: 14,
   buildMaxSec: 20,
   /** Spawn rate multiple at the start and at the end of a build-up (it rises in a straight line) */
-  buildFrom: 0.75,
+  buildFrom: 0.9,
   buildTo: 1,
   /** Spawn rate multiple while a surge is announced: the calm before the storm */
   warningMult: 0.5,
