@@ -19,6 +19,9 @@ export const LANTERN_TIERS: readonly LanternTier[] = [
   { name: 'Sunstone Lantern', price: 400, light: 2.3, lightsAll: true },
 ];
 
+/** Share of the pouch's embers you keep when you fall, by lantern level (0 = the old lantern, then one per tier). */
+export const LANTERN_EMBER_KEEP: readonly number[] = [0.25, 0.4, 0.6, 0.8, 1];
+
 /** How a lantern looks in the watchman's hand. Index 0 is the old one you start with, then one per tier. */
 export interface LanternLook {
   /** Metal of the frame and the ring */

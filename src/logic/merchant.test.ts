@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   EMBER_KEY,
   HERB_PRICES,
+  LANTERN_EMBER_KEEP,
   LANTERN_LOOKS,
   LANTERN_TIERS,
   lanternLook,
@@ -10,8 +11,11 @@ import {
 import {
   buyLantern,
   buyRecipe,
+  emberKeepText,
+  embersKeptOnFall,
   embersOf,
   embersPerDrop,
+  lanternEmberKeep,
   lanternLightsAll,
   lanternMultiplier,
   nextLantern,
@@ -58,6 +62,40 @@ describe('merchant', () => {
     expect(s).toEqual({ starlily: 1, [EMBER_KEY]: HERB_PRICES.starlily });
     expect(sellHerb({}, 'moonbloom')).toBeNull();
     expect(sellHerb({ moonbloom: 1 }, 'moonbloom')).toEqual({ [EMBER_KEY]: 1 });
+  });
+});
+
+describe('lantern and the ember pouch', () => {
+  it('has a keep share for the old lantern and one per tier', () => {
+    expect(LANTERN_EMBER_KEEP).toHaveLength(LANTERN_TIERS.length + 1);
+  });
+
+  it('keeps more embers with a better lantern, never more than all', () => {
+    for (let level = 1; level <= LANTERN_TIERS.length; level++) {
+      expect(lanternEmberKeep(level)).toBeGreaterThan(lanternEmberKeep(level - 1));
+    }
+    expect(lanternEmberKeep(0)).toBeGreaterThan(0);
+    expect(lanternEmberKeep(LANTERN_TIERS.length)).toBe(1);
+  });
+
+  it('clamps levels outside the range', () => {
+    expect(lanternEmberKeep(-3)).toBe(lanternEmberKeep(0));
+    expect(lanternEmberKeep(99)).toBe(lanternEmberKeep(LANTERN_TIERS.length));
+  });
+
+  it('rounds the kept embers down and never goes below zero', () => {
+    // Old lantern: 25%.
+    expect(embersKeptOnFall(10, 0)).toBe(2);
+    expect(embersKeptOnFall(3, 0)).toBe(0);
+    expect(embersKeptOnFall(0, 2)).toBe(0);
+    expect(embersKeptOnFall(-5, 2)).toBe(0);
+    // The best lantern keeps everything.
+    expect(embersKeptOnFall(37, LANTERN_TIERS.length)).toBe(37);
+  });
+
+  it('says what a lantern keeps', () => {
+    expect(emberKeepText(0)).toBe('keeps 25% of embers when you fall');
+    expect(emberKeepText(LANTERN_TIERS.length)).toBe('never loses embers');
   });
 });
 

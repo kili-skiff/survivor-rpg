@@ -17,6 +17,7 @@ import type { SaveData } from './save';
 import type { RunOutcome } from './segment';
 import { earnDeeds } from './deeds';
 import { hearthBonus } from './hearth';
+import { embersKeptOnFall } from './merchant';
 import { completeFireQuest } from './quests';
 import { EMBER_KEY } from '../config/merchant';
 import { computePlayerStats } from './stats';
@@ -40,7 +41,7 @@ export interface FightReport {
   deeds: DeedDef[];
   /** Embers from the first watchfire quest, earned by this fight (0 when none) */
   questEmbers: number;
-  /** Loot kept after a death (half of it), or null when the expedition goes on */
+  /** What a fall left you (the lantern's share of the pouch's embers), or null when the expedition goes on */
   lootKept: Loot | null;
   lootLost: Loot | null;
 }
@@ -63,7 +64,11 @@ export function currentBuild(save: SaveData): ExpeditionBuild | null {
  * - Cleared: you stand on the hex, your build and loot carry on. A watchfire lights up (if it was cold),
  *   heals you fully and is a waypoint from then on.
  * - Fallen (or given up): the expedition ends, you wake up in the village and lose the loot
- *   (all of it, or what BALANCE.lootKeptOnDeath does not keep).
+ *   (all of it, or what BALANCE.lootKeptOnDeath does not keep). Embers in the pouch are the exception:
+ *   your lantern decides how many of them you keep (`embersKeptOnFall`).
+ *
+ * Embers caught in the fight arrive in `gained` under EMBER_KEY. They sit in the expedition's pouch
+ * until you get home, where they go into the stash with the rest of the loot.
  */
 export function finishFight(
   save: SaveData,
@@ -77,9 +82,15 @@ export function finishFight(
   const loot = addLoot(expedition.loot, gained);
 
   if (outcome === 'fallen') {
-    const kept = lootAfterDeath(loot, BALANCE.lootKeptOnDeath);
+    // Embers in the pouch: the lantern decides how many you keep. Everything else follows the old rule.
+    const { [EMBER_KEY]: pouch = 0, ...rest } = loot;
+    const kept = lootAfterDeath(rest, BALANCE.lootKeptOnDeath);
+    const embersKept = embersKeptOnFall(pouch, save.lanternLevel);
+    if (embersKept > 0) kept[EMBER_KEY] = embersKept;
+    const carried: Loot = pouch > 0 ? { ...rest, [EMBER_KEY]: pouch } : rest;
     const lost: Loot = {};
-    for (const [id, n] of Object.entries(loot)) if (n - (kept[id] ?? 0) > 0) lost[id] = n - (kept[id] ?? 0);
+    for (const [id, n] of Object.entries(carried))
+      if (n - (kept[id] ?? 0) > 0) lost[id] = n - (kept[id] ?? 0);
     const fallen = applyFightResult(save.world, target, 'fallen');
     const progress = { ...fallen, expedition: null, expeditions: fallen.expeditions + 1 };
     return {

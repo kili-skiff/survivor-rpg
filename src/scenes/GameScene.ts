@@ -27,7 +27,7 @@ import { pickGreeting } from '../logic/greeting';
 import { addXp } from '../logic/progression';
 import { lootGained } from '../logic/expedition';
 import { hearthBonus } from '../logic/hearth';
-import { EMBERS } from '../config/merchant';
+import { EMBERS, EMBER_KEY } from '../config/merchant';
 import {
   bankEmbers,
   embersPerDrop,
@@ -36,7 +36,7 @@ import {
   lanternMultiplier,
 } from '../logic/merchant';
 import { dropsChest, rollChest, type ChestReward } from '../logic/chest';
-import type { ExpeditionBuild } from '../logic/expedition';
+import type { ExpeditionBuild, Loot } from '../logic/expedition';
 import { GROUND_TEXTURES, GROUND_TILE } from '../config/ground';
 import { parseHexKey } from '../logic/hex';
 import { planHerbBlooms } from '../logic/herbs';
@@ -1369,19 +1369,17 @@ export class GameScene extends Phaser.Scene {
         hp: Math.max(1, this.run.hp),
         loadout: this.run.loadout,
       };
-      const result = finishFight(
-        save,
-        seasonWorld(),
-        parseHexKey(this.hexKey),
-        outcome,
-        build,
-        this.herbs.loot,
-      );
+      // Embers caught here go into the expedition's pouch with the herbs. Home secures them; a fall
+      // keeps only the lantern's share (see `finishFight`).
+      const gained: Loot = { ...this.herbs.loot };
+      if (this.run.embers > 0) gained[EMBER_KEY] = this.run.embers;
+      const result = finishFight(save, seasonWorld(), parseHexKey(this.hexKey), outcome, build, gained);
       finalSave = result.save;
       report = result.report;
+    } else {
+      // A fight without an expedition has no pouch: the embers go straight into the stash.
+      finalSave = bankEmbers(finalSave, this.run.embers);
     }
-    // Embers count at once, whatever the outcome: they go straight into the stash.
-    finalSave = bankEmbers(finalSave, this.run.embers);
     // Potions not drunk stay in the belt, whatever the outcome.
     finalSave = { ...finalSave, belt: this.potions.remaining };
     writeSave(storage, finalSave);
