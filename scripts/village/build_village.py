@@ -372,7 +372,7 @@ def deco_props(src: Sources) -> list[Prop]:
         f = Image.new("RGBA", (ring.width, ring.height + 26), (0, 0, 0, 0))
         f.alpha_composite(ring, (0, 26))
         flame = crop(d, 8 + i, 47, 9 + i, 49, cut=False)
-        f.alpha_composite(flame, ((ring.width - flame.width) // 2, f.height - flame.height - 9))
+        f.alpha_composite(flame, ((ring.width - flame.width) // 2, f.height - flame.height - 15))  # 15: the flame stands high above the rim
         f.alpha_composite(rim, (0, f.height - rim.height))
         nest_frames.append(f)
     anim("nest", nest_frames, 10, foot=(-ring.width // 2 + 4, 0, ring.width - 8, ring.height - 10),

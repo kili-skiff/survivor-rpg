@@ -1,6 +1,7 @@
 import type * as Phaser from 'phaser';
 import { HERBS } from '../config/herbs';
 import { EMBER_KEY } from '../config/merchant';
+import type { Greeting } from '../config/greetings';
 import { FIRE_QUEST, TOWER_QUEST, VILLAGERS, type VillagerId } from '../config/quests';
 import type { PotionId } from '../config/types';
 import { toggleAllDeeds } from '../dev/devLogic'; // DEV:
@@ -41,6 +42,8 @@ export interface Arrival {
   kept: Loot;
   /** Loot lost on the way (only when fallen) */
   lost: Loot;
+  /** Who greets the watchman who woke up in the Nest (only when fallen; the fall screen showed the losses) */
+  greeting?: Greeting;
 }
 
 /** "5 embers, 2 Moonleaf": a heap of loot in words. */
@@ -55,6 +58,7 @@ export function describeLoot(loot: Loot): string {
 export function describeArrival(a: Arrival): string {
   const list = describeLoot;
   if (a.reason === 'fallen') {
+    if (a.greeting) return `${a.greeting.who}: "${a.greeting.line}"`;
     const kept = lootCount(a.kept) > 0 ? ` You saved ${list(a.kept)}.` : '';
     const lost = lootCount(a.lost) > 0 ? ` Lost: ${list(a.lost)}.` : '';
     return `You wake up in the village.${kept}${lost}`;

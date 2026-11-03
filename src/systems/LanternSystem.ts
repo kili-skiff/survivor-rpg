@@ -51,9 +51,20 @@ export class LanternSystem {
   /** The flame goes out at once, with a wisp of smoke. */
   snuff(): void {
     if (this.lit) this.smoke();
+    this.extinguish();
+  }
+
+  /** The flame is out, quietly (no smoke): the lantern waits to be lit. */
+  extinguish(): void {
     this.lit = false;
     this.level = 0;
     this.lantern.setTint(0x6b6b6b);
+  }
+
+  /** Fades the lantern and its chain in or out (the watchman rising from the fire). */
+  setAlpha(alpha: number): void {
+    this.lantern.setAlpha(alpha);
+    this.chain.setAlpha(alpha);
   }
 
   /** The flame burns at `level` (1 = as usual, 0 = out): the glow shrinks and the lantern darkens. */
@@ -62,6 +73,7 @@ export class LanternSystem {
       this.snuff();
       return;
     }
+    this.lit = true;
     this.level = level;
     const c = 0x6b + Math.round((0xff - 0x6b) * Math.min(1, level));
     this.lantern.setTint((c << 16) | (c << 8) | c);
