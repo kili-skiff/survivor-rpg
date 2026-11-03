@@ -56,6 +56,7 @@ import { devButtonStyle, isDevMode } from '../dev/devMode'; // DEV:
 import { safeArea, viewportSize, type SafeArea } from '../ui/display';
 import { MapFog } from '../ui/mapFog';
 import { COLORS, css, FONT } from '../ui/theme';
+import { expeditionHome } from '../dev/expeditionStatsStore'; // DEV:
 import type { GameSceneData } from './GameScene';
 import type { VillageSceneData } from './VillageScene';
 
@@ -314,7 +315,8 @@ export class WorldMapScene extends Phaser.Scene {
     const chain = this.lanternChain;
     chain.clear();
     // The elder hands it over at the very first start; until then his hands are empty.
-    const has = this.save.quests.fire !== 'offered' && this.marker.texture.key === CHARACTER_SPRITES.player.key;
+    const has =
+      this.save.quests.fire !== 'offered' && this.marker.texture.key === CHARACTER_SPRITES.player.key;
     lantern?.setVisible(has);
     if (!lantern || !has) return;
     // Same hand and drop as in a fight, scaled to the size of the watchman on the map.
@@ -325,7 +327,10 @@ export class WorldMapScene extends Phaser.Scene {
     const lx = hx + Math.sin(this.time0 * 2.4) * 2 * s;
     const ly = hy + LANTERN.drop * s - Math.cos(this.time0 * 3) * 0.8 * s;
     const angle = Math.atan2(lx - hx, ly - hy);
-    lantern.setPosition(lx, ly).setRotation(-angle).setScale(s * this.lanternLook.scale);
+    lantern
+      .setPosition(lx, ly)
+      .setRotation(-angle)
+      .setScale(s * this.lanternLook.scale);
     chain.lineStyle(Math.max(1, s), 0x4a4038, 1).lineBetween(hx, hy, lx, ly);
   }
 
@@ -1339,6 +1344,7 @@ export class WorldMapScene extends Phaser.Scene {
   private arriveHome(next: SaveData): void {
     const kept = lootGained(this.save.stash, next.stash);
     this.commit(next);
+    expeditionHome(); // DEV: expedition stats
     const data: VillageSceneData = { arrival: { reason: 'returned', kept, lost: {} } };
     this.scene.start('Village', data);
   }

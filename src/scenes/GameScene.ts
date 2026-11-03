@@ -1,5 +1,6 @@
 import * as Phaser from 'phaser';
 import { BALANCE, BOONS, ELITE, LIGHT } from '../config/balance';
+import { DEATH } from '../config/death';
 import { DIRECTOR } from '../config/director';
 import { GOALS } from '../config/goals';
 import { ENEMIES } from '../config/enemies';
@@ -21,6 +22,8 @@ import { START_WEAPON, WEAPONS } from '../config/weapons';
 import type { Enemy } from '../entities/Enemy';
 import type { Pickup } from '../entities/Pickup';
 import { InputState } from '../input/InputState';
+import { deathFrame } from '../logic/deathSequence';
+import { pickGreeting } from '../logic/greeting';
 import { addXp } from '../logic/progression';
 import { lootGained } from '../logic/expedition';
 import { hearthBonus } from '../logic/hearth';
@@ -97,6 +100,14 @@ import {
   type ArenaState,
 } from '../dev/arenaLogic'; // DEV:
 import { isDevMode } from '../dev/devMode'; // DEV:
+import { FightRecorder } from '../dev/expeditionStats'; // DEV:
+import {
+  beginFight,
+  copyExpeditionStats,
+  copyToast,
+  expeditionHome,
+  recordFight,
+} from '../dev/expeditionStatsStore'; // DEV:
 import type { DevFightStats } from '../dev/DevPanel'; // DEV:
 import { castFrostNova } from '../systems/skills/frostNova';
 import { createWeapon, type Weapon } from '../systems/weapons';
@@ -149,7 +160,20 @@ export interface RunEndInfo {
   save: SaveData;
   /** Expedition consequences; null for fights outside the world map */
   report: FightReport | null;
+  /** After a fall on an expedition: the build and progress that are gone; null otherwise */
+  lostBuild: LostBuild | null;
   newBestTime: boolean;
+}
+
+/** What a fall takes from the expedition (embers and everything permanent stay). */
+export interface LostBuild {
+  level: number;
+  /** Names of the weapons carried */
+  weapons: string[];
+  /** Passive items and modifiers taken, counted by rank */
+  upgrades: number;
+  /** Areas cleared on this expedition */
+  areas: number;
 }
 
 /** HP restored by the fallback upgrade when everything is maxed */
@@ -202,6 +226,8 @@ export class GameScene extends Phaser.Scene {
   private viewH = 600;
   private hexKey: string | null = null;
   private endInfo: RunEndInfo | null = null;
+  /** When the watchman fell (scene clock), while the lantern goes out; the result screen waits for it */
+  private dyingSince: number | null = null;
   /** The cold watchfire of a "find the light" fight, or null */
   private watchfire: WatchfireSystem | null = null;
   /** Seconds the player has moved through the dark looking for the watchfire */
@@ -223,6 +249,8 @@ export class GameScene extends Phaser.Scene {
   private devAutopilotHome: { x: number; y: number } | null = null;
   /** DEV: the damage meter of this fight (null outside dev mode) */
   private devMeter: DamageMeter | null = null;
+  /** DEV: watches this fight for the expedition stats (null outside dev mode, the arena and map-less fights) */
+  private devRecorder: FightRecorder | null = null;
 
   constructor() {
     super('Game');
@@ -248,6 +276,7 @@ export class GameScene extends Phaser.Scene {
     this.secondWinds = 0;
     this.surgeUntil = 0;
     this.endInfo = null;
+    this.dyingSince = null;
     this.devCleared = false;
     this.devAutopilotHome = null;
     this.rewardGiven = false;
@@ -313,6 +342,11 @@ export class GameScene extends Phaser.Scene {
       };
       this.ring = arena.ring;
     }
+    // DEV: expedition stats: a fight on the map is recorded; the first of an expedition starts a new log.
+    this.devRecorder = null;
+    if (isDevMode() && this.hexKey && !this.devArena) {
+      beginFight(saved.world.expedition, saved.mainWeapon); // DEV: expedition stats
+    }
     // DEV: the damage meter, in every fight (the arena's own in the arena).
     this.devMeter = isDevMode() ? (this.devArena?.meter ?? new DamageMeter()) : null;
     const meter = this.devMeter;
@@ -353,6 +387,16 @@ export class GameScene extends Phaser.Scene {
       stats,
     };
     this.refreshStats();
+    if (isDevMode() && this.hexKey && !this.devArena) {
+      // DEV: expedition stats
+      this.devRecorder = new FightRecorder({
+        ring: this.ring,
+        biome: segment.biome ?? 'unknown',
+        goal: segment.goal.kind,
+        level: this.run.level,
+        maxHp: this.run.stats.maxHp,
+      });
+    }
 
     // Find the light: the cold watchfire is hidden until the player has searched the dark long enough.
     this.searched = 0;
@@ -789,6 +833,30 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
+  // DEV: the fight goes into the expedition stats.
+  private devRecordFight(outcome: RunOutcome, time: number, mainWeapon: WeaponId): void {
+    if (!this.devRecorder) return;
+    const meter = this.devMeter;
+    const fight = this.devRecorder.finish({
+      outcome: outcome === 'cleared' ? 'cleared' : 'fallen',
+      timeSec: time,
+      level: this.run.level,
+      embers: this.run.embers,
+      damage: meter?.total ?? 0,
+      shares: (meter?.shares() ?? []).map((x) => ({ source: x.source, share: x.share })),
+      loadout: this.run.loadout,
+    });
+    recordFight(fight, mainWeapon);
+    this.devRecorder = null;
+  }
+
+  // DEV: copies the expedition stats as text and shows what happened.
+  devCopyExpeditionStats(): void {
+    void copyExpeditionStats().then((r) =>
+      this.numbers.show(this.player.x, this.player.y - 34, copyToast(r), '#f0abfc', true),
+    );
+  }
+
   // DEV: empties the log.
   devArenaClearLog(): void {
     this.registry.set('devArenaLog', []);
@@ -825,6 +893,7 @@ export class GameScene extends Phaser.Scene {
     const home = goHome(before);
     if (!home) return;
     writeSave(storage, home);
+    expeditionHome(); // DEV: expedition stats
     this.scene.stop('UI');
     const data: VillageSceneData = {
       arrival: { reason: 'returned', kept: lootGained(before.stash, home.stash), lost: {} },
@@ -838,7 +907,12 @@ export class GameScene extends Phaser.Scene {
     if (report && report.outcome === 'fallen') {
       // Falling ends the expedition: you wake up in the village.
       const data: VillageSceneData = {
-        arrival: { reason: 'fallen', kept: report.lootKept ?? {}, lost: report.lootLost ?? {} },
+        arrival: {
+          reason: 'fallen',
+          kept: report.lootKept ?? {},
+          lost: report.lootLost ?? {},
+          greeting: pickGreeting(),
+        },
       };
       this.scene.start('Village', data);
       return;
@@ -852,6 +926,7 @@ export class GameScene extends Phaser.Scene {
     if (!this.run.started || !this.run.alive) {
       this.player.stop();
       this.updateGround();
+      this.updateDeath();
       this.lantern.update(Math.min(deltaMs, 50) / 1000);
       this.lighting.update(this.time.now);
       return;
@@ -863,6 +938,8 @@ export class GameScene extends Phaser.Scene {
 
     this.handleSkillInput();
     this.handlePotionInput();
+    // DEV: expedition stats
+    this.devRecorder?.sample(dt, this.enemies.group.countActive(true), this.run.hp, this.run.stats.maxHp);
     if (this.potions.update()) this.refreshStats();
     // DEV: the autopilot kites like a player (for measuring a ring); otherwise the controls steer.
     const move = this.devAutopilotMove() ?? { x: this.controls.moveX, y: this.controls.moveY };
@@ -967,6 +1044,7 @@ export class GameScene extends Phaser.Scene {
       if (!this.controls.consume(`drink:${id}`)) continue;
       const result = this.potions.drink(id, this.run.hp, this.run.stats.maxHp);
       if (!result) continue;
+      this.devRecorder?.potion(); // DEV: expedition stats
       if (result.heal > 0) {
         this.heal(result.heal);
         this.numbers.show(this.player.x, this.player.y - 24, `+${result.heal}`, '#4ade80', true);
@@ -1097,6 +1175,7 @@ export class GameScene extends Phaser.Scene {
     if (thorns > 0) this.enemies.damage(e, thorns, 0, 0, '#a3e635');
     const dmg = damageAfterArmor(e.damage, this.run.stats.armor) * damageTakenMultiplier(this.potions.active);
     this.run.hp -= dmg;
+    this.devRecorder?.damageTaken(dmg); // DEV: expedition stats
     if (this.devArena) this.devArena.taken += dmg; // DEV: arena: damage taken
     this.numbers.show(this.player.x, this.player.y - 22, `-${Math.round(dmg)}`, '#ff6b81', true);
     if (this.run.hp <= 0 && this.secondWinds > 0) {
@@ -1117,8 +1196,6 @@ export class GameScene extends Phaser.Scene {
     }
     if (this.run.hp <= 0) {
       this.run.hp = 0;
-      this.player.showDefeated();
-      this.lantern.snuff();
       this.endRun('fallen');
     }
   }
@@ -1126,6 +1203,7 @@ export class GameScene extends Phaser.Scene {
   private onEnemyKilled(e: Enemy): void {
     this.run.kills += 1;
     this.devMeter?.kill(this.clock); // DEV: damage meter
+    this.devRecorder?.kill(); // DEV: expedition stats
     if (Math.random() < BALANCE.healDropChance) this.pickups.drop(e.x, e.y, 'heal', BALANCE.healAmount);
     else this.pickups.drop(e.x, e.y, 'xp', e.def.xp * (e.elite ? ELITE.xp : 1) * this.run.stats.xpGain);
     if (this.run.stats.bloodthirst > 0) this.heal(this.run.stats.bloodthirst);
@@ -1133,6 +1211,7 @@ export class GameScene extends Phaser.Scene {
     if (dropsChest(e.elite, Math.random, this.run.stats.fortune)) {
       this.pickups.drop(e.x, e.y + 10, 'chest', 0);
       this.events.emit('chestdrop');
+      this.devRecorder?.chest(); // DEV: expedition stats
     }
     const embersMul = this.run.segment.reward === 'embers' ? REWARDS.embersDropMul : 1;
     if (Math.random() < EMBERS.dropChance * embersMul)
@@ -1160,6 +1239,8 @@ export class GameScene extends Phaser.Scene {
     const r = addXp({ level: this.run.level, xp: this.run.xp }, p.value);
     this.run.level = r.level;
     this.run.xp = r.xp;
+    for (let i = 0; i < r.levelsGained; i++)
+      this.devRecorder?.levelUp(r.level - r.levelsGained + 1 + i, this.run.time); // DEV: expedition stats
     if (r.levelsGained > 0) {
       this.pendingLevelUps += r.levelsGained;
       if (!this.levelUpOpen) this.openLevelUp();
@@ -1304,6 +1385,7 @@ export class GameScene extends Phaser.Scene {
     // Potions not drunk stay in the belt, whatever the outcome.
     finalSave = { ...finalSave, belt: this.potions.remaining };
     writeSave(storage, finalSave);
+    this.devRecordFight(outcome, time, before.mainWeapon); // DEV: expedition stats
 
     const info: RunEndInfo = {
       outcome,
@@ -1317,10 +1399,47 @@ export class GameScene extends Phaser.Scene {
       herbsTotal: this.herbs.totalCount,
       save: finalSave,
       report,
+      lostBuild:
+        report?.outcome === 'fallen'
+          ? {
+              level: this.run.level,
+              weapons: Object.keys(this.run.loadout.weapons).map((id) => WEAPONS[id as WeaponId].name),
+              upgrades:
+                Object.values(this.run.loadout.passives).reduce((a, b) => a + (b ?? 0), 0) +
+                (this.run.loadout.modifiers?.length ?? 0),
+              areas: before.world.expedition?.areasCleared ?? 0,
+            }
+          : null,
       newBestTime: time > before.bestTime,
     };
     this.endInfo = info;
     this.controls.reset();
+    if (outcome === 'fallen') {
+      // The result is saved already; he falls, the lantern goes out, then the result screen opens.
+      this.player.showDefeated();
+      this.dyingSince = this.time.now;
+      this.events.emit('dying', DEATH.hudFadeMs);
+      return;
+    }
     this.events.emit('runend', info);
+  }
+
+  /** The lantern burns down after a fall; when it is dark, the result screen opens. */
+  private updateDeath(): void {
+    if (this.dyingSince === null) return;
+    const elapsed = this.time.now - this.dyingSince;
+    const f = deathFrame(elapsed / DEATH.fadeMs, this.time.now);
+    // The flame flickers; the light circle around him follows the smooth envelope, so it never jumps.
+    this.lantern.dim(f.light);
+    this.lighting.setFade(f.envelope, f.black);
+    if (elapsed < DEATH.fadeMs + DEATH.holdMs || !this.endInfo) return;
+    this.dyingSince = null;
+    this.events.emit('runend', this.endInfo);
+  }
+
+  /** A tap skips the fade (not at once, so a button pressed in panic does not). */
+  skipDeathFade(): void {
+    if (this.dyingSince === null || this.time.now - this.dyingSince < DEATH.skipAfterMs) return;
+    this.dyingSince = this.time.now - DEATH.fadeMs - DEATH.holdMs;
   }
 }

@@ -66,6 +66,11 @@ export class LightingSystem {
   private radius: number = LIGHT.radius;
   /** Set by the best lantern: the whole screen is lit */
   private lightsAll = false;
+  /** While the watchman falls: the light shrinks to this share (1 = as usual) and a black layer closes in */
+  private fadeLight = 1;
+  private fading = false;
+  private drawnRadius: number = LIGHT.radius;
+  private readonly blackout: Phaser.GameObjects.Rectangle;
 
   constructor(
     scene: Phaser.Scene,
@@ -85,6 +90,7 @@ export class LightingSystem {
         : scene.textures.createCanvas(DARKNESS_KEY, DARKNESS_TEXTURE, DARKNESS_TEXTURE)
     )!;
     this.darkness = scene.add.image(0, 0, DARKNESS_KEY).setDepth(8).setTint(LIGHT.color);
+    this.blackout = scene.add.rectangle(0, 0, 10, 10, 0x000000).setDepth(8.3).setVisible(false);
     for (let i = 0; i < MAX_TORCHES; i++) {
       this.torches.push(scene.add.image(0, 0, 'torch').setOrigin(0.5, 0.9).setDepth(1.5).setVisible(false));
     }
@@ -124,7 +130,33 @@ export class LightingSystem {
     const radius = LIGHT.radius * scale;
     if (Math.abs(radius - this.radius) < 0.5) return;
     this.radius = radius;
-    if (this.darknessSize > 0) this.drawDarkness(radius / (this.darknessSize / 2));
+    this.redraw();
+  }
+
+  /**
+   * The watchman falls: the light circle shrinks to `light` of its size (even with the best lantern, it
+   * starts from the whole screen) and a black layer fades in. Redrawn in steps, which is cheap enough.
+   */
+  setFade(light: number, black: number): void {
+    this.fading = true;
+    this.fadeLight = Math.min(1, light);
+    this.darkness.setVisible(this.enabled);
+    this.blackout.setVisible(black > 0).setAlpha(black);
+    this.redraw();
+  }
+
+  /** The light circle in px now, including the fade of a fall. */
+  private lightRadius(): number {
+    const full = this.lightsAll ? Math.max(this.radius, Math.hypot(this.viewW, this.viewH) / 2) : this.radius;
+    return Math.max(6, full * this.fadeLight);
+  }
+
+  private redraw(force = false): void {
+    if (this.darknessSize <= 0) return;
+    const r = this.lightRadius();
+    if (!force && Math.abs(r - this.drawnRadius) < 2) return;
+    this.drawnRadius = r;
+    this.drawDarkness(r / (this.darknessSize / 2));
   }
 
   /** The visible world area changed (screen size or zoom). */
@@ -135,7 +167,7 @@ export class LightingSystem {
     const size = Math.ceil((Math.max(viewW, viewH) * 1.15) / 50) * 50;
     if (size !== this.darknessSize) {
       this.darknessSize = size;
-      this.drawDarkness(this.radius / (size / 2));
+      this.redraw(true);
     }
   }
 
@@ -167,6 +199,9 @@ export class LightingSystem {
 
     const size = this.darknessSize * flicker(0, LIGHT.flicker);
     this.darkness.setPosition(x, y).setDisplaySize(size, size);
+    if (this.fading) {
+      this.blackout.setPosition(x, y).setSize(this.viewW + 160, this.viewH + 160);
+    }
 
     const lights: LightSource[] = [];
     for (const t of this.placeTorches(x - this.viewW / 2, y - this.viewH / 2)) {
@@ -192,7 +227,7 @@ export class LightingSystem {
       used += 1;
     }
     for (let i = used; i < MAX_GLOWS; i++) this.glows[i].setVisible(false);
-    if (!this.lightsAll) {
+    if (!this.lightsAll || this.fading) {
       this.placeEyes(x, y, time);
       this.placeGlimmers(x, y, time);
     }
@@ -200,8 +235,8 @@ export class LightingSystem {
 
   /** XP gems beyond the light glimmer faintly, like the eyes but much softer. */
   private placeGlimmers(px: number, py: number, time: number): void {
-    const inner = this.radius * 0.7;
-    const outer = this.radius * 1.15;
+    const inner = this.lightRadius() * 0.7;
+    const outer = this.lightRadius() * 1.15;
     const halfW = this.viewW / 2 + 20;
     const halfH = this.viewH / 2 + 20;
     let used = 0;
@@ -227,8 +262,8 @@ export class LightingSystem {
 
   /** Enemies beyond the light show glowing eyes above the darkness, brighter the deeper in the dark. */
   private placeEyes(px: number, py: number, time: number): void {
-    const inner = this.radius * 0.8;
-    const outer = this.radius * 1.15;
+    const inner = this.lightRadius() * 0.8;
+    const outer = this.lightRadius() * 1.15;
     const halfW = this.viewW / 2 + 40;
     const halfH = this.viewH / 2 + 40;
     let used = 0;

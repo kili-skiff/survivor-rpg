@@ -1,4 +1,5 @@
 import * as Phaser from 'phaser';
+import { REBIRTH } from '../config/rebirth';
 import { beltSize } from '../logic/hearth';
 import { HERBS } from '../config/herbs';
 import { POTION_IDS, POTIONS } from '../config/potions';
@@ -20,6 +21,7 @@ import {
   type VillagePanelId,
 } from '../panels/villagePanels';
 import { devButtonStyle, isDevMode } from '../dev/devMode'; // DEV:
+import { copyExpeditionStats, copyToast } from '../dev/expeditionStatsStore'; // DEV:
 import { SHOW_RESET_BUTTON } from '../config/build';
 import { safeArea, viewportSize, type SafeArea } from '../ui/display';
 import { COLORS, css, FONT } from '../ui/theme';
@@ -55,6 +57,8 @@ export class VillageMenuScene extends Phaser.Scene {
 
   init(data: VillageSceneData): void {
     this.data0 = data ?? {};
+    // Phaser hands the data of the last start to a start without data. Why you came is only true once.
+    this.sys.settings.data = {};
   }
 
   create(): void {
@@ -71,6 +75,8 @@ export class VillageMenuScene extends Phaser.Scene {
     this.openPanel = null;
     this.panel = null;
     this.cameras.main.setBackgroundColor(0x17131f);
+    // Waking up in the Nest: out of the dark (the walkable village plays the whole rebirth).
+    if (this.data0.arrival?.reason === 'fallen') this.cameras.main.fadeIn(REBIRTH.fadeInMs, 0, 0, 0);
     this.build();
     this.scale.on('resize', this.build, this);
     this.events.once('shutdown', () => {
@@ -148,6 +154,7 @@ export class VillageMenuScene extends Phaser.Scene {
         } else this.resetButton(right, y + 40 * u);
       }
       this.arenaButton(arenaRight, y + 4 * u);
+      this.statsButton(wide ? arenaRight - 120 * u : right, y + (wide ? 4 : 76) * u); // DEV: expedition stats
     } else if (SHOW_RESET_BUTTON) {
       this.resetButton(right, y + 4 * u);
     }
@@ -166,7 +173,7 @@ export class VillageMenuScene extends Phaser.Scene {
       const news =
         this.save.quests.tower === 'offered' ? ` ${VILLAGERS.elder.name} wants to speak with you.` : '';
       const t = this.text(left, y, describeArrival(arrival) + news, 14, {
-        color: arrival.reason === 'fallen' ? '#fda4af' : '#bbf7d0',
+        color: arrival.reason === 'fallen' ? '#fde68a' : '#bbf7d0',
         wordWrap: { width: right - left },
       });
       y += t.height + 16 * u;
@@ -446,6 +453,14 @@ export class VillageMenuScene extends Phaser.Scene {
     t.setInteractive({ useHandCursor: true }).on('pointerup', () =>
       this.scene.start('Game', { arena: true }),
     );
+  }
+
+  // DEV: copies the stats of the last expedition as text.
+  private statsButton(x: number, y: number): void {
+    const t = this.text(x, y, 'DEV  copy stats', 12, devButtonStyle(this.u)).setOrigin(1, 0);
+    t.setInteractive({ useHandCursor: true }).on('pointerup', () => {
+      void copyExpeditionStats().then((r) => t.setText(`DEV  ${copyToast(r)}`));
+    });
   }
 
   // DEV: a small button that adds 5 of every herb and 50 embers to the stash.

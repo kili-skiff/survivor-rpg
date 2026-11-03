@@ -41,7 +41,7 @@ The world, story and in-game terms (Embers, the Nest, watchfires) are in [docs/l
   a damage meter on the right in every fight (damage per second, kills per minute, total, a bar per weapon and
   modifier effect; tap to fold it; `dev/DevDamageBox.ts`),
   and a readout that is always visible: FPS (average, worst frame of the last half second; lights up below 50 FPS),
-  living enemies, kills per minute (last 30 s) and the spawn director's phase with its pressure; "reset save" in the
+  living enemies, kills per minute (last 30 s) and the spawn director's phase with its pressure; "copy stats" (village, fight panel, result screen: the last expedition as text to paste into a chat, with date, balance numbers and per fight the time, level-ups, enemies, health lost, close calls, chests, damage shares and build; `dev/expeditionStats.ts`, kept under its own device key, not in the save); "reset save" in the
   village (second tap confirms; device settings stay; shown to everyone while `SHOW_RESET_BUTTON` in
   `src/config/build.ts` is true, so switch that off for a release); "all deeds" in the deeds panel. All dev code lives in `src/dev/`; every call into it is marked
   `// DEV:`. For a release set `DEV_TOOLS = false` in `src/dev/devMode.ts`, or delete `src/dev/` and
@@ -61,7 +61,7 @@ src/
              deeds, segments, world, map tiles, map fog, footsteps, character sprites, ground tiles, balancing (NO Phaser)
   logic/     Pure game logic (NO Phaser, tested): stats, XP, upgrades, spawning, segments, save data,
              hex math, seeded RNG, world generation, world progress, expeditions and journeys, footsteps,
-             potions (brewing, belt, buffs), lantern pendulum physics, merchant (embers, lanterns, recipes), the Hearth (ember upgrades), ring difficulty, horde steering and enemy behaviours (swarm, behaviors), the spawn director (waves, breathers, rings and walls), chests,
+             potions (brewing, belt, buffs), lantern pendulum physics, the death and rebirth timelines (`deathSequence`, `rebirth`) and the greeting when you wake up, merchant (embers, lanterns, recipes), the Hearth (ember upgrades), ring difficulty, horde steering and enemy behaviours (swarm, behaviors), the spawn director (waves, breathers, rings and walls), chests,
              quests, deeds, device settings, fog noise, the walkable village (station zones, finding a way
              around houses), the touch stick
   entities/  Pooled Phaser objects (Enemy, Projectile, Pickup)
@@ -69,7 +69,7 @@ src/
   systems/   Gameplay behaviour, one job per file:
     weapons/   one class per weapon + factory in index.ts
     skills/    active skills (e.g. Frost Nova)
-    PlayerController, PlayerHealthBar (small bar under the player's feet), LanternSystem (the carried lantern), EnemySystem, PickupSystem, HerbSystem, PotionSystem, LightingSystem,
+    PlayerController, PlayerHealthBar (small bar under the player's feet), LanternSystem (the carried lantern, also its going out and lighting again), RebirthFx (the burst of fire in the Nest when the watchman wakes up), EnemySystem, PickupSystem, HerbSystem, PotionSystem, LightingSystem,
     DamageNumbers, VillageAmbience (sparks, smoke, bats and fog in the walkable village)
   panels/    Village panels (CauldronPanel, MerchantPanel, DeedsPanel, ArmoryPanel, HearthPanel, DialoguePanel): drawn on top of any scene,
              logic lives in logic/
