@@ -22,7 +22,7 @@ export const BALANCE = {
    * All enemies walk this share of the speed in their config (config/enemies.ts); one knob for the pace of
    * the whole horde. Leaps of pouncers are timed and not affected.
    */
-  enemySpeed: 0.7,
+  enemySpeed: 0.74,
 } as const;
 
 /** Further rings are harder: enemies get more health and damage and come in denser waves. */
@@ -33,14 +33,14 @@ export const RINGS = {
    * grows evenly. Beyond the last ring the last step repeats.
    */
   table: [
-    { hp: 1.6, damage: 1.25, spawnRate: 1.0 },
-    { hp: 2.0, damage: 1.4, spawnRate: 1.1 },
-    { hp: 2.4, damage: 1.49, spawnRate: 1.4 },
-    { hp: 3.2, damage: 1.71, spawnRate: 1.6 },
-    { hp: 4.1, damage: 1.98, spawnRate: 1.8 },
-    { hp: 5.3, damage: 2.2, spawnRate: 2.0 },
-    { hp: 6.9, damage: 2.48, spawnRate: 2.25 },
-    { hp: 9.0, damage: 2.81, spawnRate: 2.5 },
+    { hp: 1.8, damage: 1.38, spawnRate: 1.0 },
+    { hp: 2.3, damage: 1.54, spawnRate: 1.1 },
+    { hp: 2.8, damage: 1.64, spawnRate: 1.4 },
+    { hp: 3.7, damage: 1.88, spawnRate: 1.6 },
+    { hp: 4.7, damage: 2.18, spawnRate: 1.8 },
+    { hp: 6.1, damage: 2.42, spawnRate: 2.0 },
+    { hp: 7.9, damage: 2.73, spawnRate: 2.25 },
+    { hp: 10.3, damage: 3.09, spawnRate: 2.5 },
   ],
 } as const;
 
