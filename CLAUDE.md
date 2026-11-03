@@ -41,7 +41,7 @@ The world, story and in-game terms (Embers, the Nest, watchfires) are in [docs/l
   a damage meter on the right in every fight (damage per second, kills per minute, total, a bar per weapon and
   modifier effect; tap to fold it; `dev/DevDamageBox.ts`),
   and a readout that is always visible: FPS (average, worst frame of the last half second; lights up below 50 FPS),
-  living enemies, kills per minute (last 30 s) and the spawn director's phase with its pressure; "reset save" in the
+  living enemies, kills per minute (last 30 s) and the spawn director's phase with its pressure; "copy stats" (village, fight panel, result screen: the last expedition as text to paste into a chat, with date, balance numbers and per fight the time, level-ups, enemies, health lost, close calls, chests, damage shares and build; `dev/expeditionStats.ts`, kept under its own device key, not in the save); "reset save" in the
   village (second tap confirms; device settings stay; shown to everyone while `SHOW_RESET_BUTTON` in
   `src/config/build.ts` is true, so switch that off for a release); "all deeds" in the deeds panel. All dev code lives in `src/dev/`; every call into it is marked
   `// DEV:`. For a release set `DEV_TOOLS = false` in `src/dev/devMode.ts`, or delete `src/dev/` and

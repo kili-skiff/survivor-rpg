@@ -21,6 +21,7 @@ import {
   type VillagePanelId,
 } from '../panels/villagePanels';
 import { devButtonStyle, isDevMode } from '../dev/devMode'; // DEV:
+import { copyExpeditionStats, copyToast } from '../dev/expeditionStatsStore'; // DEV:
 import { SHOW_RESET_BUTTON } from '../config/build';
 import { safeArea, viewportSize, type SafeArea } from '../ui/display';
 import { COLORS, css, FONT } from '../ui/theme';
@@ -153,6 +154,7 @@ export class VillageMenuScene extends Phaser.Scene {
         } else this.resetButton(right, y + 40 * u);
       }
       this.arenaButton(arenaRight, y + 4 * u);
+      this.statsButton(wide ? arenaRight - 120 * u : right, y + (wide ? 4 : 76) * u); // DEV: expedition stats
     } else if (SHOW_RESET_BUTTON) {
       this.resetButton(right, y + 4 * u);
     }
@@ -451,6 +453,14 @@ export class VillageMenuScene extends Phaser.Scene {
     t.setInteractive({ useHandCursor: true }).on('pointerup', () =>
       this.scene.start('Game', { arena: true }),
     );
+  }
+
+  // DEV: copies the stats of the last expedition as text.
+  private statsButton(x: number, y: number): void {
+    const t = this.text(x, y, 'DEV  copy stats', 12, devButtonStyle(this.u)).setOrigin(1, 0);
+    t.setInteractive({ useHandCursor: true }).on('pointerup', () => {
+      void copyExpeditionStats().then((r) => t.setText(`DEV  ${copyToast(r)}`));
+    });
   }
 
   // DEV: a small button that adds 5 of every herb and 50 embers to the stash.
