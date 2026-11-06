@@ -1330,7 +1330,7 @@ export class UIScene extends Phaser.Scene {
     vertical: boolean,
   ): void {
     const u = this.u;
-    const card = describeUpgrade(option);
+    const card = describeUpgrade(option, this.gs.run.loadout);
     const g = this.add.graphics().setDepth(51);
     const rarity = RARITIES[card.rarity];
     const edge = rarity.color;

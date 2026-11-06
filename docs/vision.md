@@ -172,7 +172,10 @@ One character for everyone; weapons are the build, in the spirit of Hades (decid
   around them (e.g. a mortar) and scaling XP with enemy health (Wisdom helps for now).
 
 - **Wild builds** (built as a test batch, to be tuned by playing): level-up cards are meant to let a run
-  grow absurdly strong, and the game may scale a lot. There is no limit on items; they stack and combine.
+  grow absurdly strong, and the game may scale a lot. Items stack and combine, but a run carries at most
+  six different ones (`MAX_ITEMS`, like the passive slots in Vampire Survivors): once the slots are full,
+  cards only raise what you carry, and when that is maxed too, one-time cards and chest embers take over.
+  (Before, there was no limit, and a long expedition ended with nearly every item maxed.)
   - _Items_ (`config/passives.ts`): area (Far Reach), push, damage as a share of health, XP, health per
     kill, chest luck, extra projectiles, crits and crit damage, executing weak enemies, damage against
     elites, faster skills, damage while moving or at low health, thorns, dodge, extra pierce, bursts on

@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import boot from '../scenes/BootScene.ts?raw';
 import { CHEST, ITEMS } from '../config/balance';
 import { BOON_DEFS } from '../config/boons';
-import { BASE_PLAYER_STATS, PASSIVES } from '../config/passives';
+import { BASE_PLAYER_STATS, MAX_ITEMS, PASSIVES } from '../config/passives';
 import { RARITIES } from '../config/rarity';
 import { SKILLS } from '../config/skills';
 import type { BoonId, PassiveId, WeaponId } from '../config/types';
@@ -12,7 +12,13 @@ import { buildChain, chainDamage, pickChainStart, type ChainTarget } from './cha
 import { dropsChest, rollChest } from './chest';
 import { neutralMods, resolveHit, situationalDamage } from './hitEffects';
 import { computePlayerStats, computeSkillStats, computeWeaponStats, createStartLoadout } from './stats';
-import { availableUpgrades, describeUpgrade, rollUpgradeOptions } from './upgrades';
+import {
+  applyUpgrade,
+  availableUpgrades,
+  describeUpgrade,
+  ownedItemCount,
+  rollUpgradeOptions,
+} from './upgrades';
 import type { Loadout } from './stats';
 
 function loadoutWith(passives: Partial<Record<PassiveId, number>>): Loadout {
@@ -26,12 +32,52 @@ describe('items', () => {
     }
   });
 
-  it('have no limit: a new one is offered however many are owned', () => {
+  it('offer a new one while an item slot is free', () => {
     const all = Object.keys(PASSIVES) as PassiveId[];
-    const owned = Object.fromEntries(all.slice(0, all.length - 1).map((id) => [id, 1]));
+    const owned = Object.fromEntries(all.slice(0, MAX_ITEMS - 1).map((id) => [id, 1]));
     const options = availableUpgrades(loadoutWith(owned)).map((u) => u.option);
-    const last = all[all.length - 1];
-    expect(options.some((o) => o.kind === 'passive' && o.id === last && o.toLevel === 1)).toBe(true);
+    const unowned = all[MAX_ITEMS];
+    expect(options.some((o) => o.kind === 'passive' && o.id === unowned && o.toLevel === 1)).toBe(true);
+  });
+
+  it('take at most MAX_ITEMS slots: with all taken, only owned items are raised', () => {
+    const all = Object.keys(PASSIVES) as PassiveId[];
+    const owned = Object.fromEntries(all.slice(0, MAX_ITEMS).map((id) => [id, 1]));
+    const loadout = loadoutWith(owned);
+    expect(ownedItemCount(loadout)).toBe(MAX_ITEMS);
+    const items = availableUpgrades(loadout)
+      .map((u) => u.option)
+      .filter((o) => o.kind === 'passive');
+    expect(items.length).toBe(MAX_ITEMS);
+    for (const o of items) expect(o.kind === 'passive' && o.toLevel === 2 && o.id in owned).toBe(true);
+  });
+
+  it('never grow past MAX_ITEMS, through level-ups or chests', () => {
+    let seed = 7;
+    const rng = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    let loadout = createStartLoadout('bolt');
+    for (let i = 0; i < 300; i++) {
+      const [option] = rollUpgradeOptions(loadout, rng, 1, false, null);
+      loadout = applyUpgrade(loadout, option);
+      for (const up of rollChest(loadout, 3, rng).upgrades) loadout = applyUpgrade(loadout, up);
+      expect(ownedItemCount(loadout)).toBeLessThanOrEqual(MAX_ITEMS);
+    }
+    expect(ownedItemCount(loadout)).toBe(MAX_ITEMS);
+  });
+
+  it('show on a new item card which slot it takes', () => {
+    const loadout = loadoutWith({ might: 1, haste: 2 });
+    const card = describeUpgrade({ kind: 'passive', id: 'armor', toLevel: 1 }, loadout);
+    expect(card.badge).toBe(`NEW ITEM · SLOT 3/${MAX_ITEMS}`);
+    expect(describeUpgrade({ kind: 'passive', id: 'armor', toLevel: 1 }).badge).toBe('NEW ITEM');
+  });
+
+  it('with every slot full and maxed, level-ups still offer one-time cards and chests pay embers', () => {
+    const all = Object.keys(PASSIVES) as PassiveId[];
+    const maxed = Object.fromEntries(all.slice(0, MAX_ITEMS).map((id) => [id, PASSIVES[id].maxLevel]));
+    const options = availableUpgrades(loadoutWith(maxed)).map((u) => u.option);
+    expect(options.some((o) => o.kind === 'passive')).toBe(false);
+    expect(options.some((o) => o.kind === 'boon')).toBe(true);
   });
 
   it('start with base values that change nothing', () => {

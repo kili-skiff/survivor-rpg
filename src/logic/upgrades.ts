@@ -1,6 +1,6 @@
 import { BOON_DEFS } from '../config/boons';
 import { MODIFIERS, type ModifierId } from '../config/modifiers';
-import { PASSIVES } from '../config/passives';
+import { MAX_ITEMS, PASSIVES } from '../config/passives';
 import { RARITIES } from '../config/rarity';
 import { SKILLS } from '../config/skills';
 import type { BoonId, PassiveId, Rarity, SkillId, WeaponId } from '../config/types';
@@ -32,8 +32,8 @@ export interface UpgradeCard {
 const WEIGHTS = { newWeapon: 1.3, weapon: 1.1, newPassive: 0.9, passive: 0.9, skill: 0.75, boon: 0.45 };
 
 /**
- * All upgrades currently available, with their weight. Items have no limit; one-time boons are
- * left out when `boons` is false (chests).
+ * All upgrades currently available, with their weight. New items only while a slot is free
+ * (MAX_ITEMS); one-time boons are left out when `boons` is false (chests).
  */
 export function availableUpgrades(
   loadout: Loadout,
@@ -60,9 +60,11 @@ export function availableUpgrades(
     }
   }
 
+  const itemSlotFree = ownedItemCount(loadout) < MAX_ITEMS;
   for (const id of Object.keys(PASSIVES) as PassiveId[]) {
     const level = loadout.passives[id] ?? 0;
     if (level === 0) {
+      if (!itemSlotFree) continue;
       out.push({
         option: { kind: 'passive', id, toLevel: 1 },
         weight: WEIGHTS.newPassive * RARITIES[PASSIVES[id].rarity].weight,
@@ -93,6 +95,11 @@ export function availableUpgrades(
     }
   }
   return out;
+}
+
+/** How many different items the build carries (each takes one of the MAX_ITEMS slots). */
+export function ownedItemCount(loadout: Loadout): number {
+  return Object.values(loadout.passives).filter((level) => (level ?? 0) > 0).length;
 }
 
 /** Draws up to `count` distinct upgrades from `pool`, weighted, without replacement. */
@@ -211,7 +218,11 @@ export function applyUpgrade(loadout: Loadout, option: UpgradeOption): Loadout {
   }
 }
 
-export function describeUpgrade(option: UpgradeOption): UpgradeCard {
+/**
+ * The card for an upgrade. With the current `loadout`, a new item's badge says which of the MAX_ITEMS
+ * slots it takes, so the choice shows that slots run out.
+ */
+export function describeUpgrade(option: UpgradeOption, loadout?: Loadout): UpgradeCard {
   switch (option.kind) {
     case 'weapon': {
       const def = WEAPONS[option.id];
@@ -230,7 +241,11 @@ export function describeUpgrade(option: UpgradeOption): UpgradeCard {
       const isNew = option.toLevel === 1;
       return {
         title: def.name,
-        badge: isNew ? 'NEW ITEM' : `ITEM · LEVEL ${option.toLevel}`,
+        badge: isNew
+          ? loadout
+            ? `NEW ITEM · SLOT ${ownedItemCount(loadout) + 1}/${MAX_ITEMS}`
+            : 'NEW ITEM'
+          : `ITEM · LEVEL ${option.toLevel}`,
         text: def.description,
         texture: def.texture,
         rarity: def.rarity,

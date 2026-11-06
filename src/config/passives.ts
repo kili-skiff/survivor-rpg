@@ -31,6 +31,13 @@ export const BASE_PLAYER_STATS: PlayerStats = {
   emberGain: 1,
 };
 
+/**
+ * How many different items a run can carry. Once all slots are taken, cards only raise the items you
+ * have; when those are maxed too, one-time cards (boons) and chest embers make up for it. Like the six
+ * passive slots in Vampire Survivors: a build means choosing, not collecting everything.
+ */
+export const MAX_ITEMS = 6;
+
 export const PASSIVES: Record<PassiveId, PassiveDef> = {
   vitality: {
     id: 'vitality',
@@ -105,7 +112,7 @@ export const PASSIVES: Record<PassiveId, PassiveDef> = {
     maxLevel: 5,
     perLevel: { light: 0.15 },
   },
-  // Items below are meant for wild builds: there is no limit on how many you carry, and they stack.
+  // Items below are meant for wild builds: they stack and combine, within the MAX_ITEMS slots.
   reach: {
     id: 'reach',
     name: 'Far Reach',
